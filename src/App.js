@@ -1,15 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
+import BalanceSheet from './components/BalanceSheet';
+import TDSReconciliation from './components/TDSReconciliation';
+import GSTReconciliation from './components/GSTReconciliation';
+import CreditNote from './components/CreditNote';
+import GSTInvoice from './components/GSTInvoice';
+import SalesEntry from './components/SalesEntry';
+import Sidebar from './components/Sidebar';
 
 function App() {
+  const [activeForm, setActiveForm] = useState('balanceSheet');
+
+  const renderActiveForm = () => {
+    switch(activeForm) {
+      case 'balanceSheet':
+        return <BalanceSheet />;
+      case 'tdsReconciliation':
+        return <TDSReconciliation />;
+      case 'gstReconciliation':
+        return <GSTReconciliation />;
+      case 'creditNote':
+        return <CreditNote />;
+      case 'gstInvoice':
+        return <GSTInvoice />;
+      case 'salesEntry':
+        return <SalesEntry />;
+      default:
+        return <BalanceSheet />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-blue-600 mb-4">
-          Accounting Management
-        </h1>
-        <p className="text-gray-600">
-          React.js with Tailwind CSS setup complete!
-        </p>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar activeForm={activeForm} setActiveForm={setActiveForm} />
+      <div className="flex-1 p-8">
+        {renderActiveForm()}
       </div>
     </div>
   );
