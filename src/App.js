@@ -1,44 +1,39 @@
 import React, { useState } from 'react';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
-import Dashboard from './components/Dashboard';
-import AccountsReceivable from './components/AccountsReceivable';
-import AccountsPayable from './components/AccountsPayable';
-import BankReconciliation from './components/BankReconciliation';
-import AssetsManagement from './components/AssetsManagement';
+import BalanceSheet from './components/BalanceSheet';
+import TDSReconciliation from './components/TDSReconciliation';
+import GSTReconciliation from './components/GSTReconciliation';
+import CreditNote from './components/CreditNote';
+import GSTInvoice from './components/GSTInvoice';
+import SalesEntry from './components/SalesEntry';
+import Sidebar from './components/Sidebar';
 
 function App() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activePage, setActivePage] = useState('Assets');
+  const [activeForm, setActiveForm] = useState('balanceSheet');
 
-  const renderPage = () => {
-    switch(activePage) {
-      case 'Account Receivble':
-        return <AccountsReceivable />;
-      case 'Accounts Payable':
-        return <AccountsPayable />;
-      case 'Bank':
-        return <BankReconciliation />;
-      case 'Assets':
-        return <AssetsManagement />;
+  const renderActiveForm = () => {
+    switch(activeForm) {
+      case 'balanceSheet':
+        return <BalanceSheet />;
+      case 'tdsReconciliation':
+        return <TDSReconciliation />;
+      case 'gstReconciliation':
+        return <GSTReconciliation />;
+      case 'creditNote':
+        return <CreditNote />;
+      case 'gstInvoice':
+        return <GSTInvoice />;
+      case 'salesEntry':
+        return <SalesEntry />;
       default:
-        return <Dashboard />;
+        return <BalanceSheet />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 font-inter">
-      <Sidebar 
-        isCollapsed={sidebarCollapsed} 
-        setIsCollapsed={setSidebarCollapsed}
-        activePage={activePage}
-        setActivePage={setActivePage}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto">
-          {renderPage()}
-        </main>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar activeForm={activeForm} setActiveForm={setActiveForm} />
+      <div className="flex-1 p-8">
+        {renderActiveForm()}
       </div>
     </div>
   );
