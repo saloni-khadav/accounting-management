@@ -1,27 +1,56 @@
 import React from 'react';
+import { DollarSign, FileText, AlertTriangle, Calendar } from 'lucide-react';
 
 const TDSReconciliation = () => (
   <div className="bg-white p-8 rounded-lg shadow-sm">
     <h1 className="text-3xl font-semibold text-gray-800 mb-8">TDS Reconciliation</h1>
     
-    <div className="grid grid-cols-4 gap-6 mb-8">
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="text-sm text-gray-600 mb-1">TDS Amount</div>
-        <div className="text-sm text-gray-600 mb-2">(This Month)</div>
-        <div className="text-2xl font-semibold">₹ 55,800</div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 mb-1">TDS Amount</p>
+            <p className="text-xs text-gray-500 mb-1">(This Month)</p>
+            <p className="text-2xl font-bold text-gray-900">₹ 55,800</p>
+          </div>
+          <div className="p-3 rounded-lg text-green-600 bg-green-50">
+            <DollarSign size={24} />
+          </div>
+        </div>
       </div>
-      <div className="bg-gray-50 p-4 rounded-lg text-center">
-        <div className="text-sm text-gray-600 mb-2">Invoices with TDS</div>
-        <div className="text-3xl font-semibold">125</div>
+      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 mb-1">Invoices with TDS</p>
+            <p className="text-2xl font-bold text-gray-900">125</p>
+          </div>
+          <div className="p-3 rounded-lg text-blue-600 bg-blue-50">
+            <FileText size={24} />
+          </div>
+        </div>
       </div>
-      <div className="bg-gray-50 p-4 rounded-lg text-center">
-        <div className="text-sm text-gray-600 mb-2">Not Deducted</div>
-        <div className="text-sm text-gray-600 mb-2">Where Applicable</div>
-        <div className="text-2xl font-semibold text-red-500">15</div>
+      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 mb-1">Not Deducted</p>
+            <p className="text-xs text-gray-500 mb-1">Where Applicable</p>
+            <p className="text-2xl font-bold text-red-600">15</p>
+          </div>
+          <div className="p-3 rounded-lg text-red-600 bg-red-50">
+            <AlertTriangle size={24} />
+          </div>
+        </div>
       </div>
-      <div className="bg-gray-50 p-4 rounded-lg text-center">
-        <div className="text-sm text-gray-600 mb-2">Due Date</div>
-        <div className="text-xl font-semibold">07/07/2023</div>
+      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 mb-1">Due Date</p>
+            <p className="text-xl font-bold text-gray-900">07/07/2023</p>
+          </div>
+          <div className="p-3 rounded-lg text-purple-600 bg-purple-50">
+            <Calendar size={24} />
+          </div>
+        </div>
       </div>
     </div>
 
