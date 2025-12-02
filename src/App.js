@@ -1,39 +1,64 @@
 import React, { useState } from 'react';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import Dashboard from './components/Dashboard';
+import AccountsReceivable from './components/AccountsReceivable';
+import AccountsPayable from './components/AccountsPayable';
+import BankReconciliation from './components/BankReconciliation';
+import AssetsManagement from './components/AssetsManagement';
 import BalanceSheet from './components/BalanceSheet';
 import TDSReconciliation from './components/TDSReconciliation';
 import GSTReconciliation from './components/GSTReconciliation';
+import SalesEntry from './components/SalesEntry';
 import CreditNote from './components/CreditNote';
 import GSTInvoice from './components/GSTInvoice';
-import SalesEntry from './components/SalesEntry';
-import Sidebar from './components/Sidebar';
 
 function App() {
-  const [activeForm, setActiveForm] = useState('balanceSheet');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activePage, setActivePage] = useState('dashboard');
 
-  const renderActiveForm = () => {
-    switch(activeForm) {
-      case 'balanceSheet':
-        return <BalanceSheet />;
-      case 'tdsReconciliation':
+  const renderPage = () => {
+    switch(activePage) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'Account Receivable':
+        return <AccountsReceivable />;
+      case 'Accounts Payable':
+        return <AccountsPayable />;
+      case 'Bank':
+        return <BankReconciliation />;
+      case 'Taxation':
         return <TDSReconciliation />;
-      case 'gstReconciliation':
-        return <GSTReconciliation />;
-      case 'creditNote':
-        return <CreditNote />;
-      case 'gstInvoice':
-        return <GSTInvoice />;
-      case 'salesEntry':
-        return <SalesEntry />;
-      default:
+      case 'Assets':
+        return <AssetsManagement />;
+      case 'Balance Sheet':
         return <BalanceSheet />;
+      case 'GST Reconciliation':
+        return <GSTReconciliation />;
+      case 'Sales Entry':
+        return <SalesEntry />;
+      case 'Credit Note':
+        return <CreditNote />;
+      case 'GST Invoice':
+        return <GSTInvoice />;
+      default:
+        return <Dashboard />;
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar activeForm={activeForm} setActiveForm={setActiveForm} />
-      <div className="flex-1 p-8">
-        {renderActiveForm()}
+    <div className="flex h-screen bg-gray-50 font-inter">
+      <Sidebar 
+        isCollapsed={sidebarCollapsed} 
+        setIsCollapsed={setSidebarCollapsed}
+        activePage={activePage}
+        setActivePage={setActivePage}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto">
+          {renderPage()}
+        </main>
       </div>
     </div>
   );
