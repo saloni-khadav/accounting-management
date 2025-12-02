@@ -36,7 +36,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold">AccountPro</h1>
+            <h1 className="text-xl font-bold">Accounting</h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
