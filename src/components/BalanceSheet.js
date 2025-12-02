@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Menu } from 'lucide-react';
+import { ChevronDown, Menu, Building, CreditCard, PieChart, TrendingUp } from 'lucide-react';
 
 const BalanceSheet = () => {
   return (
@@ -22,22 +22,50 @@ const BalanceSheet = () => {
 
       {/* Summary Cards */}
       <div className="p-4 md:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-sm text-gray-600 mb-2">Total Assets</div>
-            <div className="text-2xl font-bold text-gray-900">₹8,200,000</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Assets</p>
+                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹8,200,000</p>
+              </div>
+              <div className="p-2 sm:p-3 rounded-lg text-blue-600 bg-blue-50 flex-shrink-0">
+                <Building className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-sm text-gray-600 mb-2">Total Liabilities</div>
-            <div className="text-2xl font-bold text-gray-900">₹4,000,000</div>
+          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Liabilities</p>
+                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,000,000</p>
+              </div>
+              <div className="p-2 sm:p-3 rounded-lg text-red-600 bg-red-50 flex-shrink-0">
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-sm text-gray-600 mb-2">Equity</div>
-            <div className="text-2xl font-bold text-gray-900">₹4,200,000</div>
+          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Equity</p>
+                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,200,000</p>
+              </div>
+              <div className="p-2 sm:p-3 rounded-lg text-green-600 bg-green-50 flex-shrink-0">
+                <PieChart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-sm text-gray-600 mb-2">Current Ratio</div>
-            <div className="text-2xl font-bold text-gray-900">1.80</div>
+          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Current Ratio</p>
+                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">1.80</p>
+              </div>
+              <div className="p-2 sm:p-3 rounded-lg text-purple-600 bg-purple-50 flex-shrink-0">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              </div>
+            </div>
           </div>
         </div>
 
