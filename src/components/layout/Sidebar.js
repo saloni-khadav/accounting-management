@@ -18,12 +18,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
 
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'Account Receivble', icon: Receipt, label: 'Account Receivable' },
+    { id: 'Account Receivable', icon: Receipt, label: 'Account Receivable' },
     { id: 'Accounts Payable', icon: CreditCard, label: 'Accounts Payable' },
     { id: 'Bank', icon: Wallet, label: 'Bank' },
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
+    { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
+    { id: 'Sales Entry', icon: Users, label: 'Sales Entry' },
+    { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
+    { id: 'GST Invoice', icon: Receipt, label: 'GST Invoice' },
   ];
 
   return (
