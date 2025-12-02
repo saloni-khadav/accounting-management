@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import LandingPage from './components/LandingPage';
+import Login from './components/Login';
+import Signup from './components/Signup';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/Dashboard';
@@ -14,6 +17,7 @@ import CreditNote from './components/CreditNote';
 import GSTInvoice from './components/GSTInvoice';
 
 function App() {
+  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
 
@@ -46,6 +50,32 @@ function App() {
     }
   };
 
+  // Render based on current view
+  if (currentView === 'landing') {
+    return <LandingPage onGetStarted={() => setCurrentView('login')} />;
+  }
+
+  if (currentView === 'login') {
+    return (
+      <Login 
+        onLogin={() => setCurrentView('dashboard')}
+        onSwitchToSignup={() => setCurrentView('signup')}
+        onBackToLanding={() => setCurrentView('landing')}
+      />
+    );
+  }
+
+  if (currentView === 'signup') {
+    return (
+      <Signup 
+        onSignup={() => setCurrentView('dashboard')}
+        onSwitchToLogin={() => setCurrentView('login')}
+        onBackToLanding={() => setCurrentView('landing')}
+      />
+    );
+  }
+
+  // Dashboard view
   return (
     <div className="flex h-screen bg-gray-50 font-inter">
       <Sidebar 
