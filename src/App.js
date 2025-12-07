@@ -25,6 +25,13 @@ import DebtorsAging from './components/DebtorsAging';
 import CollectionRegister from './components/CollectionRegister';
 import ClientMaster from './components/ClientMaster';
 import ARReconciliation from './components/ARReconciliation';
+import Bills from './components/Bills';
+import CreditDebitNotes from './components/CreditDebitNotes';
+import Payments from './components/Payments';
+import PurchaseOrders from './components/PurchaseOrders';
+import TDSPurchases from './components/TDSPurchases';
+import VendorsAging from './components/VendorsAging';
+import VendorMaster from './components/VendorMaster';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
@@ -75,6 +82,20 @@ function App() {
         return <ClientMaster />;
       case 'AR Reconciliation':
         return <ARReconciliation />;
+      case 'Bills':
+        return <Bills />;
+      case 'Credit/Debit Notes':
+        return <CreditDebitNotes />;
+      case 'Payments':
+        return <Payments />;
+      case 'Purchase Orders':
+        return <PurchaseOrders />;
+      case 'TDS on Purchases':
+        return <TDSPurchases />;
+      case 'Vendors Aging':
+        return <VendorsAging />;
+      case 'Vendor Master':
+        return <VendorMaster />;
       default:
         return <Dashboard />;
     }

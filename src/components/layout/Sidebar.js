@@ -26,6 +26,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       label: 'Accounts Payable',
       submenu: [
         { id: 'Accounts Payable', label: 'Overview' },
+        { id: 'Bills', label: 'Bills' },
+        { id: 'Payments', label: 'Payments' },
+        { id: 'Purchase Orders', label: 'Purchase Orders' },
+        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes' },
+        { id: 'TDS on Purchases', label: 'TDS on Purchases' },
+        { id: 'Vendors Aging', label: 'Vendors Aging' },
+        { id: 'Vendor Master', label: 'Vendor Master' },
         { id: 'AP Reconciliation', label: 'AP Reconciliation' },
         { id: 'AP Report', label: 'AP Report' },
         { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
