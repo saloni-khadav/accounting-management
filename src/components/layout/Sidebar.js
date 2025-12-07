@@ -11,21 +11,32 @@ import {
   CreditCard,
   Wallet,
   TrendingUp,
-  Calculator
+  Calculator,
+  ChevronDown
 } from 'lucide-react';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
+  const [isReceivableOpen, setIsReceivableOpen] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'Account Receivable', icon: Receipt, label: 'Account Receivable' },
     { id: 'Accounts Payable', icon: CreditCard, label: 'Accounts Payable' },
     { id: 'Bank', icon: Wallet, label: 'Bank' },
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
+  ];
+
+  const receivableItems = [
+    { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'Client Master', icon: Users, label: 'Client Master' },
+    { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
     { id: 'Sales Entry', icon: Users, label: 'Sales Entry' },
+    { id: 'Create PO', icon: FileText, label: 'Create PO' },
+    { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
+    { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
+    { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
     { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
     { id: 'GST Invoice', icon: Receipt, label: 'GST Invoice' },
   ];
@@ -50,6 +61,70 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       {/* Menu Items */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
+          {/* Dashboard */}
+          <li>
+            <button
+              onClick={() => setActivePage('dashboard')}
+              className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                activePage === 'dashboard'
+                  ? 'bg-sidebar-active text-white'
+                  : 'hover:bg-sidebar-hover'
+              }`}
+            >
+              <LayoutDashboard size={20} />
+              {!isCollapsed && (
+                <span className="ml-3 font-medium">Dashboard</span>
+              )}
+            </button>
+          </li>
+          
+          {/* Account Receivable with Submenu */}
+          <li>
+            <button
+              onClick={() => {
+                setActivePage('Account Receivable');
+                setIsReceivableOpen(!isReceivableOpen);
+              }}
+              className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                activePage === 'Account Receivable'
+                  ? 'bg-sidebar-active text-white'
+                  : 'hover:bg-sidebar-hover'
+              }`}
+            >
+              <Receipt size={20} />
+              {!isCollapsed && (
+                <>
+                  <span className="ml-3 font-medium flex-1 text-left">Account Receivable</span>
+                  <ChevronDown size={16} className={`transition-transform ${isReceivableOpen ? 'rotate-180' : ''}`} />
+                </>
+              )}
+            </button>
+            
+            {isReceivableOpen && !isCollapsed && (
+              <ul className="ml-8 mt-1 space-y-1">
+                {receivableItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setActivePage(item.id)}
+                        className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                          activePage === item.id
+                            ? 'bg-sidebar-active text-white'
+                            : 'hover:bg-sidebar-hover'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span className="ml-2">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+          
+          {/* Other Menu Items */}
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (

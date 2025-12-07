@@ -6,6 +6,7 @@ import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/Dashboard';
 import AccountsReceivable from './components/AccountsReceivable';
+import AccountReceivableDashboard from './components/AccountReceivableDashboard';
 import AccountsPayable from './components/AccountsPayable';
 import BankReconciliation from './components/BankReconciliation';
 import AssetsManagement from './components/AssetsManagement';
@@ -15,6 +16,12 @@ import GSTReconciliation from './components/GSTReconciliation';
 import SalesEntry from './components/SalesEntry';
 import CreditNote from './components/CreditNote';
 import GSTInvoice from './components/GSTInvoice';
+import CreatePO from './components/CreatePO';
+import ClientOutstanding from './components/ClientOutstanding';
+import DebtorsAging from './components/DebtorsAging';
+import CollectionRegister from './components/CollectionRegister';
+import ClientMaster from './components/ClientMaster';
+import ARReconciliation from './components/ARReconciliation';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
@@ -27,6 +34,8 @@ function App() {
         return <Dashboard />;
       case 'Account Receivable':
         return <AccountsReceivable />;
+      case 'AR Dashboard':
+        return <AccountReceivableDashboard />;
       case 'Accounts Payable':
         return <AccountsPayable />;
       case 'Bank':
@@ -41,10 +50,22 @@ function App() {
         return <GSTReconciliation />;
       case 'Sales Entry':
         return <SalesEntry />;
+      case 'Create PO':
+        return <CreatePO />;
       case 'Credit Note':
         return <CreditNote />;
       case 'GST Invoice':
         return <GSTInvoice />;
+      case 'Client Outstanding':
+        return <ClientOutstanding />;
+      case 'Debtors Aging':
+        return <DebtorsAging />;
+      case 'Collection Register':
+        return <CollectionRegister />;
+      case 'Client Master':
+        return <ClientMaster />;
+      case 'AR Reconciliation':
+        return <ARReconciliation />;
       default:
         return <Dashboard />;
     }
