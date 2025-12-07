@@ -8,6 +8,9 @@ import Dashboard from './components/Dashboard';
 import AccountsReceivable from './components/AccountsReceivable';
 import AccountReceivableDashboard from './components/AccountReceivableDashboard';
 import AccountsPayable from './components/AccountsPayable';
+import APReconciliation from './components/APReconciliation';
+import APReport from './components/APReport';
+import ApprovalsWorkflows from './components/ApprovalsWorkflows';
 import BankReconciliation from './components/BankReconciliation';
 import AssetsManagement from './components/AssetsManagement';
 import BalanceSheet from './components/BalanceSheet';
@@ -38,6 +41,12 @@ function App() {
         return <AccountReceivableDashboard />;
       case 'Accounts Payable':
         return <AccountsPayable />;
+      case 'AP Reconciliation':
+        return <APReconciliation />;
+      case 'AP Report':
+        return <APReport />;
+      case 'Approvals & Workflows':
+        return <ApprovalsWorkflows />;
       case 'Bank':
         return <BankReconciliation />;
       case 'Taxation':

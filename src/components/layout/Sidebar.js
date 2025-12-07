@@ -17,10 +17,20 @@ import {
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [isReceivableOpen, setIsReceivableOpen] = useState(false);
+  const [expandedMenu, setExpandedMenu] = useState(null);
 
   const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'Accounts Payable', icon: CreditCard, label: 'Accounts Payable' },
+    { 
+      id: 'Accounts Payable', 
+      icon: CreditCard, 
+      label: 'Accounts Payable',
+      submenu: [
+        { id: 'Accounts Payable', label: 'Overview' },
+        { id: 'AP Reconciliation', label: 'AP Reconciliation' },
+        { id: 'AP Report', label: 'AP Report' },
+        { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
+      ]
+    },
     { id: 'Bank', icon: Wallet, label: 'Bank' },
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
@@ -47,7 +57,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold">AccountPro</h1>
+            <h1 className="text-xl font-bold">Accounting</h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -130,18 +140,47 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => setActivePage(item.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                  onClick={() => {
+                    if (item.submenu) {
+                      setExpandedMenu(expandedMenu === item.id ? null : item.id);
+                    } else {
+                      setActivePage(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                     activePage === item.id
                       ? 'bg-sidebar-active text-white'
                       : 'hover:bg-sidebar-hover'
                   }`}
                 >
-                  <Icon size={20} />
-                  {!isCollapsed && (
-                    <span className="ml-3 font-medium">{item.label}</span>
+                  <div className="flex items-center">
+                    <Icon size={20} />
+                    {!isCollapsed && (
+                      <span className="ml-3 font-medium">{item.label}</span>
+                    )}
+                  </div>
+                  {!isCollapsed && item.submenu && (
+                    <ChevronRight size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-90' : ''}`} />
                   )}
                 </button>
+                {!isCollapsed && item.submenu && expandedMenu === item.id && (
+                  <ul className="ml-8 mt-2 space-y-1">
+                    {item.submenu.map((subItem) => (
+                      <li key={subItem.id}>
+                        <button
+                          onClick={() => setActivePage(subItem.id)}
+                          className={`w-full text-left p-2 rounded-lg transition-colors text-sm ${
+                            activePage === subItem.id
+                              ? 'bg-sidebar-active text-white'
+                              : 'hover:bg-sidebar-hover'
+                          }`}
+                        >
+                          {subItem.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}
