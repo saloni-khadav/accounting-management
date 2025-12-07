@@ -11,21 +11,42 @@ import {
   CreditCard,
   Wallet,
   TrendingUp,
-  Calculator
+  Calculator,
+  ChevronDown
 } from 'lucide-react';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
+  const [isReceivableOpen, setIsReceivableOpen] = useState(false);
+  const [expandedMenu, setExpandedMenu] = useState(null);
 
   const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'Account Receivable', icon: Receipt, label: 'Account Receivable' },
-    { id: 'Accounts Payable', icon: CreditCard, label: 'Accounts Payable' },
+    { 
+      id: 'Accounts Payable', 
+      icon: CreditCard, 
+      label: 'Accounts Payable',
+      submenu: [
+        { id: 'Accounts Payable', label: 'Overview' },
+        { id: 'AP Reconciliation', label: 'AP Reconciliation' },
+        { id: 'AP Report', label: 'AP Report' },
+        { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
+      ]
+    },
     { id: 'Bank', icon: Wallet, label: 'Bank' },
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
+  ];
+
+  const receivableItems = [
+    { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'Client Master', icon: Users, label: 'Client Master' },
+    { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
     { id: 'Sales Entry', icon: Users, label: 'Sales Entry' },
+    { id: 'Create PO', icon: FileText, label: 'Create PO' },
+    { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
+    { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
+    { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
     { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
     { id: 'GST Invoice', icon: Receipt, label: 'GST Invoice' },
   ];
@@ -36,7 +57,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold">AccountPro</h1>
+            <h1 className="text-xl font-bold">Accounting</h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -50,23 +71,116 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       {/* Menu Items */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
+          {/* Dashboard */}
+          <li>
+            <button
+              onClick={() => setActivePage('dashboard')}
+              className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                activePage === 'dashboard'
+                  ? 'bg-sidebar-active text-white'
+                  : 'hover:bg-sidebar-hover'
+              }`}
+            >
+              <LayoutDashboard size={20} />
+              {!isCollapsed && (
+                <span className="ml-3 font-medium">Dashboard</span>
+              )}
+            </button>
+          </li>
+          
+          {/* Account Receivable with Submenu */}
+          <li>
+            <button
+              onClick={() => {
+                setActivePage('Account Receivable');
+                setIsReceivableOpen(!isReceivableOpen);
+              }}
+              className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                activePage === 'Account Receivable'
+                  ? 'bg-sidebar-active text-white'
+                  : 'hover:bg-sidebar-hover'
+              }`}
+            >
+              <Receipt size={20} />
+              {!isCollapsed && (
+                <>
+                  <span className="ml-3 font-medium flex-1 text-left">Account Receivable</span>
+                  <ChevronDown size={16} className={`transition-transform ${isReceivableOpen ? 'rotate-180' : ''}`} />
+                </>
+              )}
+            </button>
+            
+            {isReceivableOpen && !isCollapsed && (
+              <ul className="ml-8 mt-1 space-y-1">
+                {receivableItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setActivePage(item.id)}
+                        className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                          activePage === item.id
+                            ? 'bg-sidebar-active text-white'
+                            : 'hover:bg-sidebar-hover'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span className="ml-2">{item.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+          
+          {/* Other Menu Items */}
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => setActivePage(item.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                  onClick={() => {
+                    if (item.submenu) {
+                      setExpandedMenu(expandedMenu === item.id ? null : item.id);
+                    } else {
+                      setActivePage(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                     activePage === item.id
                       ? 'bg-sidebar-active text-white'
                       : 'hover:bg-sidebar-hover'
                   }`}
                 >
-                  <Icon size={20} />
-                  {!isCollapsed && (
-                    <span className="ml-3 font-medium">{item.label}</span>
+                  <div className="flex items-center">
+                    <Icon size={20} />
+                    {!isCollapsed && (
+                      <span className="ml-3 font-medium">{item.label}</span>
+                    )}
+                  </div>
+                  {!isCollapsed && item.submenu && (
+                    <ChevronRight size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-90' : ''}`} />
                   )}
                 </button>
+                {!isCollapsed && item.submenu && expandedMenu === item.id && (
+                  <ul className="ml-8 mt-2 space-y-1">
+                    {item.submenu.map((subItem) => (
+                      <li key={subItem.id}>
+                        <button
+                          onClick={() => setActivePage(subItem.id)}
+                          className={`w-full text-left p-2 rounded-lg transition-colors text-sm ${
+                            activePage === subItem.id
+                              ? 'bg-sidebar-active text-white'
+                              : 'hover:bg-sidebar-hover'
+                          }`}
+                        >
+                          {subItem.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}
