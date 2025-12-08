@@ -101,6 +101,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
               onClick={() => {
                 setActivePage('Account Receivable');
                 setIsReceivableOpen(!isReceivableOpen);
+                setExpandedMenu(null);
               }}
               className={`w-full flex items-center p-3 rounded-lg transition-colors ${
                 activePage === 'Account Receivable'
@@ -150,6 +151,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                   onClick={() => {
                     if (item.submenu) {
                       setExpandedMenu(expandedMenu === item.id ? null : item.id);
+                      setIsReceivableOpen(false);
                     } else {
                       setActivePage(item.id);
                     }
