@@ -18,6 +18,7 @@ import {
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [isReceivableOpen, setIsReceivableOpen] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [isBankOpen, setIsBankOpen] = useState(false);
 
   const menuItems = [
     { 
@@ -38,7 +39,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
         { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
       ]
     },
-    { id: 'Bank', icon: Wallet, label: 'Bank' },
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
@@ -142,6 +142,74 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
             )}
           </li>
           
+          {/* Bank with Submenu */}
+          <li>
+            <button
+              onClick={() => {
+                setIsBankOpen(!isBankOpen);
+                setIsReceivableOpen(false);
+                setExpandedMenu(null);
+              }}
+              className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                activePage === 'Bank Dashboard'
+                  ? 'bg-sidebar-active text-white'
+                  : 'hover:bg-sidebar-hover'
+              }`}
+            >
+              <Wallet size={20} />
+              {!isCollapsed && (
+                <>
+                  <span className="ml-3 font-medium flex-1 text-left">Bank</span>
+                  <ChevronDown size={16} className={`transition-transform ${isBankOpen ? 'rotate-180' : ''}`} />
+                </>
+              )}
+            </button>
+            
+            {isBankOpen && !isCollapsed && (
+              <ul className="ml-8 mt-1 space-y-1">
+                <li>
+                  <button
+                    onClick={() => setActivePage('Bank Dashboard')}
+                    className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                      activePage === 'Bank Dashboard'
+                        ? 'bg-sidebar-active text-white'
+                        : 'hover:bg-sidebar-hover'
+                    }`}
+                  >
+                    <LayoutDashboard size={16} />
+                    <span className="ml-2">Dashboard</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setActivePage('Bank Reconciliation')}
+                    className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                      activePage === 'Bank Reconciliation'
+                        ? 'bg-sidebar-active text-white'
+                        : 'hover:bg-sidebar-hover'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    <span className="ml-2">Reconciliation</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setActivePage('Bank Statement Upload')}
+                    className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                      activePage === 'Bank Statement Upload'
+                        ? 'bg-sidebar-active text-white'
+                        : 'hover:bg-sidebar-hover'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    <span className="ml-2">Statement Upload</span>
+                  </button>
+                </li>
+              </ul>
+            )}
+          </li>
+          
           {/* Other Menu Items */}
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -152,6 +220,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     if (item.submenu) {
                       setExpandedMenu(expandedMenu === item.id ? null : item.id);
                       setIsReceivableOpen(false);
+                      setIsBankOpen(false);
                     } else {
                       setActivePage(item.id);
                     }
