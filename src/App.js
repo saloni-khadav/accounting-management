@@ -18,6 +18,8 @@ import AssetsManagement from './components/AssetsManagement';
 import BalanceSheet from './components/BalanceSheet';
 import TDSReconciliation from './components/TDSReconciliation';
 import GSTReconciliation from './components/GSTReconciliation';
+import GSTDashboard from './components/GSTDashboard';
+import TaxReport from './components/TaxReport';
 import SalesEntry from './components/SalesEntry';
 import CreditNote from './components/CreditNote';
 import GSTInvoice from './components/GSTInvoice';
@@ -66,6 +68,10 @@ function App() {
         return <BankStatementUpload />;
       case 'Taxation':
         return <TDSReconciliation />;
+      case 'GST Dashboard':
+        return <GSTDashboard />;
+      case 'Tax Report':
+        return <TaxReport />;
       case 'Assets':
         return <AssetsManagement />;
       case 'Balance Sheet':
