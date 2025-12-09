@@ -4,37 +4,37 @@ import { BarChart3, ArrowRight, CheckCircle, TrendingUp, Users, Calculator, Shie
 const LandingPage = ({ onGetStarted }) => {
   const features = [
     {
-      icon: '/dashboard.jpg',
+      icon: '/smart-dashboard.jpg',
       title: 'Smart Dashboard',
       description: 'Get real-time insights into your financial performance with intuitive charts and metrics',
       color: 'bg-blue-50 border-blue-200'
     },
     {
-      icon: '/dash.jpg',
+      icon: '/account-management.webp',
       title: 'Account Management',
       description: 'Organize and track all your business accounts with automated categorization',
       color: 'bg-green-50 border-green-200'
     },
     {
-      icon: '/report.jpg',
+      icon: '/professional-reports.jpeg',
       title: 'Professional Reports',
       description: 'Generate comprehensive financial reports with just one click',
       color: 'bg-purple-50 border-purple-200'
     },
     {
-      icon: '/secure.jpg',
+      icon: '/secure and reliable.jpeg',
       title: 'Secure & Reliable',
       description: 'Bank-level security with automated backups and data protection',
       color: 'bg-orange-50 border-orange-200'
     },
     {
-      icon: '/mobile.jpeg',
+      icon: '/mobile-ready.jpeg',
       title: 'Mobile Ready',
       description: 'Access your accounts anywhere with our responsive design',
       color: 'bg-indigo-50 border-indigo-200'
     },
     {
-      icon: '/fast.jpg',
+      icon: '/fast and efficient.jpeg',
       title: 'Fast & Efficient',
       description: 'Lightning-fast performance with cloud-based infrastructure',
       color: 'bg-yellow-50 border-yellow-200'
@@ -167,7 +167,7 @@ const LandingPage = ({ onGetStarted }) => {
               <div key={index} className={`p-8 bg-white rounded-2xl shadow-sm border-2 ${feature.color} hover:shadow-lg transition-all duration-300 hover:-translate-y-2`}>
                 <div className="mb-4">
                   {feature.icon.startsWith('/') ? (
-                    <img src={feature.icon} alt={feature.title} className="w-full h-32 object-contain rounded-lg" />
+                    <img src={feature.icon} alt={feature.title} className="w-full h-48 object-cover rounded-lg" />
                   ) : (
                     <div className="text-4xl">{feature.icon}</div>
                   )}

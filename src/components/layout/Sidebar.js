@@ -39,7 +39,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
         { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
       ]
     },
+<<<<<<< HEAD
     { id: 'Taxation', icon: Calculator, label: 'Taxation' },
+=======
+    { id: 'Bank', icon: Wallet, label: 'Bank' },
+    { 
+      id: 'Taxation', 
+      icon: Calculator, 
+      label: 'Taxation',
+      submenu: [
+        { id: 'Taxation', label: 'TDS Reconciliation' },
+        { id: 'GST Dashboard', label: 'GST Dashboard' },
+        { id: 'Tax Report', label: 'Tax Report' }
+      ]
+    },
+>>>>>>> saloni_dev
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
