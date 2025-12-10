@@ -12,6 +12,8 @@ import APReconciliation from './components/APReconciliation';
 import APReport from './components/APReport';
 import ApprovalsWorkflows from './components/ApprovalsWorkflows';
 import BankReconciliation from './components/BankReconciliation';
+import BankDashboard from './components/BankDashboard';
+import BankStatementUpload from './components/BankStatementUpload';
 import AssetsManagement from './components/AssetsManagement';
 import BalanceSheet from './components/BalanceSheet';
 import TDSReconciliation from './components/TDSReconciliation';
@@ -57,7 +59,13 @@ function App() {
       case 'Approvals & Workflows':
         return <ApprovalsWorkflows />;
       case 'Bank':
+        return <BankDashboard />;
+      case 'Bank Dashboard':
+        return <BankDashboard />;
+      case 'Bank Reconciliation':
         return <BankReconciliation />;
+      case 'Bank Statement Upload':
+        return <BankStatementUpload />;
       case 'Taxation':
         return <TDSReconciliation />;
       case 'GST Dashboard':

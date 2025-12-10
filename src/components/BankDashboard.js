@@ -1,0 +1,178 @@
+import React from 'react';
+import { Plus, FileText, Upload } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+const BankDashboard = () => {
+  const inflowOutflowData = [
+    { month: 'May', inflow: 1.5, outflow: 0.8 },
+    { month: 'Jun', inflow: 1.2, outflow: 1.0 },
+    { month: 'Jul', inflow: 1.8, outflow: 0.6 },
+    { month: 'Aug', inflow: 2.5, outflow: 0.5 },
+    { month: 'Sep', inflow: 2.2, outflow: 1.2 },
+    { month: 'Oct', inflow: 1.8, outflow: 0.8 },
+    { month: 'Nov', inflow: 2.3, outflow: 1.0 },
+    { month: 'Apr', inflow: 2.6, outflow: 0.9 },
+  ];
+
+  const cashFlowData = [
+    { day: 1, value: 5 },
+    { day: 2, value: 3.5 },
+    { day: 3, value: 4 },
+    { day: 4, value: 5.5 },
+    { day: 5, value: 4.5 },
+    { day: 6, value: 6 },
+    { day: 7, value: 6.5 },
+  ];
+
+  const reconciliationData = [
+    { name: 'Matched', value: 79, color: '#1e40af' },
+    { name: 'Unmatched', value: 15, color: '#3b82f6' },
+    { name: 'Suggested', value: 6, color: '#93c5fd' },
+  ];
+
+  return (
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-semibold text-gray-900 mb-8">Bank Dashboard</h1>
+
+      {/* Top Metrics */}
+      <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="text-sm text-gray-600 mb-2">Total Bank Balance</div>
+          <div className="text-3xl font-semibold text-gray-900">₹ 5,23,000</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="text-sm text-gray-600 mb-2">Cash Balance</div>
+          <div className="text-3xl font-semibold text-gray-900">₹ 54,000</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="text-sm text-gray-600 mb-2">Uncleared Cheques</div>
+          <div className="text-3xl font-semibold text-gray-900">12</div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-3 gap-6 mb-8">
+        {/* Monthly Bank Inflow vs Outflow */}
+        <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Bank Inflow vs Outflow</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={inflowOutflowData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" stroke="#666" fontSize={12} />
+              <YAxis stroke="#666" fontSize={12} tickFormatter={(value) => `${value} L`} />
+              <Tooltip formatter={(value) => `₹${value}L`} />
+              <Line type="monotone" dataKey="inflow" stroke="#2563eb" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="outflow" stroke="#93c5fd" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Reconciliation Status */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Reconciliation Status</h3>
+          <div className="flex items-center justify-center mb-4">
+            <div className="relative">
+              <PieChart width={200} height={200}>
+                <Pie
+                  data={reconciliationData}
+                  cx={100}
+                  cy={100}
+                  innerRadius={60}
+                  outerRadius={90}
+                  dataKey="value"
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  {reconciliationData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                <div className="text-3xl font-bold text-gray-900">79%</div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {reconciliationData.map((item, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                <span className="text-sm text-gray-700">{item.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Cash Flow Trend */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Cash Flow Trend</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={cashFlowData}>
+              <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="flex justify-between items-center mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+              <span className="text-gray-600">Last 5u days</span>
+            </div>
+            <span className="text-gray-600">Usst 7 Days</span>
+          </div>
+          <div className="flex justify-between items-center mt-2 text-sm">
+            <span className="text-gray-900">7</span>
+            <span className="text-gray-900">Today</span>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                <Plus className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-gray-900">Add Payment</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-gray-900">Add Receipt</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                <Upload className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-gray-900">Upload Bank Statement</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Last 4 Days */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Last 4 Dayags</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-900 font-medium">R$ 4,97,300</span>
+              <span className="text-gray-600">70%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-900 font-medium">R$ 74,000</span>
+              <span className="text-gray-600">15%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-900 font-medium">R$ 57,700</span>
+              <span className="text-gray-600">6%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BankDashboard;
