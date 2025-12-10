@@ -12,7 +12,16 @@ import {
   Wallet,
   TrendingUp,
   Calculator,
-  ChevronDown
+  ChevronDown,
+  ShoppingCart,
+  DollarSign,
+  Building,
+  Percent,
+  FileCheck,
+  UserCheck,
+  Clock,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
@@ -24,17 +33,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: CreditCard, 
       label: 'Accounts Payable',
       submenu: [
-        { id: 'Accounts Payable', label: 'Overview' },
-        { id: 'Bills', label: 'Bills' },
-        { id: 'Payments', label: 'Payments' },
-        { id: 'Purchase Orders', label: 'Purchase Orders' },
-        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes' },
-        { id: 'TDS on Purchases', label: 'TDS on Purchases' },
-        { id: 'Vendors Aging', label: 'Vendors Aging' },
-        { id: 'Vendor Master', label: 'Vendor Master' },
-        { id: 'AP Reconciliation', label: 'AP Reconciliation' },
-        { id: 'AP Report', label: 'AP Report' },
-        { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
+        { id: 'Accounts Payable', label: 'Overview', icon: BarChart3 },
+        { id: 'Bills', label: 'Bills', icon: Receipt },
+        { id: 'Payments', label: 'Payments', icon: DollarSign },
+        { id: 'Purchase Orders', label: 'Purchase Orders', icon: ShoppingCart },
+        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes', icon: FileText },
+        { id: 'TDS on Purchases', label: 'TDS on Purchases', icon: Percent },
+        { id: 'Vendors Aging', label: 'Vendors Aging', icon: Clock },
+        { id: 'Vendor Master', label: 'Vendor Master', icon: Building },
+        { id: 'AP Reconciliation', label: 'AP Reconciliation', icon: FileCheck },
+        { id: 'AP Report', label: 'AP Report', icon: BarChart3 },
+        { id: 'Approvals & Workflows', label: 'Approvals & Workflows', icon: CheckCircle }
       ]
     },
     { 
@@ -42,9 +51,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: Calculator, 
       label: 'Taxation',
       submenu: [
-        { id: 'Taxation', label: 'TDS Reconciliation' },
-        { id: 'GST Dashboard', label: 'GST Dashboard' },
-        { id: 'Tax Report', label: 'Tax Report' }
+        { id: 'Taxation', label: 'TDS Reconciliation', icon: FileCheck },
+        { id: 'GST Dashboard', label: 'GST Dashboard', icon: BarChart3 },
+        { id: 'Tax Report', label: 'Tax Report', icon: FileText }
       ]
     },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
@@ -239,25 +248,29 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     )}
                   </div>
                   {!isCollapsed && item.submenu && (
-                    <ChevronRight size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-90' : ''}`} />
+                    <ChevronDown size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-180' : ''}`} />
                   )}
                 </button>
                 {!isCollapsed && item.submenu && expandedMenu === item.id && (
                   <ul className="ml-8 mt-2 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <li key={subItem.id}>
-                        <button
-                          onClick={() => setActivePage(subItem.id)}
-                          className={`w-full text-left p-2 rounded-lg transition-colors text-sm ${
-                            activePage === subItem.id
-                              ? 'bg-sidebar-active text-white'
-                              : 'hover:bg-sidebar-hover'
-                          }`}
-                        >
-                          {subItem.label}
-                        </button>
-                      </li>
-                    ))}
+                    {item.submenu.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      return (
+                        <li key={subItem.id}>
+                          <button
+                            onClick={() => setActivePage(subItem.id)}
+                            className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                              activePage === subItem.id
+                                ? 'bg-sidebar-active text-white'
+                                : 'hover:bg-sidebar-hover'
+                            }`}
+                          >
+                            {SubIcon && <SubIcon size={16} />}
+                            <span className="ml-2">{subItem.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </li>
