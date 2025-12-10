@@ -36,6 +36,7 @@ import PurchaseOrders from './components/PurchaseOrders';
 import TDSPurchases from './components/TDSPurchases';
 import VendorsAging from './components/VendorsAging';
 import VendorMaster from './components/VendorMaster';
+import ImportExport from './components/ImportExport';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
@@ -110,6 +111,8 @@ function App() {
         return <VendorsAging />;
       case 'Vendor Master':
         return <VendorMaster />;
+      case 'Import/Export':
+        return <ImportExport />;
       default:
         return <Dashboard />;
     }
