@@ -12,7 +12,8 @@ import {
   Wallet,
   TrendingUp,
   Calculator,
-  ChevronDown
+  ChevronDown,
+  Upload
 } from 'lucide-react';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
@@ -50,6 +51,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
+    { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
   ];
 
   const receivableItems = [
