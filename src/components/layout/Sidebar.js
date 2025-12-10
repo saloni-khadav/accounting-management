@@ -13,7 +13,16 @@ import {
   TrendingUp,
   Calculator,
   ChevronDown,
-  Upload
+  Upload,
+  ShoppingCart,
+  DollarSign,
+  Building,
+  Percent,
+  FileCheck,
+  UserCheck,
+  Clock,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
@@ -241,7 +250,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     )}
                   </div>
                   {!isCollapsed && item.submenu && (
-                    <ChevronRight size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-90' : ''}`} />
+                    <ChevronDown size={16} className={`transition-transform ${expandedMenu === item.id ? 'rotate-180' : ''}`} />
                   )}
                 </button>
                 {!isCollapsed && item.submenu && expandedMenu === item.id && (
