@@ -53,13 +53,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       label: 'Taxation',
       submenu: [
         { id: 'Taxation', label: 'TDS Reconciliation' },
+        { id: 'GST Reconciliation', label: 'GST Reconciliation' },
         { id: 'GST Dashboard', label: 'GST Dashboard' },
         { id: 'Tax Report', label: 'Tax Report' }
       ]
     },
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
-    { id: 'GST Reconciliation', icon: FileText, label: 'GST Reconciliation' },
     { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
   ];
 
@@ -94,7 +94,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {/* Dashboard */}
           <li>
