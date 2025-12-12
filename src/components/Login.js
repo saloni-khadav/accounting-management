@@ -8,9 +8,29 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
     password: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin();
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin();
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      alert('Network error. Please check if backend is running.');
+    }
   };
 
   return (
