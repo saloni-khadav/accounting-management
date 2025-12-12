@@ -12,13 +12,43 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.password.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
-    onSignup();
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          company: formData.company,
+          password: formData.password
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        onSignup();
+      } else {
+        alert(data.message || 'Registration failed');
+      }
+    } catch (error) {
+      alert('Network error. Please check if backend is running.');
+    }
   };
 
   return (
@@ -100,7 +130,8 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   className="w-full pl-10 pr-12 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Create a password"
+                  placeholder="Create a password (min 6 characters)"
+                  minLength={6}
                   required
                 />
                 <button
