@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, CheckCircle, Clock } from 'lucide-react';
+import { generateInvoiceNumber } from '../utils/numberGenerator';
+import { clientsData } from '../utils/clientData';
 
 const SalesEntry = () => {
   const [pendingOrders, setPendingOrders] = useState([
@@ -22,6 +24,11 @@ const SalesEntry = () => {
   ]);
   const [showNotification, setShowNotification] = useState(false);
   const [autoFillData, setAutoFillData] = useState(null);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+
+  const handleNewEntry = () => {
+    setInvoiceNumber(generateInvoiceNumber());
+  };
 
   // Mock function to simulate receiving purchase order
   const handleAutoFillFromOrder = (order) => {
@@ -81,6 +88,12 @@ const SalesEntry = () => {
         <button className="px-4 md:px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm md:text-base">
           Cancel
         </button>
+        <button 
+          onClick={handleNewEntry}
+          className="px-4 md:px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm md:text-base"
+        >
+          New Entry
+        </button>
         <button className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm md:text-base">
           Save
         </button>
@@ -94,12 +107,23 @@ const SalesEntry = () => {
       <div>
         <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">Customer</label>
         <select className="w-full p-2 md:p-3 border border-gray-300 rounded-md text-sm md:text-base">
-          <option>{autoFillData?.customer || 'ABC Enterprises'}</option>
+          <option value="">Select Customer</option>
+          {clientsData.map((client, index) => (
+            <option key={index} value={client.name}>
+              {client.name}
+            </option>
+          ))}
         </select>
       </div>
       <div>
         <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">Invoice No.</label>
-        <input type="text" value="INV. 03001" className="w-full p-2 md:p-3 border border-gray-300 rounded-md text-sm md:text-base" />
+        <input 
+          type="text" 
+          value={invoiceNumber} 
+          placeholder="Click 'New Entry' to generate"
+          readOnly 
+          className="w-full p-2 md:p-3 border border-gray-300 rounded-md text-sm md:text-base bg-gray-50" 
+        />
       </div>
       <div>
         <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">Order No.</label>
