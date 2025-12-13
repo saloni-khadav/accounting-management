@@ -37,6 +37,7 @@ import TDSPurchases from './components/TDSPurchases';
 import VendorsAging from './components/VendorsAging';
 import VendorMaster from './components/VendorMaster';
 import ImportExport from './components/ImportExport';
+import ChatBot from './components/ChatBot';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
@@ -120,45 +121,59 @@ function App() {
 
   // Render based on current view
   if (currentView === 'landing') {
-    return <LandingPage onGetStarted={() => setCurrentView('login')} />;
+    return (
+      <>
+        <LandingPage onGetStarted={() => setCurrentView('login')} />
+        <ChatBot />
+      </>
+    );
   }
 
   if (currentView === 'login') {
     return (
-      <Login 
-        onLogin={() => setCurrentView('dashboard')}
-        onSwitchToSignup={() => setCurrentView('signup')}
-        onBackToLanding={() => setCurrentView('landing')}
-      />
+      <>
+        <Login 
+          onLogin={() => setCurrentView('dashboard')}
+          onSwitchToSignup={() => setCurrentView('signup')}
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+        <ChatBot />
+      </>
     );
   }
 
   if (currentView === 'signup') {
     return (
-      <Signup 
-        onSignup={() => setCurrentView('dashboard')}
-        onSwitchToLogin={() => setCurrentView('login')}
-        onBackToLanding={() => setCurrentView('landing')}
-      />
+      <>
+        <Signup 
+          onSignup={() => setCurrentView('dashboard')}
+          onSwitchToLogin={() => setCurrentView('login')}
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+        <ChatBot />
+      </>
     );
   }
 
   // Dashboard view
   return (
-    <div className="flex h-screen bg-gray-50 font-inter">
-      <Sidebar 
-        isCollapsed={sidebarCollapsed} 
-        setIsCollapsed={setSidebarCollapsed}
-        activePage={activePage}
-        setActivePage={setActivePage}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto">
-          {renderPage()}
-        </main>
+    <>
+      <div className="flex h-screen bg-gray-50 font-inter">
+        <Sidebar 
+          isCollapsed={sidebarCollapsed} 
+          setIsCollapsed={setSidebarCollapsed}
+          activePage={activePage}
+          setActivePage={setActivePage}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto">
+            {renderPage()}
+          </main>
+        </div>
       </div>
-    </div>
+      <ChatBot />
+    </>
   );
 }
 
