@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bell, CheckCircle, RotateCcw } from 'lucide-react';
+import { generateCreditNoteNumber } from '../utils/numberGenerator';
 
 const CreditNote = () => {
   const [returnRequests, setReturnRequests] = useState([
@@ -15,6 +16,11 @@ const CreditNote = () => {
   ]);
   const [showNotification, setShowNotification] = useState(false);
   const [autoFillData, setAutoFillData] = useState(null);
+  const [creditNoteNumber, setCreditNoteNumber] = useState('');
+
+  const handleNewEntry = () => {
+    setCreditNoteNumber(generateCreditNoteNumber());
+  };
 
   const handleAutoFillFromReturn = (returnReq) => {
     setAutoFillData({
@@ -74,6 +80,12 @@ const CreditNote = () => {
         <button className="px-4 md:px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm md:text-base">
           Cancel
         </button>
+        <button 
+          onClick={handleNewEntry}
+          className="px-4 md:px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm md:text-base"
+        >
+          New Entry
+        </button>
         <button className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm md:text-base">
           Save
         </button>
@@ -89,7 +101,13 @@ const CreditNote = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
       <div>
         <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">Credit Note No.</label>
-        <input type="text" value="CN-00001" className="w-full p-2 md:p-3 border border-gray-300 rounded-md text-sm md:text-base" />
+        <input 
+          type="text" 
+          value={creditNoteNumber} 
+          placeholder="Click 'New Entry' to generate"
+          readOnly 
+          className="w-full p-2 md:p-3 border border-gray-300 rounded-md text-sm md:text-base bg-gray-50" 
+        />
       </div>
       <div>
         <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">Credit Note Date</label>
