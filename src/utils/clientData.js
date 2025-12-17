@@ -1,6 +1,7 @@
-// Shared client data for Client Master and Sales Entry
+import { generateClientData } from './geminiApi';
 
-export const clientsData = [
+// Default fallback data
+const fallbackData = [
   {
     name: 'Sun Corporation',
     email: 'john.doe@suncorp.com',
@@ -12,23 +13,17 @@ export const clientsData = [
     email: 'info@greenpower.com',
     phone: '9123456780',
     receivables: '₹ 41,200'
-  },
-  {
-    name: 'Global Solutions',
-    email: 'contact@globalsol.com',
-    phone: '9988776655',
-    receivables: '₹ 63,890'
-  },
-  {
-    name: 'Rajan Exports',
-    email: 'sales@rajanexports.in',
-    phone: '9123467890',
-    receivables: '₹ 29,340'
-  },
-  {
-    name: 'Alpha Enterprises',
-    email: 'alpha@example.com',
-    phone: '8901234567',
-    receivables: '₹ 92,150'
   }
 ];
+
+export const getClientsData = async () => {
+  try {
+    const aiData = await generateClientData();
+    return JSON.parse(aiData);
+  } catch (error) {
+    console.error('Failed to generate AI data, using fallback:', error);
+    return fallbackData;
+  }
+};
+
+export const clientsData = fallbackData;
