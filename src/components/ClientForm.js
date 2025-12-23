@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Save, Building, Phone, Mail, MapPin } from 'lucide-react';
+import { X, Save, Building, Phone, Mail, MapPin, Download } from 'lucide-react';
+import { exportToExcel } from '../utils/excelExport';
 
-const ClientForm = ({ isOpen, onClose, onSave }) => {
+const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   const [formData, setFormData] = useState({
     clientName: '',
     clientCode: '',
@@ -23,6 +24,34 @@ const ClientForm = ({ isOpen, onClose, onSave }) => {
     accountManager: ''
   });
 
+  // Update form data when editing client changes
+  React.useEffect(() => {
+    if (editingClient) {
+      setFormData(editingClient);
+    } else {
+      setFormData({
+        clientName: '',
+        clientCode: '',
+        contactPerson: '',
+        contactDetails: '',
+        email: '',
+        website: '',
+        billingAddress: '',
+        gstNumber: '',
+        panNumber: '',
+        paymentTerms: '',
+        creditLimit: '',
+        bankDetails: '',
+        industryType: '',
+        clientCategory: '',
+        contractDates: '',
+        currency: 'INR',
+        status: 'Active',
+        accountManager: ''
+      });
+    }
+  }, [editingClient]);
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -36,16 +65,51 @@ const ClientForm = ({ isOpen, onClose, onSave }) => {
     onClose();
   };
 
+  const handleExportTemplate = () => {
+    const templateData = [{
+      'Client Name': '',
+      'Client Code': '',
+      'Contact Person': '',
+      'Contact Details': '',
+      'Email': '',
+      'Website': '',
+      'Billing Address': '',
+      'GST Number': '',
+      'PAN Number': '',
+      'Payment Terms': '',
+      'Credit Limit': '',
+      'Bank Details': '',
+      'Industry Type': '',
+      'Client Category': '',
+      'Contract Dates': '',
+      'Currency': 'INR',
+      'Status': 'Active',
+      'Account Manager': ''
+    }];
+    exportToExcel(templateData, 'client_template');
+    alert('Client template exported successfully!');
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold">Add New Client</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
-          </button>
+          <h2 className="text-xl font-bold">{editingClient ? 'Edit Client' : 'Add New Client'}</h2>
+          <div className="flex gap-2">
+            <button 
+              type="button"
+              onClick={handleExportTemplate}
+              className="text-green-600 hover:text-green-800 flex items-center"
+              title="Export Excel Template"
+            >
+              <Download size={20} />
+            </button>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -335,7 +399,7 @@ const ClientForm = ({ isOpen, onClose, onSave }) => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
             >
               <Save className="w-4 h-4 mr-2" />
-              Save Client
+              {editingClient ? 'Update Client' : 'Save Client'}
             </button>
           </div>
         </form>

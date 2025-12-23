@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Eye, Download } from 'lucide-react';
 import ClientForm from './ClientForm';
 import ClientDetails from './ClientDetails';
+import { exportClientsToExcel } from '../utils/excelExport';
 
 const ClientMaster = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [editingClient, setEditingClient] = useState(null);
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,8 +31,13 @@ const ClientMaster = () => {
 
   const handleAddClient = async (clientData) => {
     try {
-      const response = await fetch('http://localhost:5001/api/clients', {
-        method: 'POST',
+      const url = editingClient 
+        ? `http://localhost:5001/api/clients/${editingClient._id}`
+        : 'http://localhost:5001/api/clients';
+      const method = editingClient ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -38,12 +45,20 @@ const ClientMaster = () => {
       });
       
       if (response.ok) {
-        const newClient = await response.json();
-        setClients([newClient, ...clients]);
-        alert('Client added successfully!');
+        const updatedClient = await response.json();
+        if (editingClient) {
+          setClients(clients.map(client => 
+            client._id === editingClient._id ? updatedClient : client
+          ));
+          alert('Client updated successfully!');
+        } else {
+          setClients([updatedClient, ...clients]);
+          alert('Client added successfully!');
+        }
+        setEditingClient(null);
       } else {
         const error = await response.json();
-        alert(error.message || 'Error adding client');
+        alert(error.message || 'Error saving client');
       }
     } catch (error) {
       alert('Network error. Please check if backend is running.');
@@ -72,10 +87,24 @@ const ClientMaster = () => {
     setIsDetailsOpen(true);
   };
 
+  const handleEditClient = (client) => {
+    setEditingClient(client);
+    setIsFormOpen(true);
+  };
+
   const filteredClients = clients.filter(client =>
     client.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.clientCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleExportToExcel = () => {
+    if (clients.length === 0) {
+      alert('No client data to export');
+      return;
+    }
+    exportClientsToExcel(clients);
+    alert('Client data exported successfully!');
+  };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-lg">
@@ -87,13 +116,22 @@ const ClientMaster = () => {
           </h2>
           <p className="text-gray-600">Manage client information</p>
         </div>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Client
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportToExcel}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export to Excel
+          </button>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Client
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -152,7 +190,11 @@ const ClientMaster = () => {
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:text-blue-800" title="Edit">
+                      <button 
+                        onClick={() => handleEditClient(client)}
+                        className="text-blue-600 hover:text-blue-800" 
+                        title="Edit"
+                      >
                         <Edit size={16} />
                       </button>
                       <button 
@@ -168,6 +210,13 @@ const ClientMaster = () => {
                       >
                         View Details
                       </button>
+                      <button 
+                        onClick={() => exportClientsToExcel([client])}
+                        className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 ml-1"
+                        title="Export this client"
+                      >
+                        Export
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -179,8 +228,12 @@ const ClientMaster = () => {
 
       <ClientForm
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingClient(null);
+        }}
         onSave={handleAddClient}
+        editingClient={editingClient}
       />
 
       <ClientDetails
