@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
+
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth'); // Using MongoDB auth
@@ -12,17 +14,27 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!', timestamp: new Date() });
-});
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/clients', clientRoutes);
 
+// test route 
+
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Backend is working!', timestamp: new Date() });
+});
+
+// Serve frontend (React buil
+const buildPath = path.join(__dirname, '../build');
+
+// 3. Serve the static files
+app.use(express.static(buildPath));
+
+// 4. The "Catch-all" route for React (MUST be last)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(buildPath, 'index.html'));
+});
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -55,4 +67,4 @@ connectDB();
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
+}); 
