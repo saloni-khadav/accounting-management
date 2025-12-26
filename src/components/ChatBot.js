@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
-import { generateAccountingData } from '../utils/geminiApi';
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,26 +31,26 @@ const ChatBot = () => {
     setMessages(prev => [...prev, typingMessage]);
 
     try {
-      // Create accounting-focused prompt
-      const accountingPrompt = `You are an AI Accounting Assistant for an accounting management system. 
-      User question: "${currentMessage}"
+      const response = await fetch('http://localhost:5000/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: currentMessage }),
+      });
       
-      Please provide a helpful, accurate response about accounting, GST, invoices, financial reports, or business finance. 
-      Keep the response concise and professional. If the question is not accounting-related, politely redirect to accounting topics.`;
-      
-      const aiResponse = await generateAccountingData(accountingPrompt);
+      const data = await response.json();
       
       // Remove typing indicator and add real response
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.isTyping);
         return [...filtered, {
           id: Date.now() + 2,
-          text: aiResponse || 'Sorry, I could not process your request.',
+          text: data.response || 'Sorry, I could not process your request.',
           sender: 'bot'
         }];
       });
     } catch (error) {
-      console.error('Gemini API Error:', error);
       // Remove typing indicator and add error message
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.isTyping);
