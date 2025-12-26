@@ -1,91 +1,12 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
 import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
-=======
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, History, Plus, Trash2 } from 'lucide-react';
-import { generateAccountingData } from '../utils/geminiApi';
->>>>>>> origin/main
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState(null);
-  const [chatHistory, setChatHistory] = useState([]);
   const [messages, setMessages] = useState([
     { id: 1, text: "Hello! I'm your AI Accounting Assistant. I can help you with GST, invoices, reports, and more. Ask me anything!", sender: 'bot' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
-
-  useEffect(() => {
-    loadChatHistory();
-    const lastChatId = localStorage.getItem('lastChatId');
-    if (lastChatId) {
-      loadChat(lastChatId);
-    } else {
-      createNewChat();
-    }
-  }, []);
-
-  const loadChatHistory = () => {
-    const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-    setChatHistory(history);
-  };
-
-  const saveChat = (chatId, chatMessages, title = null) => {
-    const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-    const existingIndex = history.findIndex(chat => chat.id === chatId);
-    
-    const chatData = {
-      id: chatId,
-      title: title || (chatMessages.length > 1 ? chatMessages[1].text.substring(0, 30) + '...' : 'New Chat'),
-      timestamp: Date.now(),
-      messageCount: chatMessages.length
-    };
-
-    if (existingIndex >= 0) {
-      history[existingIndex] = chatData;
-    } else {
-      history.unshift(chatData);
-    }
-
-    localStorage.setItem('chatHistory', JSON.stringify(history));
-    localStorage.setItem(`chat_${chatId}`, JSON.stringify(chatMessages));
-    setChatHistory(history);
-  };
-
-  const loadChat = (chatId) => {
-    const chatMessages = JSON.parse(localStorage.getItem(`chat_${chatId}`) || '[]');
-    if (chatMessages.length === 0) {
-      setMessages([{ id: 1, text: "Hello! I'm your AI Accounting Assistant. I can help you with GST, invoices, reports, and more. Ask me anything!", sender: 'bot' }]);
-    } else {
-      setMessages(chatMessages);
-    }
-    setCurrentChatId(chatId);
-    localStorage.setItem('lastChatId', chatId);
-    setShowHistory(false);
-  };
-
-  const createNewChat = () => {
-    const newChatId = `chat_${Date.now()}`;
-    const initialMessage = [{ id: 1, text: "Hello! I'm your AI Accounting Assistant. I can help you with GST, invoices, reports, and more. Ask me anything!", sender: 'bot' }];
-    setMessages(initialMessage);
-    setCurrentChatId(newChatId);
-    localStorage.setItem('lastChatId', newChatId);
-    saveChat(newChatId, initialMessage);
-    setShowHistory(false);
-  };
-
-  const deleteChat = (chatId) => {
-    const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
-    setChatHistory(updatedHistory);
-    localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
-    localStorage.removeItem(`chat_${chatId}`);
-    
-    if (currentChatId === chatId) {
-      createNewChat();
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -96,8 +17,7 @@ const ChatBot = () => {
       sender: 'user'
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages(prev => [...prev, userMessage]);
     const currentMessage = inputMessage;
     setInputMessage('');
 
@@ -108,8 +28,7 @@ const ChatBot = () => {
       sender: 'bot',
       isTyping: true
     };
-    const messagesWithTyping = [...updatedMessages, typingMessage];
-    setMessages(messagesWithTyping);
+    setMessages(prev => [...prev, typingMessage]);
 
     try {
       const response = await fetch('http://localhost:5000/api/ai/chat', {
@@ -123,7 +42,6 @@ const ChatBot = () => {
       const data = await response.json();
       
       // Remove typing indicator and add real response
-<<<<<<< HEAD
       setMessages(prev => {
         const filtered = prev.filter(msg => !msg.isTyping);
         return [...filtered, {
@@ -132,36 +50,18 @@ const ChatBot = () => {
           sender: 'bot'
         }];
       });
-=======
-      const finalMessages = updatedMessages.concat([{
-        id: Date.now() + 2,
-        text: aiResponse || 'Sorry, I could not process your request.',
-        sender: 'bot'
-      }]);
-      setMessages(finalMessages);
-      
-      // Save chat
-      if (currentChatId) {
-        saveChat(currentChatId, finalMessages);
-      }
->>>>>>> origin/main
     } catch (error) {
       // Remove typing indicator and add error message
-      const errorMessages = updatedMessages.concat([{
-        id: Date.now() + 2,
-        text: 'Sorry, I\'m having trouble connecting. Please try again.',
-        sender: 'bot'
-      }]);
-      setMessages(errorMessages);
-      
-      // Save chat
-      if (currentChatId) {
-        saveChat(currentChatId, errorMessages);
-      }
+      setMessages(prev => {
+        const filtered = prev.filter(msg => !msg.isTyping);
+        return [...filtered, {
+          id: Date.now() + 2,
+          text: 'Sorry, I\'m having trouble connecting. Please try again.',
+          sender: 'bot'
+        }];
+      });
     }
   };
-
-
 
   return (
     <>
@@ -184,71 +84,13 @@ const ChatBot = () => {
               <Bot size={20} className="mr-2" />
               <span className="font-semibold">AI Assistant</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="text-white hover:text-gray-300 transition-colors p-1"
-                title="Chat History"
-              >
-                <History size={18} />
-              </button>
-              <button
-                onClick={createNewChat}
-                className="text-white hover:text-gray-300 transition-colors p-1"
-                title="New Chat"
-              >
-                <Plus size={18} />
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:text-gray-300 transition-colors p-1"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-white hover:text-gray-300 transition-colors"
+            >
+              <X size={20} />
+            </button>
           </div>
-
-          {/* Chat History Panel */}
-          {showHistory && (
-            <div className="border-b border-gray-200 p-4 max-h-48 overflow-y-auto">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Chat History</h4>
-              {chatHistory.length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-4">No chat history</p>
-              ) : (
-                <div className="space-y-2">
-                  {chatHistory.map((chat) => (
-                    <div
-                      key={chat.id}
-                      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
-                        currentChatId === chat.id
-                          ? 'bg-blue-50 border border-blue-200'
-                          : 'hover:bg-gray-50 border border-gray-100'
-                      }`}
-                      onClick={() => loadChat(chat.id)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-800 truncate">
-                          {chat.title}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(chat.timestamp).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteChat(chat.id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Messages */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3">
