@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, Building, Phone, Mail, MapPin, Download } from 'lucide-react';
+import { X, Save, Building, Phone, Mail, MapPin, Download, FileText } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
@@ -21,7 +21,14 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     contractDates: '',
     currency: 'INR',
     status: 'Active',
-    accountManager: ''
+    accountManager: '',
+    documents: {
+      panCard: null,
+      aadharCard: null,
+      gstCertificate: null,
+      bankStatement: null,
+      otherDocuments: []
+    }
   });
 
   // Update form data when editing client changes
@@ -47,7 +54,14 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         contractDates: '',
         currency: 'INR',
         status: 'Active',
-        accountManager: ''
+        accountManager: '',
+        documents: {
+          panCard: null,
+          aadharCard: null,
+          gstCertificate: null,
+          bankStatement: null,
+          otherDocuments: []
+        }
       });
     }
   }, [editingClient]);
@@ -56,6 +70,41 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
+    });
+  };
+
+  const handleFileUpload = (e, documentType) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData({
+        ...formData,
+        documents: {
+          ...formData.documents,
+          [documentType]: file
+        }
+      });
+    }
+  };
+
+  const handleOtherDocumentUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setFormData({
+      ...formData,
+      documents: {
+        ...formData.documents,
+        otherDocuments: [...formData.documents.otherDocuments, ...files]
+      }
+    });
+  };
+
+  const removeOtherDocument = (index) => {
+    const updatedDocs = formData.documents.otherDocuments.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      documents: {
+        ...formData.documents,
+        otherDocuments: updatedDocs
+      }
     });
   };
 
@@ -383,6 +432,117 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+          </div>
+
+          {/* Documents Section */}
+          <div className="border-t pt-4 mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Document Uploads
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  PAN Card
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleFileUpload(e, 'panCard')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {formData.documents.panCard && (
+                    <span className="text-green-600 text-sm">✓</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Aadhar Card
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleFileUpload(e, 'aadharCard')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {formData.documents.aadharCard && (
+                    <span className="text-green-600 text-sm">✓</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  GST Certificate
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleFileUpload(e, 'gstCertificate')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {formData.documents.gstCertificate && (
+                    <span className="text-green-600 text-sm">✓</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bank Statement
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleFileUpload(e, 'bankStatement')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {formData.documents.bankStatement && (
+                    <span className="text-green-600 text-sm">✓</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Other Documents
+              </label>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={handleOtherDocumentUpload}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              
+              {formData.documents.otherDocuments.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600 mb-2">Uploaded Documents:</p>
+                  <div className="space-y-1">
+                    {formData.documents.otherDocuments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                        <span className="text-sm text-gray-700">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeOtherDocument(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
