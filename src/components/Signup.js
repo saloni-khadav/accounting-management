@@ -5,44 +5,44 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    password: '',
-    confirmPassword: ''
+    fullName: '',
+    workEmail: '',
+    companyName: '',
+    totalEmployees: '',
+    annualTurnover: ''
   });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.workEmail.trim()) newErrors.workEmail = 'Work email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.workEmail)) newErrors.workEmail = 'Invalid email format';
+    if (!formData.companyName.trim()) newErrors.companyName = 'Company name is required';
+    if (!formData.totalEmployees) newErrors.totalEmployees = 'Number of employees is required';
+    if (!formData.annualTurnover) newErrors.annualTurnover = 'Annual turnover is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters long');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
+    if (!validateForm()) return;
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/register', {
+      const response = await fetch('http://localhost:5001/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          company: formData.company,
-          password: formData.password
-        }),
+        body: JSON.stringify(formData),
       });
       
       const data = await response.json();
       
       if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        onSignup();
+        setIsSubmitted(true);
       } else {
         alert(data.message || 'Registration failed');
       }
@@ -66,155 +66,144 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
             <BarChart3 className="text-white" size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Start your accounting journey today</p>
+          <p className="text-gray-600">Join thousands of businesses managing their accounting</p>
         </div>
 
-        {/* Signup Form */}
-        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name Field */}
-            <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
+        {isSubmitted ? (
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="text-green-600" size={24} />
             </div>
-
-            {/* Email Field */}
-            <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Company Field */}
-            <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">Company Name</label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  value={formData.company}
-                  onChange={(e) => setFormData({...formData, company: e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Enter your company name"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full pl-10 pr-12 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Create a password (min 6 characters)"
-                  minLength={6}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">Confirm Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  className="w-full pl-10 pr-12 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all"
-                  placeholder="Confirm your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Terms & Conditions */}
-            <div className="flex items-start">
-              <input type="checkbox" className="w-4 h-4 text-slate-800 bg-white border-gray-300 rounded focus:ring-slate-800 mt-1" required />
-              <span className="ml-2 text-sm text-gray-700">
-                I agree to the <button type="button" className="text-slate-800 hover:text-slate-600">Terms of Service</button> and <button type="button" className="text-slate-800 hover:text-slate-600">Privacy Policy</button>
-              </span>
-            </div>
-
-            {/* Signup Button */}
-            <button
-              type="submit"
-              className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Create Account
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="my-6 flex items-center">
-            <div className="flex-1 border-t border-gray-200"></div>
-            <span className="px-4 text-gray-500 text-sm">or</span>
-            <div className="flex-1 border-t border-gray-200"></div>
-          </div>
-
-          {/* Social Signup */}
-          <div className="space-y-3">
-            <button className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all duration-300 flex items-center justify-center">
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continue with Google
-            </button>
-          </div>
-
-          {/* Login Link */}
-          <div className="text-center mt-6">
-            <span className="text-gray-600">Already have an account? </span>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
+            <p className="text-gray-600 mb-6">
+              We've sent an account activation link to <strong>{formData.workEmail}</strong>. 
+              Click the link in the email to set your password and activate your account.
+            </p>
             <button 
               onClick={onSwitchToLogin}
               className="text-slate-800 hover:text-slate-600 font-medium transition-colors"
             >
-              Sign in
+              Back to Sign In
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all ${
+                      errors.fullName ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+              </div>
+
+              {/* Work Email */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Work Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="email"
+                    value={formData.workEmail}
+                    onChange={(e) => setFormData({...formData, workEmail: e.target.value})}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all ${
+                      errors.workEmail ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your work email"
+                  />
+                </div>
+                {errors.workEmail && <p className="text-red-500 text-sm mt-1">{errors.workEmail}</p>}
+              </div>
+
+              {/* Company Name */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Company Name</label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all ${
+                      errors.companyName ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your company name"
+                  />
+                </div>
+                {errors.companyName && <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>}
+              </div>
+
+              {/* Total Employees */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Total Number of Employees</label>
+                <select
+                  value={formData.totalEmployees}
+                  onChange={(e) => setFormData({...formData, totalEmployees: e.target.value})}
+                  className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all ${
+                    errors.totalEmployees ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select employee count</option>
+                  <option value="1-10">1-10 employees</option>
+                  <option value="11-50">11-50 employees</option>
+                  <option value="51-200">51-200 employees</option>
+                  <option value="201-500">201-500 employees</option>
+                  <option value="500+">500+ employees</option>
+                </select>
+                {errors.totalEmployees && <p className="text-red-500 text-sm mt-1">{errors.totalEmployees}</p>}
+              </div>
+
+              {/* Annual Turnover */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Annual Company Turnover</label>
+                <select
+                  value={formData.annualTurnover}
+                  onChange={(e) => setFormData({...formData, annualTurnover: e.target.value})}
+                  className={`w-full px-4 py-3 bg-white border rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent transition-all ${
+                    errors.annualTurnover ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select annual turnover</option>
+                  <option value="<1M">Less than $1M</option>
+                  <option value="1M-5M">$1M - $5M</option>
+                  <option value="5M-10M">$5M - $10M</option>
+                  <option value="10M-50M">$10M - $50M</option>
+                  <option value="50M+">$50M+</option>
+                </select>
+                {errors.annualTurnover && <p className="text-red-500 text-sm mt-1">{errors.annualTurnover}</p>}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Create Account
+              </button>
+            </form>
+
+            {/* Login Link */}
+            <div className="text-center mt-6">
+              <span className="text-gray-600">Already have an account? </span>
+              <button 
+                onClick={onSwitchToLogin}
+                className="text-slate-800 hover:text-slate-600 font-medium transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

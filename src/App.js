@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import SetPassword from './components/SetPassword';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/Dashboard';
@@ -44,9 +45,20 @@ import InvoiceManagement from './components/InvoiceManagement';
 import ChatBot from './components/ChatBot';
 
 function App() {
-  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, dashboard
+  const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, set-password, dashboard
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
+  const [activationToken, setActivationToken] = useState(null);
+
+  useEffect(() => {
+    // Check for activation token in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      setActivationToken(token);
+      setCurrentView('set-password');
+    }
+  }, []);
 
   const renderPage = () => {
     switch(activePage) {
@@ -161,6 +173,18 @@ function App() {
           onSignup={() => setCurrentView('dashboard')}
           onSwitchToLogin={() => setCurrentView('login')}
           onBackToLanding={() => setCurrentView('landing')}
+        />
+        <ChatBot />
+      </>
+    );
+  }
+
+  if (currentView === 'set-password') {
+    return (
+      <>
+        <SetPassword 
+          token={activationToken}
+          onPasswordSet={() => setCurrentView('login')}
         />
         <ChatBot />
       </>
