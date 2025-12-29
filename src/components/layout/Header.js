@@ -1,8 +1,24 @@
 import React, { useState } from 'react';
 import { Search, Bell, User, ChevronDown } from 'lucide-react';
 
-const Header = () => {
+const Header = ({ setActivePage }) => {
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const handleProfileClick = () => {
+    setActivePage('profile');
+    setShowDropdown(false);
+  };
+
+  const handleSettingsClick = () => {
+    setActivePage('settings');
+    setShowDropdown(false);
+  };
+
+  const handleLogout = () => {
+    // Add logout logic here
+    alert('Logout functionality to be implemented');
+    setShowDropdown(false);
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -44,10 +60,25 @@ const Header = () => {
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile</a>
-                <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Settings</a>
+                <button 
+                  onClick={handleProfileClick}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Profile
+                </button>
+                <button 
+                  onClick={handleSettingsClick}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Settings
+                </button>
                 <hr className="my-2" />
-                <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
+                <button 
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Logout
+                </button>
               </div>
             )}
           </div>
