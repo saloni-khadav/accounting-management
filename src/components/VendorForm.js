@@ -134,6 +134,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
         if (documentType === 'bankStatement') {
           if (result.data.accountNumber) updates.accountNumber = result.data.accountNumber;
           if (result.data.ifscCode) updates.ifscCode = result.data.ifscCode;
+          if (result.data.bankName) updates.bankName = result.data.bankName;
         }
         if (documentType === 'aadharCard' && result.data.aadharNumber) {
           updates.aadharNumber = result.data.aadharNumber;

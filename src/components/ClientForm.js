@@ -120,18 +120,9 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     try {
       const formData = new FormData();
       formData.append('document', file);
-      
-      // Map document types
-      const typeMapping = {
-        'gstCertificate': 'GST_CERTIFICATE',
-        'bankStatement': 'BANK_STATEMENT',
-        'aadharCard': 'AADHAR_CARD'
-      };
-      
-      formData.append('documentType', typeMapping[documentType]);
-      formData.append('userId', 'current-user');
+      formData.append('documentType', documentType);
 
-      const response = await fetch('http://localhost:5001/api/ocr/process-document', {
+      const response = await fetch('http://localhost:5001/api/ocr/extract', {
         method: 'POST',
         body: formData,
       });
@@ -139,13 +130,13 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const extracted = result.extractedData;
+        const extracted = result.data;
         let hasData = false;
         
         // Check if any relevant data was extracted
         if (documentType === 'gstCertificate' && extracted.gstNumber) {
           hasData = true;
-        } else if (documentType === 'bankStatement' && (extracted.accountNumber || extracted.ifsc)) {
+        } else if (documentType === 'bankStatement' && (extracted.accountNumber || extracted.ifscCode)) {
           hasData = true;
         } else if (documentType === 'aadharCard' && extracted.aadharNumber) {
           hasData = true;
@@ -157,7 +148,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             ...prev,
             gstNumber: extracted.gstNumber || prev.gstNumber,
             accountNumber: extracted.accountNumber || prev.accountNumber,
-            ifscCode: extracted.ifsc || prev.ifscCode,
+            ifscCode: extracted.ifscCode || prev.ifscCode,
+            bankName: extracted.bankName || prev.bankName,
             aadharNumber: extracted.aadharNumber || prev.aadharNumber
           }));
           

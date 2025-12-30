@@ -10,7 +10,7 @@ const aiRoutes = require('./routes/ai');
 const clientRoutes = require('./routes/clients');
 const vendorRoutes = require('./routes/vendors');
 const invoiceRoutes = require('./routes/invoices');
-const ocrRoutes = require('./routes/ocr');
+const ocrRoutes = require('./routes/ocr-new');
 
 const app = express();
 
