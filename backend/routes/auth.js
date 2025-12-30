@@ -1,43 +1,76 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { sendActivationEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
-// Register
-router.post('/register', async (req, res) => {
+// Signup - Send activation email
+router.post('/signup', async (req, res) => {
   try {
-    console.log('Registration request:', req.body);
-    const { name, email, company, password } = req.body;
+    const { fullName, workEmail, companyName, totalEmployees, annualTurnover } = req.body;
 
-    if (!name || !email || !company || !password) {
+    if (!fullName || !workEmail || !companyName || !totalEmployees || !annualTurnover) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ workEmail });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const user = new User({ name, email, company, password });
+    const activationToken = crypto.randomBytes(32).toString('hex');
+    
+    const user = new User({ 
+      fullName, 
+      workEmail, 
+      companyName, 
+      totalEmployees, 
+      annualTurnover,
+      activationToken
+    });
     await user.save();
-    console.log('User created:', user.email);
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
+    // Send activation email
+    const emailSent = await sendActivationEmail(workEmail, fullName, activationToken);
+    
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send activation email. Please try again.' });
+    }
 
     res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        company: user.company
-      }
+      message: 'Account created. Please check your email for activation link.'
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Set password after email activation
+router.post('/set-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    const user = await User.findOne({ activationToken: token });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired activation token' });
+    }
+
+    user.password = password;
+    user.isActive = true;
+    user.activationToken = undefined;
+    await user.save();
+
+    res.json({ message: 'Password set successfully. You can now login.' });
+  } catch (error) {
+    console.error('Set password error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -47,9 +80,13 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ workEmail: email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({ message: 'Account not activated. Please check your email.' });
     }
 
     const isMatch = await user.comparePassword(password);
@@ -64,9 +101,9 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
-        email: user.email,
-        company: user.company
+        fullName: user.fullName,
+        workEmail: user.workEmail,
+        companyName: user.companyName
       }
     });
   } catch (error) {
