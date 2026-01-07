@@ -8,6 +8,9 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth'); // Using MongoDB auth
 const aiRoutes = require('./routes/ai');
 const clientRoutes = require('./routes/clients');
+const vendorRoutes = require('./routes/vendors');
+const invoiceRoutes = require('./routes/invoices');
+const ocrRoutes = require('./routes/ocr-new');
 
 const app = express();
 
@@ -18,6 +21,9 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/ocr', ocrRoutes);
 
 // test route 
 
@@ -64,7 +70,7 @@ const connectDB = async () => {
 
 connectDB();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 
