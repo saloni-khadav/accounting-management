@@ -11,6 +11,8 @@ const clientRoutes = require('./routes/clients');
 const vendorRoutes = require('./routes/vendors');
 const invoiceRoutes = require('./routes/invoices');
 const ocrRoutes = require('./routes/ocr-new');
+const approvalRoutes = require('./routes/approvals');
+const purchaseOrderRoutes = require('./routes/purchaseOrders');
 
 const app = express();
 
@@ -24,11 +26,16 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/ocr', ocrRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // test route 
-
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date() });
+});
+
+app.get('/api/purchase-orders/test', (req, res) => {
+  res.json({ message: 'Purchase Orders route working!' });
 });
 
 // Serve frontend (React buil
@@ -70,7 +77,7 @@ const connectDB = async () => {
 
 connectDB();
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 

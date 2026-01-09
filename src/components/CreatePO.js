@@ -5,6 +5,9 @@ const CreatePO = () => {
   const [items, setItems] = useState([
     { name: 'Dell Laptop', hsn: '8471', quantity: 5, rate: 50000, discount: 10 }
   ]);
+  const [supplier, setSupplier] = useState('ABC Enterprises');
+  const [poDate, setPoDate] = useState('2024-04-16');
+  const [deliveryDate, setDeliveryDate] = useState('2024-04-25');
 
   const addItem = () => {
     setItems([...items, { name: '', hsn: '', quantity: 0, rate: 0, discount: 0 }]);
@@ -30,6 +33,37 @@ const CreatePO = () => {
     return calculateSubTotal() - calculateDiscount() + calculateTax();
   };
 
+  const handleCreate = async () => {
+    const poData = {
+      supplier,
+      poDate,
+      deliveryDate,
+      items,
+      amount: calculateTotal(),
+      requestedBy: 'Current User'
+    };
+    
+    try {
+      const response = await fetch('http://localhost:5002/api/purchase-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(poData)
+      });
+      
+      if (response.ok) {
+        alert('Purchase Order created and sent for approval!');
+        setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0 }]);
+        setSupplier('ABC Enterprises');
+      } else {
+        alert('Error creating PO');
+      }
+    } catch (error) {
+      alert('Error: Backend not running');
+    }
+  };
+
   return (
     <div className="p-8 bg-white min-h-screen">
       {/* Header */}
@@ -41,20 +75,35 @@ const CreatePO = () => {
       <div className="grid grid-cols-3 gap-6 mb-8">
         <div>
           <label className="block text-sm font-medium mb-2">Supplier</label>
-          <select className="w-full p-3 border border-gray-300 rounded-lg">
+          <select 
+            value={supplier}
+            onChange={(e) => setSupplier(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg"
+          >
             <option>ABC Enterprises</option>
+            <option>XYZ Corp</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">PO Date</label>
           <div className="relative">
-            <input type="text" value="2024-04-16" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <input 
+              type="date" 
+              value={poDate}
+              onChange={(e) => setPoDate(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg" 
+            />
             <Calendar className="absolute right-3 top-3 text-gray-400" size={20} />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Delivery Date</label>
-          <input type="text" value="2024-04-25" className="w-full p-3 border border-gray-300 rounded-lg" />
+          <input 
+            type="date" 
+            value={deliveryDate}
+            onChange={(e) => setDeliveryDate(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg" 
+          />
         </div>
       </div>
 
@@ -77,30 +126,55 @@ const CreatePO = () => {
               <input 
                 type="text" 
                 value={item.name}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].name = e.target.value;
+                  setItems(newItems);
+                }}
                 className="col-span-3 p-3 border border-gray-300 rounded-lg"
                 placeholder="Item Name"
               />
               <input 
                 type="text" 
                 value={item.hsn}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].hsn = e.target.value;
+                  setItems(newItems);
+                }}
                 className="col-span-2 p-3 border border-gray-300 rounded-lg"
                 placeholder="HSN/SAC"
               />
               <input 
                 type="number" 
                 value={item.quantity}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].quantity = parseInt(e.target.value) || 0;
+                  setItems(newItems);
+                }}
                 className="col-span-2 p-3 border border-gray-300 rounded-lg"
                 placeholder="Qty"
               />
               <input 
-                type="text" 
-                value={`₹ ${item.rate.toLocaleString()}`}
+                type="number" 
+                value={item.rate}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].rate = parseInt(e.target.value) || 0;
+                  setItems(newItems);
+                }}
                 className="col-span-2 p-3 border border-gray-300 rounded-lg"
                 placeholder="Rate"
               />
               <input 
-                type="text" 
-                value={`${item.discount} %`}
+                type="number" 
+                value={item.discount}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].discount = parseInt(e.target.value) || 0;
+                  setItems(newItems);
+                }}
                 className="col-span-2 p-3 border border-gray-300 rounded-lg"
                 placeholder="Discount"
               />
@@ -144,7 +218,10 @@ const CreatePO = () => {
         <button className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
           Cancel
         </button>
-        <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <button 
+          onClick={handleCreate}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
           Create
         </button>
       </div>

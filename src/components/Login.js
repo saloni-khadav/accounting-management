@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BarChart3, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { BarChart3, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 
 const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [userType, setUserType] = useState('user');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -16,7 +17,7 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({...formData, userType}),
       });
       
       const data = await response.json();
@@ -24,6 +25,7 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userType', userType);
         onLogin();
       } else {
         alert(data.message || 'Login failed');
@@ -54,6 +56,35 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
         {/* Login Form */}
         <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* User Type Selection */}
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Login As</label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="user"
+                    checked={userType === 'user'}
+                    onChange={(e) => setUserType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <User size={16} className="mr-1" />
+                  User
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="manager"
+                    checked={userType === 'manager'}
+                    onChange={(e) => setUserType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <BarChart3 size={16} className="mr-1" />
+                  Manager
+                </label>
+              </div>
+            </div>
+
             {/* Email Field */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
@@ -109,7 +140,7 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
               type="submit"
               className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
-              Sign In
+              Sign In as {userType === 'manager' ? 'Manager' : 'User'}
             </button>
           </form>
 

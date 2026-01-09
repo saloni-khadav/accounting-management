@@ -18,11 +18,8 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
-<<<<<<< HEAD
-    "multer": "^2.0.2"
-=======
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.12"
->>>>>>> 7cef46f79098c91247b4e09d2ed1169414e3b7f0
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

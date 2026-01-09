@@ -42,6 +42,7 @@ import VendorMaster from './components/VendorMaster';
 import ImportExport from './components/ImportExport';
 import TaxInvoice from './components/TaxInvoice';
 import InvoiceManagement from './components/InvoiceManagement';
+import ManagerApprovals from './components/ManagerApprovals';
 import ChatBot from './components/ChatBot';
 
 function App() {
@@ -138,6 +139,8 @@ function App() {
         return <InvoiceManagement setActivePage={setActivePage} />;
       case 'Import/Export':
         return <ImportExport />;
+      case 'Manager Approvals':
+        return <ManagerApprovals />;
       default:
         return <Dashboard />;
     }
@@ -192,6 +195,8 @@ function App() {
   }
 
   // Dashboard view
+  const userType = localStorage.getItem('userType') || 'user';
+  
   return (
     <>
       <div className="flex h-screen bg-gray-50 font-inter">
@@ -200,6 +205,7 @@ function App() {
           setIsCollapsed={setSidebarCollapsed}
           activePage={activePage}
           setActivePage={setActivePage}
+          userType={userType}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header setActivePage={setActivePage} />

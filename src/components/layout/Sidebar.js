@@ -26,7 +26,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage, userType }) => {
   const [expandedMenu, setExpandedMenu] = useState(null);
 
   const menuItems = [
@@ -62,6 +62,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
     { id: 'Assets', icon: TrendingUp, label: 'Assets' },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
+  ];
+
+  // Manager-only menu items
+  const managerItems = [
+    { id: 'Manager Approvals', icon: CheckCircle, label: 'Approvals' }
   ];
 
   const receivableItems = [
@@ -273,6 +278,28 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     ))}
                   </ul>
                 )}
+              </li>
+            );
+          })}
+          
+          {/* Manager-only items */}
+          {userType === 'manager' && managerItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => setActivePage(item.id)}
+                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                    activePage === item.id
+                      ? 'bg-sidebar-active text-white'
+                      : 'hover:bg-sidebar-hover'
+                  }`}
+                >
+                  <Icon size={20} />
+                  {!isCollapsed && (
+                    <span className="ml-3 font-medium">{item.label}</span>
+                  )}
+                </button>
               </li>
             );
           })}

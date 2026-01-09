@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 
 const ApprovalsWorkflows = () => {
   const [activeTab, setActiveTab] = useState('approvals');
+  const [approvals, setApprovals] = useState([]);
 
-  const approvals = [
-    { flow: 'Bills Approval', date: 'May 12, 2023', status: 'Pending' },
-    { flow: 'PO Approval', date: 'Apr 28, 2023', status: 'Approved' },
-    { flow: 'Payments Review', date: 'Apr 20, 2023', status: 'Approved' },
-    { flow: 'Bills Approval', date: 'Apr 15, 2023', status: 'Rejected' }
-  ];
+  useEffect(() => {
+    const loadApprovals = async () => {
+      try {
+        const response = await fetch('http://localhost:5002/api/purchase-orders');
+        const data = await response.json();
+        
+        const allApprovals = data.map(po => ({
+          flow: 'Purchase Order',
+          date: po.poDate,
+          status: po.status === 'pending' ? 'Pending' : 
+                  po.status === 'approved' ? 'Approved' : 'Rejected'
+        }));
+        
+        setApprovals(allApprovals);
+      } catch (error) {
+        console.error('Error loading approvals:', error);
+      }
+    };
+    
+    loadApprovals();
+    const interval = setInterval(loadApprovals, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="p-8">
@@ -40,15 +58,15 @@ const ApprovalsWorkflows = () => {
       <div className="grid grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Pending Requests</p>
-          <p className="text-4xl font-bold">2</p>
+          <p className="text-4xl font-bold">{approvals.filter(a => a.status === 'Pending').length}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Approved</p>
-          <p className="text-4xl font-bold">4</p>
+          <p className="text-4xl font-bold">{approvals.filter(a => a.status === 'Approved').length}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Rejected</p>
-          <p className="text-4xl font-bold">1</p>
+          <p className="text-4xl font-bold">{approvals.filter(a => a.status === 'Rejected').length}</p>
         </div>
       </div>
 
