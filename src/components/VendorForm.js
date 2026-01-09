@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { X, Save, Building, Phone, Mail, MapPin, Download, FileText } from 'lucide-react';
+import { X, Save, FileText, Upload } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
+import DocumentUpload from './DocumentUpload';
 
-const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
+const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientCode: '',
+    vendorCode: '',
+    vendorName: '',
     contactPerson: '',
     contactDetails: '',
     email: '',
@@ -13,7 +14,6 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     billingAddress: '',
     gstNumber: '',
     panNumber: '',
-    aadharNumber: '',
     paymentTerms: '',
     creditLimit: '',
     accountNumber: '',
@@ -27,6 +27,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     currency: 'INR',
     status: 'Active',
     accountManager: '',
+    aadharNumber: '',
     documents: {
       panCard: null,
       aadharCard: null,
@@ -36,25 +37,20 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     }
   });
 
-  const [uploadingStates, setUploadingStates] = useState({
-    gstCertificate: false,
-    bankStatement: false,
-    aadharCard: false
-  });
-
-  const [extractionErrors, setExtractionErrors] = useState({
-    gstCertificate: '',
-    bankStatement: '',
-    aadharCard: ''
+  const [uploadStates, setUploadStates] = useState({
+    gst: { loading: false, error: null },
+    pan: { loading: false, error: null },
+    bank: { loading: false, error: null },
+    aadhar: { loading: false, error: null }
   });
 
   React.useEffect(() => {
-    if (editingClient) {
-      setFormData(editingClient);
+    if (editingVendor) {
+      setFormData(editingVendor);
     } else {
       setFormData({
-        clientName: '',
-        clientCode: '',
+        vendorCode: '',
+        vendorName: '',
         contactPerson: '',
         contactDetails: '',
         email: '',
@@ -62,7 +58,6 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         billingAddress: '',
         gstNumber: '',
         panNumber: '',
-        aadharNumber: '',
         paymentTerms: '',
         creditLimit: '',
         accountNumber: '',
@@ -76,6 +71,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         currency: 'INR',
         status: 'Active',
         accountManager: '',
+        aadharNumber: '',
         documents: {
           panCard: null,
           aadharCard: null,
@@ -85,7 +81,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         }
       });
     }
-  }, [editingClient]);
+  }, [editingVendor]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -94,10 +90,9 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     });
   };
 
-  const handleFileUpload = async (e, documentType) => {
+  const handleFileUpload = (e, documentType) => {
     const file = e.target.files[0];
     if (file) {
-      // Store file in documents
       setFormData({
         ...formData,
         documents: {
@@ -105,81 +100,70 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
           [documentType]: file
         }
       });
-
-      // Perform OCR if it's GST, Bank, or Aadhar document
-      if (['gstCertificate', 'bankStatement', 'aadharCard'].includes(documentType)) {
-        await performOCR(file, documentType);
-      }
     }
   };
 
-  const performOCR = async (file, documentType) => {
-    setUploadingStates(prev => ({ ...prev, [documentType]: true }));
-    setExtractionErrors(prev => ({ ...prev, [documentType]: '' }));
+  const handleOCRUpload = async (file, documentType) => {
+    const stateKey = documentType === 'gstCertificate' ? 'gst' : 
+                     documentType === 'panCard' ? 'pan' : 
+                     documentType === 'bankStatement' ? 'bank' : 'aadhar';
     
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('documentType', documentType);
+    setUploadStates(prev => ({
+      ...prev,
+      [stateKey]: { loading: true, error: null }
+    }));
 
+    const formDataUpload = new FormData();
+    formDataUpload.append('document', file);
+    formDataUpload.append('documentType', documentType);
+
+    try {
       const response = await fetch('http://localhost:5001/api/ocr/extract', {
         method: 'POST',
-        body: formData,
+        body: formDataUpload
       });
 
       const result = await response.json();
 
-      if (response.ok && result.success) {
-        const extracted = result.data;
-        let hasData = false;
+      if (result.success) {
+        const updates = {};
         
-        // Check if any relevant data was extracted
-        if (documentType === 'gstCertificate' && extracted.gstNumber) {
-          hasData = true;
-        } else if (documentType === 'bankStatement' && (extracted.accountNumber || extracted.ifscCode)) {
-          hasData = true;
-        } else if (documentType === 'aadharCard' && extracted.aadharNumber) {
-          hasData = true;
+        if (documentType === 'gstCertificate' && result.data.gstNumber) {
+          updates.gstNumber = result.data.gstNumber;
         }
-        
-        if (hasData) {
-          // Auto-fill extracted data
-          setFormData(prev => ({
-            ...prev,
-            gstNumber: extracted.gstNumber || prev.gstNumber,
-            accountNumber: extracted.accountNumber || prev.accountNumber,
-            ifscCode: extracted.ifscCode || prev.ifscCode,
-            bankName: extracted.bankName || prev.bankName,
-            aadharNumber: extracted.aadharNumber || prev.aadharNumber
-          }));
-          
-          alert('Document processed! Data auto-filled successfully.');
-        } else {
-          // No relevant data found
-          const errorMessages = {
-            'gstCertificate': 'Cannot find GST number in this document',
-            'bankStatement': 'Cannot find account number or IFSC code in this document',
-            'aadharCard': 'Cannot find Aadhar number in this document'
-          };
-          
-          setExtractionErrors(prev => ({
-            ...prev,
-            [documentType]: errorMessages[documentType]
-          }));
+        if (documentType === 'bankStatement') {
+          if (result.data.accountNumber) updates.accountNumber = result.data.accountNumber;
+          if (result.data.ifscCode) updates.ifscCode = result.data.ifscCode;
+          if (result.data.bankName) updates.bankName = result.data.bankName;
         }
-      } else {
-        setExtractionErrors(prev => ({
+        if (documentType === 'aadharCard' && result.data.aadharNumber) {
+          updates.aadharNumber = result.data.aadharNumber;
+        }
+
+        setFormData(prev => ({
           ...prev,
-          [documentType]: 'Failed to process document. Please try again.'
+          ...updates,
+          documents: {
+            ...prev.documents,
+            [documentType]: file
+          }
+        }));
+
+        setUploadStates(prev => ({
+          ...prev,
+          [stateKey]: { loading: false, error: null }
+        }));
+      } else {
+        setUploadStates(prev => ({
+          ...prev,
+          [stateKey]: { loading: false, error: result.message || 'Could not extract data from document' }
         }));
       }
     } catch (error) {
-      setExtractionErrors(prev => ({
+      setUploadStates(prev => ({
         ...prev,
-        [documentType]: 'Network error. Please check your connection.'
+        [stateKey]: { loading: false, error: 'Upload failed. Please try again.' }
       }));
-    } finally {
-      setUploadingStates(prev => ({ ...prev, [documentType]: false }));
     }
   };
 
@@ -211,66 +195,28 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     onClose();
   };
 
-  const handleExportTemplate = () => {
-    const templateData = [{
-      'Client Name': '',
-      'Client Code': '',
-      'Contact Person': '',
-      'Contact Details': '',
-      'Email': '',
-      'Website': '',
-      'Billing Address': '',
-      'GST Number': '',
-      'PAN Number': '',
-      'Payment Terms': '',
-      'Credit Limit': '',
-      'Account Number': '',
-      'IFSC Code': '',
-      'Bank Name': '',
-      'Industry Type': '',
-      'Client Category': '',
-      'Contract Start Date': '',
-      'Contract End Date': '',
-      'Currency': 'INR',
-      'Status': 'Active',
-      'Account Manager': ''
-    }];
-    exportToExcel(templateData, 'client_template');
-    alert('Client template exported successfully!');
-  };
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold">{editingClient ? 'Edit Client' : 'Add New Client'}</h2>
-          <div className="flex gap-2">
-            <button 
-              type="button"
-              onClick={handleExportTemplate}
-              className="text-green-600 hover:text-green-800 flex items-center"
-              title="Export Excel Template"
-            >
-              <Download size={20} />
-            </button>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <X size={24} />
-            </button>
-          </div>
+          <h2 className="text-xl font-bold">{editingVendor ? 'Edit Vendor' : 'Add New Vendor'}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={24} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Name / Company Name *
+                Vendor Code *
               </label>
               <input
                 type="text"
-                name="clientName"
-                value={formData.clientName}
+                name="vendorCode"
+                value={formData.vendorCode}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
@@ -279,12 +225,12 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Code *
+                Vendor Name / Company Name *
               </label>
               <input
                 type="text"
-                name="clientCode"
-                value={formData.clientCode}
+                name="vendorName"
+                value={formData.vendorName}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
@@ -295,7 +241,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Person
+                Contact Person Name
               </label>
               <input
                 type="text"
@@ -308,7 +254,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Details
+                Contact Details (Mobile, Landline)
               </label>
               <input
                 type="text"
@@ -381,27 +327,31 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileUpload(e, 'gstCertificate')}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) handleOCRUpload(file, 'gstCertificate');
+                    }}
                     className="hidden"
                     id="gstFile"
                   />
                   <label
                     htmlFor="gstFile"
-                    className={`px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm ${
-                      uploadingStates.gstCertificate ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
                   >
-                    {uploadingStates.gstCertificate ? 'Processing...' : 'Upload'}
+                    {uploadStates.gst.loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                    ) : (
+                      <Upload className="w-4 h-4 mr-1" />
+                    )}
+                    Upload
                   </label>
                   {formData.documents.gstCertificate && (
                     <span className="ml-2 text-green-600 text-sm">✓</span>
                   )}
                 </div>
               </div>
-              {extractionErrors.gstCertificate && (
-                <div className="mt-1 text-sm text-red-600">
-                  {extractionErrors.gstCertificate}
-                </div>
+              {uploadStates.gst.error && (
+                <p className="text-red-500 text-sm mt-1">{uploadStates.gst.error}</p>
               )}
             </div>
             
@@ -424,14 +374,22 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileUpload(e, 'panCard')}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) handleOCRUpload(file, 'panCard');
+                    }}
                     className="hidden"
                     id="panFile"
                   />
                   <label
                     htmlFor="panFile"
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm"
+                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
                   >
+                    {uploadStates.pan.loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                    ) : (
+                      <Upload className="w-4 h-4 mr-1" />
+                    )}
                     Upload
                   </label>
                   {formData.documents.panCard && (
@@ -439,6 +397,9 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                   )}
                 </div>
               </div>
+              {uploadStates.pan.error && (
+                <p className="text-red-500 text-sm mt-1">{uploadStates.pan.error}</p>
+              )}
             </div>
           </div>
 
@@ -473,43 +434,6 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Industry Type
-              </label>
-              <select
-                name="industryType"
-                value={formData.industryType}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Industry Type</option>
-                <option value="Company">Company</option>
-                <option value="Firm">Firm</option>
-                <option value="Partnership">Partnership</option>
-                <option value="Proprietorship">Proprietorship</option>
-                <option value="LLP">LLP</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Category
-              </label>
-              <select
-                name="clientCategory"
-                value={formData.clientCategory}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Category</option>
-                <option value="Retail">Retail</option>
-                <option value="Corporate">Corporate</option>
-              </select>
             </div>
           </div>
 
@@ -558,28 +482,69 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileUpload(e, 'bankStatement')}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) handleOCRUpload(file, 'bankStatement');
+                    }}
                     className="hidden"
                     id="bankFile"
                   />
                   <label
                     htmlFor="bankFile"
-                    className={`px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm ${
-                      uploadingStates.bankStatement ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
                   >
-                    {uploadingStates.bankStatement ? 'Processing...' : 'Upload'}
+                    {uploadStates.bank.loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                    ) : (
+                      <Upload className="w-4 h-4 mr-1" />
+                    )}
+                    Upload
                   </label>
                   {formData.documents.bankStatement && (
                     <span className="ml-2 text-green-600 text-sm">✓</span>
                   )}
                 </div>
               </div>
-              {extractionErrors.bankStatement && (
-                <div className="mt-1 text-sm text-red-600">
-                  {extractionErrors.bankStatement}
-                </div>
+              {uploadStates.bank.error && (
+                <p className="text-red-500 text-sm mt-1">{uploadStates.bank.error}</p>
               )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Industry Type
+              </label>
+              <select
+                name="industryType"
+                value={formData.industryType}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Industry Type</option>
+                <option value="Company">Company</option>
+                <option value="Firm">Firm</option>
+                <option value="Partnership">Partnership</option>
+                <option value="Proprietorship">Proprietorship</option>
+                <option value="LLP">LLP</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vendor Category
+              </label>
+              <select
+                name="clientCategory"
+                value={formData.clientCategory}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Category</option>
+                <option value="Retail">Retail</option>
+                <option value="Corporate">Corporate</option>
+              </select>
             </div>
           </div>
 
@@ -657,6 +622,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             />
           </div>
 
+          {/* Documents Section */}
           <div className="border-t pt-4 mt-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <FileText className="w-5 h-5 mr-2" />
@@ -683,27 +649,31 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileUpload(e, 'aadharCard')}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleOCRUpload(file, 'aadharCard');
+                      }}
                       className="hidden"
                       id="aadharFile"
                     />
                     <label
                       htmlFor="aadharFile"
-                      className={`px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm ${
-                        uploadingStates.aadharCard ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
                     >
-                      {uploadingStates.aadharCard ? 'Processing...' : 'Upload'}
+                      {uploadStates.aadhar.loading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                      ) : (
+                        <Upload className="w-4 h-4 mr-1" />
+                      )}
+                      Upload
                     </label>
                     {formData.documents.aadharCard && (
                       <span className="ml-2 text-green-600 text-sm">✓</span>
                     )}
                   </div>
                 </div>
-                {extractionErrors.aadharCard && (
-                  <div className="mt-1 text-sm text-red-600">
-                    {extractionErrors.aadharCard}
-                  </div>
+                {uploadStates.aadhar.error && (
+                  <p className="text-red-500 text-sm mt-1">{uploadStates.aadhar.error}</p>
                 )}
               </div>
 
@@ -755,7 +725,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
             >
               <Save className="w-4 h-4 mr-2" />
-              {editingClient ? 'Update Client' : 'Save Client'}
+              {editingVendor ? 'Update Vendor' : 'Save Vendor'}
             </button>
           </div>
         </form>
@@ -764,4 +734,4 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   );
 };
 
-export default ClientForm;
+export default VendorForm;

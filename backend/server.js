@@ -8,6 +8,11 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth'); // Using MongoDB auth
 const aiRoutes = require('./routes/ai');
 const clientRoutes = require('./routes/clients');
+const vendorRoutes = require('./routes/vendors');
+const invoiceRoutes = require('./routes/invoices');
+const ocrRoutes = require('./routes/ocr-new');
+const approvalRoutes = require('./routes/approvals');
+const purchaseOrderRoutes = require('./routes/purchaseOrders');
 
 const app = express();
 
@@ -18,11 +23,19 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/ocr', ocrRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // test route 
-
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date() });
+});
+
+app.get('/api/purchase-orders/test', (req, res) => {
+  res.json({ message: 'Purchase Orders route working!' });
 });
 
 // Serve frontend (React buil
@@ -64,7 +77,7 @@ const connectDB = async () => {
 
 connectDB();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 

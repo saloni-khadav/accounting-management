@@ -6,6 +6,8 @@ import SetPassword from './components/SetPassword';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/Dashboard';
+import Profile from './components/Profile';
+import Settings from './components/Settings';
 import AccountsReceivable from './components/AccountsReceivable';
 import AccountReceivableDashboard from './components/AccountReceivableDashboard';
 import AccountsPayable from './components/AccountsPayable';
@@ -38,6 +40,9 @@ import TDSPurchases from './components/TDSPurchases';
 import VendorsAging from './components/VendorsAging';
 import VendorMaster from './components/VendorMaster';
 import ImportExport from './components/ImportExport';
+import TaxInvoice from './components/TaxInvoice';
+import InvoiceManagement from './components/InvoiceManagement';
+import ManagerApprovals from './components/ManagerApprovals';
 import ChatBot from './components/ChatBot';
 
 function App() {
@@ -58,6 +63,10 @@ function App() {
 
   const renderPage = () => {
     switch(activePage) {
+      case 'settings':
+        return <Settings />;
+      case 'profile':
+        return <Profile />;
       case 'dashboard':
         return <Dashboard />;
       case 'Account Receivable':
@@ -124,8 +133,14 @@ function App() {
         return <VendorsAging />;
       case 'Vendor Master':
         return <VendorMaster />;
+      case 'Tax Invoice':
+        return <TaxInvoice />;
+      case 'Invoice Management':
+        return <InvoiceManagement setActivePage={setActivePage} />;
       case 'Import/Export':
         return <ImportExport />;
+      case 'Manager Approvals':
+        return <ManagerApprovals />;
       default:
         return <Dashboard />;
     }
@@ -180,6 +195,8 @@ function App() {
   }
 
   // Dashboard view
+  const userType = localStorage.getItem('userType') || 'user';
+  
   return (
     <>
       <div className="flex h-screen bg-gray-50 font-inter">
@@ -188,9 +205,10 @@ function App() {
           setIsCollapsed={setSidebarCollapsed}
           activePage={activePage}
           setActivePage={setActivePage}
+          userType={userType}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
+          <Header setActivePage={setActivePage} />
           <main className="flex-1 overflow-y-auto">
             {renderPage()}
           </main>
