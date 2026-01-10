@@ -9,45 +9,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [statusFilter, setStatusFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
-  const [returnRequests, setReturnRequests] = useState([
-    {
-      id: 'RET-001',
-      customer: 'XYZ Ltd',
-      originalInvoice: 'INV-00250',
-      amount: '₹ 6,000',
-      items: [{ name: 'Product B', qty: 2, rate: 3000 }],
-      reason: 'Product Returned',
-      date: '2024-01-15'
-    },
-    {
-      id: 'RET-002',
-      customer: 'ABC Corp',
-      originalInvoice: 'INV-00251',
-      amount: '₹ 8,500',
-      items: [{ name: 'Product C', qty: 1, rate: 8500 }],
-      reason: 'Defective Item',
-      date: '2024-01-16'
-    }
-  ]);
-  const [showNotification, setShowNotification] = useState(false);
 
-  // Handle auto-fill from return request
-  const handleAutoFillFromReturn = (returnReq) => {
-    // Create pre-filled credit note data
-    setEditingCreditNote({
-      customerName: returnReq.customer,
-      originalInvoiceNumber: returnReq.originalInvoice,
-      reason: returnReq.reason,
-      referenceNumber: returnReq.id,
-      creditNoteNumber: '',
-      creditNoteDate: new Date().toISOString().split('T')[0],
-    });
-    
-    setReturnRequests(prev => prev.filter(r => r.id !== returnReq.id));
-    setShowNotification(true);
-    setIsFormOpen(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  };
 
   const handleEditCreditNote = (creditNote) => {
     setEditingCreditNote(creditNote);
@@ -187,43 +149,6 @@ const CreditNoteManagement = ({ setActivePage }) => {
         </table>
       </div>
 
-      {/* Notification */}
-      {showNotification && (
-        <div className="mt-6 mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-600" />
-          <span className="text-green-800 text-sm">Credit Note form opened with return request details!</span>
-        </div>
-      )}
-
-      {/* Return Requests Alert */}
-      {returnRequests.length > 0 && (
-        <div className="mt-6 mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell className="w-5 h-5 text-orange-600" />
-            <h3 className="font-medium text-orange-800">Pending Return Requests ({returnRequests.length})</h3>
-          </div>
-          <div className="space-y-2">
-            {returnRequests.map(returnReq => (
-              <div key={returnReq.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3 bg-white rounded border">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium text-sm">{returnReq.id}</span>
-                    <span className="text-sm text-gray-600">- {returnReq.customer}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{returnReq.originalInvoice} • {returnReq.amount} • {returnReq.reason}</div>
-                </div>
-                <button 
-                  onClick={() => handleAutoFillFromReturn(returnReq)}
-                  className="px-3 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
-                >
-                  Create Credit Note
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <CreditNote
         isOpen={isFormOpen}

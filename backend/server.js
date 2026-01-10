@@ -13,12 +13,14 @@ const invoiceRoutes = require('./routes/invoices');
 const ocrRoutes = require('./routes/ocr-new');
 const gstRoutes = require('./routes/gst');
 const managerRoutes = require('./routes/manager');
+const poRoutes = require('./routes/pos');
 
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
@@ -28,6 +30,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/gst', gstRoutes);
 app.use('/api/manager', managerRoutes);
+app.use('/api/pos', poRoutes);
 
 // test route 
 
