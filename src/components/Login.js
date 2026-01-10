@@ -5,7 +5,8 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    role: 'user'
   });
 
   const handleSubmit = async (e) => {
@@ -90,6 +91,35 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Login as</label>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="user"
+                    checked={formData.role === 'user'}
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">User</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="manager"
+                    checked={formData.role === 'manager'}
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Manager</span>
+                </label>
               </div>
             </div>
 

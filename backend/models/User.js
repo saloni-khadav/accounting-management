@@ -40,6 +40,11 @@ const userSchema = new mongoose.Schema({
   passwordSetupExpire: {
     type: Date
   },
+  role: {
+    type: String,
+    enum: ['user', 'manager'],
+    default: 'user'
+  },
   gstDetails: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'GST'

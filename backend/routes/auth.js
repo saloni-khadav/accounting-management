@@ -10,7 +10,7 @@ const router = express.Router();
 // Signup - Step 1: Collect user info and send password setup email
 router.post('/signup', async (req, res) => {
   try {
-    const { fullName, workEmail, companyName, companySize, annualTurnover } = req.body;
+    const { fullName, workEmail, companyName, companySize, annualTurnover, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ workEmail });
@@ -29,6 +29,7 @@ router.post('/signup', async (req, res) => {
       companyName,
       companySize,
       annualTurnover,
+      role: role || 'user',
       isActive: false,
       passwordSetupToken,
       passwordSetupExpire
@@ -127,7 +128,7 @@ router.post('/set-password', async (req, res) => {
 // Login - Step 3: Authenticate user
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     // Find user by email
     const user = await User.findOne({ workEmail: email });
@@ -146,8 +147,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Role validation: Only users with manager role can login as manager
+    if (role === 'manager' && user.role !== 'manager') {
+      return res.status(403).json({ message: 'Access denied. Manager account required.' });
+    }
+
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.json({
       message: 'Login successful',
@@ -156,7 +162,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         workEmail: user.workEmail,
-        companyName: user.companyName
+        companyName: user.companyName,
+        role: user.role
       }
     });
   } catch (error) {

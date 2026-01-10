@@ -12,6 +12,7 @@ const vendorRoutes = require('./routes/vendors');
 const invoiceRoutes = require('./routes/invoices');
 const ocrRoutes = require('./routes/ocr-new');
 const gstRoutes = require('./routes/gst');
+const managerRoutes = require('./routes/manager');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/gst', gstRoutes);
+app.use('/api/manager', managerRoutes);
 
 // test route 
 

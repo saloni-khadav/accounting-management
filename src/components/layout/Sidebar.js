@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -28,6 +28,13 @@ import {
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [userRole, setUserRole] = useState('user');
+
+  useEffect(() => {
+    // Get user role from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || 'user'); // Use actual user role from database
+  }, []);
 
   const menuItems = [
     { 
@@ -275,6 +282,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
               </li>
             );
           })}
+
+          {/* Approval - Only for Managers */}
+          {userRole === 'manager' && (
+            <li>
+              <button
+                onClick={() => setActivePage('Approvals')}
+                className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                  activePage === 'Approvals'
+                    ? 'bg-sidebar-active text-white'
+                    : 'hover:bg-sidebar-hover'
+                }`}
+              >
+                <CheckCircle size={20} />
+                {!isCollapsed && (
+                  <span className="ml-3 font-medium">Approvals</span>
+                )}
+              </button>
+            </li>
+          )}}
         </ul>
       </nav>
     </div>
