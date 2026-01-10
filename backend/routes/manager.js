@@ -1,6 +1,9 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const Invoice = require('../models/Invoice');
+const PO = require('../models/PO');
+const Client = require('../models/Client');
 
 const router = express.Router();
 
@@ -20,30 +23,71 @@ const requireManager = async (req, res, next) => {
 // Get pending approvals (Manager only)
 router.get('/pending', auth, requireManager, async (req, res) => {
   try {
-    // Mock data for now - replace with actual database queries
-    const pendingApprovals = [
-      {
-        id: 1,
+    const pendingApprovals = [];
+    
+    // Get pending invoices
+    const pendingInvoices = await Invoice.find({ status: 'Draft' })
+      .select('invoiceNumber customerName grandTotal createdAt createdBy')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    pendingInvoices.forEach(invoice => {
+      pendingApprovals.push({
+        id: invoice._id,
         type: 'Invoice',
-        description: 'Invoice #INV-2024-001 - ABC Corp',
-        amount: '$5,250.00',
-        requestedBy: 'John Doe',
-        requestDate: '2024-01-15',
+        description: `Invoice ${invoice.invoiceNumber} - ${invoice.customerName}`,
+        amount: `₹${invoice.grandTotal.toLocaleString()}`,
+        requestedBy: invoice.createdBy || 'System',
+        requestDate: invoice.createdAt.toISOString().split('T')[0],
         status: 'pending'
-      },
-      {
-        id: 2,
-        type: 'Payment',
-        description: 'Payment to XYZ Vendor',
-        amount: '$3,800.00',
-        requestedBy: 'Jane Smith',
-        requestDate: '2024-01-14',
+      });
+    });
+    
+    // Get pending POs
+    const pendingPOs = await PO.find({ status: 'Draft' })
+      .populate('supplier', 'name')
+      .select('poNumber supplierName totalAmount createdAt')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    pendingPOs.forEach(po => {
+      pendingApprovals.push({
+        id: po._id,
+        type: 'Purchase Order',
+        description: `PO ${po.poNumber} - ${po.supplierName}`,
+        amount: `₹${po.totalAmount.toLocaleString()}`,
+        requestedBy: 'Purchase Team',
+        requestDate: po.createdAt.toISOString().split('T')[0],
         status: 'pending'
-      }
-    ];
+      });
+    });
+    
+    // Get high-value clients for approval
+    const highValueClients = await Client.find({ 
+      $or: [
+        { creditLimit: { $gt: 100000 } },
+        { outstandingAmount: { $gt: 50000 } }
+      ]
+    })
+    .select('name creditLimit outstandingAmount createdAt')
+    .limit(5)
+    .sort({ createdAt: -1 });
+    
+    highValueClients.forEach(client => {
+      pendingApprovals.push({
+        id: client._id,
+        type: 'Client Approval',
+        description: `High-value client: ${client.name}`,
+        amount: `Credit: ₹${client.creditLimit?.toLocaleString() || 0}`,
+        requestedBy: 'Sales Team',
+        requestDate: client.createdAt.toISOString().split('T')[0],
+        status: 'pending'
+      });
+    });
     
     res.json({ approvals: pendingApprovals });
   } catch (error) {
+    console.error('Error fetching approvals:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
