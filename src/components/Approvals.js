@@ -33,12 +33,48 @@ const Approvals = () => {
     }
   };
 
-  const handleApprove = (id) => {
-    alert(`Approved item with ID: ${id}`);
+  const handleApprove = async (id, type) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ itemId: id, action: 'approve', type })
+      });
+      
+      if (response.ok) {
+        fetchPendingApprovals(); // Refresh data
+      } else {
+        alert('Failed to approve item');
+      }
+    } catch (error) {
+      alert('Error approving item');
+    }
   };
 
-  const handleReject = (id) => {
-    alert(`Rejected item with ID: ${id}`);
+  const handleReject = async (id, type) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/action', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ itemId: id, action: 'reject', type })
+      });
+      
+      if (response.ok) {
+        fetchPendingApprovals(); // Refresh data
+      } else {
+        alert('Failed to reject item');
+      }
+    } catch (error) {
+      alert('Error rejecting item');
+    }
   };
 
   if (loading) {
@@ -110,14 +146,14 @@ const Approvals = () => {
 
                 <div className="flex items-center space-x-3 ml-6">
                   <button
-                    onClick={() => handleReject(item.id)}
+                    onClick={() => handleReject(item.id, item.type)}
                     className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
                   >
                     <XCircle size={16} className="mr-1" />
                     Reject
                   </button>
                   <button
-                    onClick={() => handleApprove(item.id)}
+                    onClick={() => handleApprove(item.id, item.type)}
                     className="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
                   >
                     <CheckCircle size={16} className="mr-1" />
