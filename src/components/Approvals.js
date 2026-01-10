@@ -1,36 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, User, Calendar, DollarSign } from 'lucide-react';
 
 const Approvals = () => {
-  const [pendingApprovals] = useState([
-    {
-      id: 1,
-      type: 'Invoice',
-      description: 'Invoice #INV-2024-001 - ABC Corp',
-      amount: '$5,250.00',
-      requestedBy: 'John Doe',
-      requestDate: '2024-01-15',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      type: 'Payment',
-      description: 'Payment to XYZ Vendor',
-      amount: '$3,800.00',
-      requestedBy: 'Jane Smith',
-      requestDate: '2024-01-14',
-      status: 'pending'
-    },
-    {
-      id: 3,
-      type: 'Purchase Order',
-      description: 'PO #PO-2024-005 - Office Supplies',
-      amount: '$1,200.00',
-      requestedBy: 'Mike Johnson',
-      requestDate: '2024-01-13',
-      status: 'pending'
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchPendingApprovals();
+  }, []);
+
+  const fetchPendingApprovals = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/pending', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPendingApprovals(data.approvals);
+      } else {
+        setError('Failed to fetch approvals');
+      }
+    } catch (error) {
+      setError('Network error');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const handleApprove = (id) => {
     alert(`Approved item with ID: ${id}`);
@@ -39,6 +40,33 @@ const Approvals = () => {
   const handleReject = (id) => {
     alert(`Rejected item with ID: ${id}`);
   };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
+          <span className="ml-2 text-gray-600">Loading approvals...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={fetchPendingApprovals}
+            className="mt-2 text-red-800 hover:text-red-600 font-medium"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
