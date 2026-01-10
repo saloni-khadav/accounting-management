@@ -243,12 +243,26 @@ router.post('/extract', upload.single('document'), async (req, res) => {
 
     // Extract structured data
     const extractedData = extractData(rawText, documentType);
+    
+    // Force extract UDYAM number for MSME certificates
+    if (documentType === 'msmeCertificate') {
+      console.log('Processing MSME certificate...');
+      const udyamMatch = rawText.match(/UDYAM-[A-Z]{2}-\d{2}-\d{7}/i);
+      if (udyamMatch) {
+        extractedData.msmeNumber = udyamMatch[0];
+        console.log('UDYAM number extracted:', udyamMatch[0]);
+      } else {
+        console.log('No UDYAM match found in text');
+      }
+    }
+    
     console.log('Extracted data:', extractedData);
     
     // Check if relevant data was found based on document type
     let hasRelevantData = false;
     if (documentType === 'gstCertificate' && extractedData.gstNumber) hasRelevantData = true;
     if (documentType === 'mcaCertificate' && extractedData.mcaNumber) hasRelevantData = true;
+    if (documentType === 'msmeCertificate' && extractedData.msmeNumber) hasRelevantData = true;
     if (documentType === 'bankStatement' && (extractedData.accountNumber || extractedData.ifscCode || extractedData.bankName)) hasRelevantData = true;
     if (documentType === 'aadharCard' && extractedData.aadharNumber) hasRelevantData = true;
 

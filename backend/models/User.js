@@ -43,6 +43,16 @@ const userSchema = new mongoose.Schema({
   gstDetails: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'GST'
+  },
+  profile: {
+    companyLogo: String,
+    gstNumber: String,
+    tradeName: String,
+    address: String,
+    panNumber: String,
+    mcaNumber: String,
+    msmeStatus: { type: String, default: 'No' },
+    msmeNumber: String
   }
 }, {
   timestamps: true

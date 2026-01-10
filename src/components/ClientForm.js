@@ -241,6 +241,20 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     });
   };
 
+  const downloadDocument = (file, index) => {
+    if (file instanceof File) {
+      // Create a temporary URL for the file and download it
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const removeOtherDocument = (index) => {
     const updatedDocs = formData.documents.otherDocuments.filter((_, i) => i !== index);
     setFormData({
@@ -801,13 +815,24 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                   {formData.documents.otherDocuments.map((file, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
                       <span className="text-sm text-gray-700">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeOtherDocument(index)}
-                        className="text-red-600 hover:text-red-800 text-sm"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => downloadDocument(file, index)}
+                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                          title="Download"
+                        >
+                          <Download size={16} className="mr-1" />
+                          Download
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeOtherDocument(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

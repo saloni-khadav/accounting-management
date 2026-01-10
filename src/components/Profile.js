@@ -5,6 +5,7 @@ import { validateGST } from '../utils/gstUtils';
 const Profile = () => {
   const [profileData, setProfileData] = useState({
     companyLogo: null,
+    companyLogoUrl: null,
     gstNumber: '',
     gstCertificate: null,
     tradeName: '',
@@ -19,16 +20,14 @@ const Profile = () => {
   const [showPanFull, setShowPanFull] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Load saved GST details on component mount
+  // Load saved profile data on component mount
   useEffect(() => {
-    const loadSavedGSTDetails = async () => {
+    const loadProfileData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId'); // Assuming userId is stored
-        
-        if (!token || !userId) return;
+        if (!token) return;
 
-        const response = await fetch(`http://localhost:5001/api/gst/details/${userId}`, {
+        const response = await fetch('http://localhost:5001/api/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -36,23 +35,27 @@ const Profile = () => {
 
         if (response.ok) {
           const result = await response.json();
-          if (result.success) {
-            const { gstNumber, tradeName, panNumber, address } = result.data;
+          if (result.user && result.user.profile) {
+            const profile = result.user.profile;
             setProfileData(prev => ({
               ...prev,
-              gstNumber: gstNumber || '',
-              tradeName: tradeName || '',
-              panNumber: panNumber || '',
-              address: address || ''
+              gstNumber: profile.gstNumber || '',
+              tradeName: profile.tradeName || '',
+              panNumber: profile.panNumber || '',
+              address: profile.address || '',
+              mcaNumber: profile.mcaNumber || '',
+              msmeStatus: profile.msmeStatus || 'No',
+              msmeNumber: profile.msmeNumber || '',
+              companyLogoUrl: profile.companyLogo || null
             }));
           }
         }
       } catch (error) {
-        console.log('No saved GST details found');
+        console.log('No saved profile data found');
       }
     };
 
-    loadSavedGSTDetails();
+    loadProfileData();
   }, []);
 
   const handleInputChange = (field, value) => {
@@ -84,6 +87,11 @@ const Profile = () => {
     // Extract MCA number from MCA certificate
     if (field === 'mcaFile' && file) {
       await extractMCANumber(file);
+    }
+
+    // Extract MSME number from MSME certificate
+    if (field === 'msmeFile' && file) {
+      await extractMSMENumber(file);
     }
   };
 
@@ -178,6 +186,39 @@ const Profile = () => {
     }
   };
 
+  const extractMSMENumber = async (file) => {
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('documentType', 'msmeCertificate');
+
+      const response = await fetch('http://localhost:5001/api/ocr/extract', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success && result.data.msmeNumber) {
+        setProfileData(prev => ({
+          ...prev,
+          msmeNumber: result.data.msmeNumber,
+          msmeStatus: 'Yes'
+        }));
+        alert(`MSME number extracted: ${result.data.msmeNumber}`);
+      } else {
+        console.log('MSME extraction result:', result);
+        alert('Could not extract MSME number from the document.');
+      }
+    } catch (error) {
+      console.error('MSME OCR Error:', error);
+      alert('Error processing MSME document.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
 
   const fetchGSTDetails = async (gstNumber = profileData.gstNumber) => {
@@ -224,16 +265,55 @@ const Profile = () => {
     return start + middle + end;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
     if (!profileData.gstNumber) {
       alert('GST Number is required');
       return;
     }
 
-    // Save profile data
-    console.log('Saving profile data:', profileData);
-    alert('Profile saved successfully!');
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Convert logo file to base64 if exists
+      let logoBase64 = null;
+      if (profileData.companyLogo) {
+        const reader = new FileReader();
+        logoBase64 = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(profileData.companyLogo);
+        });
+      }
+
+      const response = await fetch('http://localhost:5001/api/auth/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          companyLogo: logoBase64,
+          gstNumber: profileData.gstNumber,
+          tradeName: profileData.tradeName,
+          address: profileData.address,
+          panNumber: profileData.panNumber,
+          mcaNumber: profileData.mcaNumber,
+          msmeStatus: profileData.msmeStatus,
+          msmeNumber: profileData.msmeNumber
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        alert('Profile saved successfully!');
+      } else {
+        alert('Error saving profile: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Error saving profile. Please try again.');
+    }
   };
 
   return (
@@ -254,6 +334,12 @@ const Profile = () => {
               {profileData.companyLogo ? (
                 <img 
                   src={URL.createObjectURL(profileData.companyLogo)} 
+                  alt="Company Logo" 
+                  className="w-20 h-20 object-cover rounded-lg border"
+                />
+              ) : profileData.companyLogoUrl ? (
+                <img 
+                  src={profileData.companyLogoUrl} 
                   alt="Company Logo" 
                   className="w-20 h-20 object-cover rounded-lg border"
                 />
@@ -314,8 +400,8 @@ const Profile = () => {
             <input
               type="text"
               value={profileData.tradeName}
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+              onChange={(e) => handleInputChange('tradeName', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
@@ -325,8 +411,8 @@ const Profile = () => {
               <input
                 type="text"
                 value={showPanFull ? profileData.panNumber : maskPanNumber(profileData.panNumber)}
-                readOnly
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                onChange={(e) => handleInputChange('panNumber', e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={() => setShowPanFull(!showPanFull)}
@@ -343,9 +429,9 @@ const Profile = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
             <textarea
               value={profileData.address}
-              readOnly
+              onChange={(e) => handleInputChange('address', e.target.value)}
               rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           
@@ -421,19 +507,22 @@ const Profile = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">MSME Certificate</label>
-                  <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center">
+                  <label className={`cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center ${
+                    isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Certificate
+                    {isProcessing ? 'Processing...' : 'Upload Certificate'}
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])}
                       className="hidden"
+                      disabled={isProcessing}
                     />
                   </label>
                   {profileData.msmeFile && (
                     <p className="text-sm text-green-600 mt-1">
-                      File uploaded: {profileData.msmeFile.name}
+                      ✓ File uploaded: {profileData.msmeFile.name}
                     </p>
                   )}
                 </div>
