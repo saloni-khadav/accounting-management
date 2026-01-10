@@ -26,7 +26,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     }
   ]);
   const [showNotification, setShowNotification] = useState(false);
-  const [autoFillData, setAutoFillData] = useState(null);
+  const handleClose = () => {
+    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      onClose();
+    }
+  };
   // Mock function to simulate receiving purchase order
   const handleAutoFillFromOrder = (order) => {
     setAutoFillData({
@@ -213,6 +217,54 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   useEffect(() => {
     calculateTotals();
   }, [invoiceData.items]);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5001/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          const profile = userData.user.profile || {};
+          
+          // Extract state from address for place of supply
+          let stateFromAddress = '';
+          if (profile.address) {
+            const addressParts = profile.address.split(',');
+            for (let part of addressParts) {
+              const trimmedPart = part.trim();
+              const states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Puducherry', 'Chandigarh', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Lakshadweep'];
+              if (states.includes(trimmedPart)) {
+                stateFromAddress = trimmedPart;
+                break;
+              }
+            }
+          }
+          
+          setInvoiceData(prev => ({
+            ...prev,
+            supplierName: userData.user.companyName || profile.tradeName || prev.supplierName,
+            supplierAddress: profile.address || prev.supplierAddress,
+            supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
+            supplierPAN: profile.panNumber || prev.supplierPAN,
+            placeOfSupply: stateFromAddress || prev.placeOfSupply
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -459,7 +511,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">{editingInvoice ? 'Edit Tax Invoice' : 'Tax Invoice'}</h1>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
           >
             ×
@@ -952,7 +1004,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       {/* Action Buttons */}
       <div className="flex gap-3 justify-end p-6 border-t bg-gray-50">
         <button 
-          onClick={onClose}
+          onClick={handleClose}
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center"
         >
           Cancel

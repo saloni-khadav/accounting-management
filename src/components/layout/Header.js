@@ -4,13 +4,35 @@ import { Search, Bell, User, ChevronDown } from 'lucide-react';
 const Header = ({ setActivePage }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [companyName, setCompanyName] = useState('John Doe');
+  const [companyLogo, setCompanyLogo] = useState(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      setCompanyName(user.companyName || user.name || 'John Doe');
-    }
+    const loadUserData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5001/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.user) {
+            setCompanyName(result.user.companyName || result.user.fullName || 'John Doe');
+            if (result.user.profile && result.user.profile.companyLogo) {
+              setCompanyLogo(result.user.profile.companyLogo);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Error loading user data:', error);
+      }
+    };
+
+    loadUserData();
   }, []);
 
   const handleProfileClick = () => {
@@ -60,8 +82,16 @@ const Header = ({ setActivePage }) => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                <User size={16} className="text-white" />
+              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center overflow-hidden">
+                {companyLogo ? (
+                  <img 
+                    src={companyLogo} 
+                    alt="Company Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User size={16} className="text-white" />
+                )}
               </div>
               <span className="font-medium text-gray-700">{companyName}</span>
               <ChevronDown size={16} className="text-gray-500" />

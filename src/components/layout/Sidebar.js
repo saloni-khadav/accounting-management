@@ -73,7 +73,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
     { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
     { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
     { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
-    { id: 'GST Invoice', icon: Receipt, label: 'GST Invoice' },
     { id: 'Invoice Management', icon: BarChart3, label: 'Tax Invoice' },
   ];
 

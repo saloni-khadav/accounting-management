@@ -172,9 +172,43 @@ router.get('/me', auth, async (req, res) => {
       id: req.user._id,
       fullName: req.user.fullName,
       workEmail: req.user.workEmail,
-      companyName: req.user.companyName
+      companyName: req.user.companyName,
+      profile: req.user.profile || {}
     }
   });
+});
+
+// Save profile data
+router.post('/profile', auth, async (req, res) => {
+  try {
+    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        profile: {
+          companyLogo,
+          gstNumber,
+          tradeName,
+          address,
+          panNumber,
+          mcaNumber,
+          msmeStatus,
+          msmeNumber
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      message: 'Profile saved successfully',
+      success: true,
+      profile: user.profile
+    });
+  } catch (error) {
+    console.error('Profile save error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 });
 
 module.exports = router;
