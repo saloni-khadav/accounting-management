@@ -26,8 +26,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     const pendingApprovals = [];
     
     // Get pending invoices
-    const pendingInvoices = await Invoice.find({ status: 'Draft' })
-      .select('invoiceNumber customerName grandTotal createdAt createdBy')
+    const pendingInvoices = await Invoice.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
+      .select('invoiceNumber customerName grandTotal createdAt createdBy status')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -39,14 +39,14 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${invoice.grandTotal.toLocaleString()}`,
         requestedBy: invoice.createdBy || 'System',
         requestDate: invoice.createdAt.toISOString().split('T')[0],
-        status: 'pending'
+        status: invoice.status === 'Draft' ? 'pending' : invoice.status.toLowerCase()
       });
     });
     
     // Get pending POs
-    const pendingPOs = await PO.find({ status: 'Draft' })
+    const pendingPOs = await PO.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
       .populate('supplier', 'name')
-      .select('poNumber supplierName totalAmount createdAt')
+      .select('poNumber supplierName totalAmount createdAt status')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -58,7 +58,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${po.totalAmount.toLocaleString()}`,
         requestedBy: 'Purchase Team',
         requestDate: po.createdAt.toISOString().split('T')[0],
-        status: 'pending'
+        status: po.status === 'Draft' ? 'pending' : po.status.toLowerCase()
       });
     });
     
@@ -81,7 +81,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `Credit: ₹${client.creditLimit?.toLocaleString() || 0}`,
         requestedBy: 'Sales Team',
         requestDate: client.createdAt.toISOString().split('T')[0],
-        status: 'pending'
+        status: client.approvalStatus ? client.approvalStatus.toLowerCase() : 'pending'
       });
     });
     
@@ -95,15 +95,32 @@ router.get('/pending', auth, requireManager, async (req, res) => {
 // Approve/Reject item (Manager only)
 router.post('/action', auth, requireManager, async (req, res) => {
   try {
-    const { itemId, action } = req.body; // action: 'approve' or 'reject'
+    const { itemId, action, type } = req.body; // action: 'approve' or 'reject'
     
-    // Mock response - replace with actual database update
+    let updateResult;
+    const newStatus = action === 'approve' ? 'Approved' : 'Rejected';
+    
+    // Update based on item type
+    if (type === 'Invoice') {
+      updateResult = await Invoice.findByIdAndUpdate(itemId, { status: newStatus }, { new: true });
+    } else if (type === 'Purchase Order') {
+      updateResult = await PO.findByIdAndUpdate(itemId, { status: newStatus }, { new: true });
+    } else if (type === 'Client Approval') {
+      updateResult = await Client.findByIdAndUpdate(itemId, { approvalStatus: newStatus }, { new: true });
+    }
+    
+    if (!updateResult) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
     res.json({ 
       message: `Item ${action}d successfully`,
       itemId,
-      action
+      action,
+      success: true
     });
   } catch (error) {
+    console.error('Action error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
