@@ -9,7 +9,8 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
     workEmail: '',
     companyName: '',
     companySize: '',
-    annualTurnover: ''
+    annualTurnover: '',
+    role: 'user'
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
@@ -181,6 +182,35 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
                   <option value="50M+">$50M+</option>
                 </select>
                 {errors.annualTurnover && <p className="text-red-500 text-sm mt-1">{errors.annualTurnover}</p>}
+              </div>
+
+              {/* Account Type */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">Account Type</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="user"
+                      checked={formData.role === 'user'}
+                      onChange={(e) => setFormData({...formData, role: e.target.value})}
+                      className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">User Account</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="manager"
+                      checked={formData.role === 'manager'}
+                      onChange={(e) => setFormData({...formData, role: e.target.value})}
+                      className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Manager Account</span>
+                  </label>
+                </div>
               </div>
 
               {/* Submit Button */}
