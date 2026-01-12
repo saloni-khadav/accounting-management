@@ -51,8 +51,16 @@ const poSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Draft', 'Sent', 'Approved', 'Cancelled'],
+    enum: ['Draft', 'Sent', 'Approved', 'Cancelled', 'Rejected'],
     default: 'Draft'
+  },
+  rejectionReason: {
+    type: String,
+    trim: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

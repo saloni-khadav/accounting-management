@@ -147,13 +147,26 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Role validation: Only users with manager role can login as manager
-    if (role === 'manager' && user.role !== 'manager') {
-      return res.status(403).json({ message: 'Access denied. Manager account required.' });
+    // Role validation: User must login with their assigned role
+    if (role !== user.role) {
+      if (role === 'manager' && user.role !== 'manager') {
+        return res.status(403).json({ message: 'Access denied. You are not authorized to login as Manager.' });
+      }
+      if (role === 'user' && user.role !== 'user') {
+        return res.status(403).json({ message: 'Access denied. Please login as Manager.' });
+      }
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // Generate JWT token with role
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        role: user.role,
+        email: user.workEmail 
+      }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
 
     res.json({
       message: 'Login successful',

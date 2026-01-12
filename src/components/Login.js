@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BarChart3, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -11,6 +13,9 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+    
     try {
       const response = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
@@ -27,10 +32,12 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
         localStorage.setItem('user', JSON.stringify(data.user));
         onLogin();
       } else {
-        alert(data.message || 'Login failed');
+        setError(data.message || 'Login failed');
       }
     } catch (error) {
-      alert('Network error. Please check if backend is running.');
+      setError('Network error. Please check if backend is running.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +61,12 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
@@ -97,6 +110,9 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
             {/* Role Selection */}
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">Login as</label>
+              <div className="bg-gray-50 p-3 rounded-lg mb-2">
+                <p className="text-xs text-gray-600 mb-2">⚠️ You can only login with the role assigned to your account</p>
+              </div>
               <div className="flex space-x-4">
                 <label className="flex items-center">
                   <input
@@ -137,9 +153,10 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 
