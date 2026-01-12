@@ -75,7 +75,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
     { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'Client Master', icon: Users, label: 'Client Master' },
     { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
-    { id: 'Create PO', icon: FileText, label: 'Create PO' },
+    { id: 'Create PO', icon: FileText, label: 'Proforma Invoice' },
     { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
     { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
     { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
