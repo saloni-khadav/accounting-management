@@ -10,6 +10,17 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
 
+  // Filter credit notes based on search and status
+  const filteredCreditNotes = creditNotes.filter(creditNote => {
+    const matchesSearch = creditNote.creditNoteNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         creditNote.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         creditNote.originalInvoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || creditNote.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
 
   const handleEditCreditNote = (creditNote) => {
     setEditingCreditNote(creditNote);
@@ -95,14 +106,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
             </tr>
           </thead>
           <tbody>
-            {creditNotes.length === 0 ? (
+            {filteredCreditNotes.length === 0 ? (
               <tr>
                 <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                  No credit notes found
+                  {creditNotes.length === 0 ? 'No credit notes found' : 'No credit notes match your filters'}
                 </td>
               </tr>
             ) : (
-              creditNotes.map((creditNote) => (
+              filteredCreditNotes.map((creditNote) => (
                 <tr key={creditNote._id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
                     {creditNote.creditNoteNumber}

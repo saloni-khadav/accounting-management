@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Edit, Eye, Download, FileText, Search, Filter, Calendar } from 'lucide-react';
 import DatePicker from './ui/DatePicker';
 import { generatePONumber } from '../utils/numberGenerator';
 
 const CreatePO = () => {
+  const [showForm, setShowForm] = useState(false);
+  const [pos, setPOs] = useState([]);
+  const [filteredPOs, setFilteredPOs] = useState([]);
+  const [editingPO, setEditingPO] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingPO, setViewingPO] = useState(null);
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -55,7 +65,7 @@ const CreatePO = () => {
   const [poDate, setPoDate] = useState(getCurrentDate());
   const [deliveryDate, setDeliveryDate] = useState(getCurrentDate());
   const [items, setItems] = useState([
-    { name: '', hsn: '', quantity: 0, rate: 0, discount: 0 }
+    { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
 
   // Filter clients based on search
@@ -63,10 +73,74 @@ const CreatePO = () => {
     client.clientName.toLowerCase().includes(supplierSearch.toLowerCase())
   );
 
-  // Fetch clients on component mount
+  // Fetch POs on component mount
   useEffect(() => {
+    fetchPOs();
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    if (showForm) {
+      fetchClients();
+    }
+  }, [showForm]);
+
+  const fetchPOs = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/pos');
+      if (response.ok) {
+        const posData = await response.json();
+        setPOs(posData);
+        setFilteredPOs(posData);
+      }
+    } catch (error) {
+      console.error('Error fetching POs:', error);
+    }
+  };
+
+  // Filter POs based on search and filters
+  useEffect(() => {
+    let filtered = pos;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(po => 
+        po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        po.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Date range filter
+    if (fromDate) {
+      filtered = filtered.filter(po => {
+        const poDate = new Date(po.poDate);
+        const filterFromDate = new Date(fromDate);
+        return poDate >= filterFromDate;
+      });
+    }
+
+    if (toDate) {
+      filtered = filtered.filter(po => {
+        const poDate = new Date(po.poDate);
+        const filterToDate = new Date(toDate);
+        return poDate <= filterToDate;
+      });
+    }
+
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(po => po.status === statusFilter);
+    }
+
+    setFilteredPOs(filtered);
+  }, [pos, searchTerm, fromDate, toDate, statusFilter]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setFromDate('');
+    setToDate('');
+  };
 
   const fetchClients = async () => {
     try {
@@ -109,7 +183,7 @@ const CreatePO = () => {
   };
 
   const addItem = () => {
-    setItems([...items, { name: '', hsn: '', quantity: 0, rate: 0, discount: 0 }]);
+    setItems([...items, { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
   };
 
   const removeItem = (index) => {
@@ -130,8 +204,34 @@ const CreatePO = () => {
   };
 
   const calculateTax = () => {
-    const afterDiscount = calculateSubTotal() - calculateDiscount();
-    return afterDiscount * 0.18;
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      const cgstAmount = (afterDiscount * (item.cgstRate || 0)) / 100;
+      const sgstAmount = (afterDiscount * (item.sgstRate || 0)) / 100;
+      const igstAmount = (afterDiscount * (item.igstRate || 0)) / 100;
+      return sum + cgstAmount + sgstAmount + igstAmount;
+    }, 0);
+  };
+
+  const calculateCGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.cgstRate || 0)) / 100;
+    }, 0);
+  };
+
+  const calculateSGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.sgstRate || 0)) / 100;
+    }, 0);
+  };
+
+  const calculateIGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.igstRate || 0)) / 100;
+    }, 0);
   };
 
   const calculateTotal = () => {
@@ -150,7 +250,7 @@ const CreatePO = () => {
     });
     setPoDate(getCurrentDate());
     setDeliveryDate(getCurrentDate());
-    setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0 }]);
+    setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
   };
 
   const handleCreatePO = async () => {
@@ -168,12 +268,21 @@ const CreatePO = () => {
         items,
         subTotal: calculateSubTotal(),
         totalDiscount: calculateDiscount(),
-        tax: calculateTax(),
+        cgst: calculateCGST(),
+        sgst: calculateSGST(),
+        igst: calculateIGST(),
+        totalTax: calculateTax(),
         totalAmount: calculateTotal()
       };
 
-      const response = await fetch('http://localhost:5001/api/pos', {
-        method: 'POST',
+      const isEditing = editingPO && editingPO._id;
+      const url = isEditing 
+        ? `http://localhost:5001/api/pos/${editingPO._id}`
+        : 'http://localhost:5001/api/pos';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -181,8 +290,11 @@ const CreatePO = () => {
       });
 
       if (response.ok) {
-        alert('Purchase Order created successfully!');
+        alert(isEditing ? 'Purchase Order updated successfully!' : 'Purchase Order created successfully!');
         resetForm();
+        setShowForm(false);
+        setEditingPO(null);
+        fetchPOs();
         // Get next PO number
         const nextNumber = await getNextPONumber();
         setPoNumber(nextNumber);
@@ -195,12 +307,256 @@ const CreatePO = () => {
     }
   };
 
-  return (
-    <div className="p-8 bg-white min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create Purchase Order</h1>
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.relative')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleView = (po) => {
+    setViewingPO(po);
+    setShowViewModal(true);
+  };
+
+  const handleEdit = (po) => {
+    setEditingPO(po);
+    setSelectedClient(po.supplier);
+    setSupplierSearch(po.supplierName);
+    setPoNumber(po.poNumber);
+    setPoDate(po.poDate);
+    setDeliveryDate(po.deliveryDate);
+    setSupplierData({
+      gstNumber: po.gstNumber || '',
+      billingAddress: '',
+      contactPerson: '',
+      email: '',
+      contactDetails: ''
+    });
+    setItems(po.items || [{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+    setShowForm(true);
+  };
+
+  const handleClose = () => {
+    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      setShowForm(false);
+      setEditingPO(null);
+      resetForm();
+    }
+  };
+
+  // PO List View
+  if (!showForm && !showViewModal) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Proforma Invoice Management</h1>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create Proforma Invoice
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Completed">Completed</option>
+          </select>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 pointer-events-none">FROM:</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              />
+            </div>
+            
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 pointer-events-none">TO:</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="mb-4">
+          <p className="text-gray-600">
+            Showing {filteredPOs.length} of {pos.length} proforma invoices
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PO Number</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredPOs.map((po) => (
+                  <tr key={po._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {po.poNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {po.supplierName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(po.poDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ₹{po.totalAmount?.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEdit(po)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleView(po)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+    );
+  }
+
+  // View Modal
+  if (showViewModal && viewingPO) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-800">PO Details - {viewingPO.poNumber}</h2>
+            <button
+              onClick={() => setShowViewModal(false)}
+              className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            >
+              ×
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">PO Information</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">PO Number:</span> {viewingPO.poNumber}</p>
+                  <p><span className="font-medium">Date:</span> {new Date(viewingPO.poDate).toLocaleDateString()}</p>
+                  <p><span className="font-medium">Delivery Date:</span> {new Date(viewingPO.deliveryDate).toLocaleDateString()}</p>
+                  <p><span className="font-medium">GST Number:</span> {viewingPO.gstNumber || 'N/A'}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Name:</span> {viewingPO.supplierName}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Financial Summary</h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Sub Total</p>
+                    <p className="text-lg font-semibold">₹{viewingPO.subTotal?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Tax</p>
+                    <p className="text-lg font-semibold">₹{viewingPO.totalTax?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Discount</p>
+                    <p className="text-lg font-semibold">₹{viewingPO.totalDiscount?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="text-xl font-bold text-blue-600">₹{viewingPO.totalAmount?.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Form Modal View
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">{editingPO ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}</h1>
+          <button
+            onClick={handleClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+        
+        <div className="p-6">
 
       {/* All Fields in One Row */}
       <div className="grid grid-cols-5 gap-6 mb-8">
@@ -227,7 +583,7 @@ const CreatePO = () => {
                 {filteredClients.map(client => (
                   <div
                     key={client._id}
-                    onMouseDown={() => handleClientSelect(client)}
+                    onClick={() => handleClientSelect(client)}
                     className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                   >
                     {client.clientName}
@@ -282,11 +638,15 @@ const CreatePO = () => {
           <h2 className="text-lg font-semibold mb-4">Item Details</h2>
           
           <div className="grid grid-cols-12 gap-4 mb-3 text-sm font-medium text-gray-600">
-            <div className="col-span-3">Item Name</div>
-            <div className="col-span-2">HSN/SAC</div>
-            <div className="col-span-2">Quantity</div>
-            <div className="col-span-2">Rate</div>
-            <div className="col-span-2">Discount</div>
+            <div className="col-span-2">Item Name</div>
+            <div className="col-span-1">HSN/SAC</div>
+            <div className="col-span-1">Quantity</div>
+            <div className="col-span-1">Rate</div>
+            <div className="col-span-1">Discount</div>
+            <div className="col-span-1">CGST%</div>
+            <div className="col-span-1">SGST%</div>
+            <div className="col-span-1">IGST%</div>
+            <div className="col-span-2">Total</div>
             <div className="col-span-1">Action</div>
           </div>
 
@@ -300,7 +660,7 @@ const CreatePO = () => {
                   newItems[idx].name = e.target.value;
                   setItems(newItems);
                 }}
-                className="col-span-3 p-3 border border-gray-300 rounded-lg"
+                className="col-span-2 p-3 border border-gray-300 rounded-lg"
                 placeholder="Item Name"
               />
               <input 
@@ -311,7 +671,7 @@ const CreatePO = () => {
                   newItems[idx].hsn = e.target.value;
                   setItems(newItems);
                 }}
-                className="col-span-2 p-3 border border-gray-300 rounded-lg"
+                className="col-span-1 p-3 border border-gray-300 rounded-lg"
                 placeholder="HSN/SAC"
               />
               <input 
@@ -322,7 +682,7 @@ const CreatePO = () => {
                   newItems[idx].quantity = parseInt(e.target.value) || 0;
                   setItems(newItems);
                 }}
-                className="col-span-2 p-3 border border-gray-300 rounded-lg"
+                className="col-span-1 p-3 border border-gray-300 rounded-lg"
                 placeholder="Qty"
               />
               <input 
@@ -333,7 +693,7 @@ const CreatePO = () => {
                   newItems[idx].rate = parseInt(e.target.value) || 0;
                   setItems(newItems);
                 }}
-                className="col-span-2 p-3 border border-gray-300 rounded-lg"
+                className="col-span-1 p-3 border border-gray-300 rounded-lg"
                 placeholder="Rate"
               />
               <input 
@@ -344,9 +704,55 @@ const CreatePO = () => {
                   newItems[idx].discount = parseInt(e.target.value) || 0;
                   setItems(newItems);
                 }}
-                className="col-span-2 p-3 border border-gray-300 rounded-lg"
+                className="col-span-1 p-3 border border-gray-300 rounded-lg"
                 placeholder="Discount %"
               />
+              <input 
+                type="number" 
+                value={item.cgstRate}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].cgstRate = parseFloat(e.target.value) || 0;
+                  setItems(newItems);
+                }}
+                className="col-span-1 p-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="9"
+                min="0"
+                max="28"
+                step="0.01"
+              />
+              <input 
+                type="number" 
+                value={item.sgstRate}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].sgstRate = parseFloat(e.target.value) || 0;
+                  setItems(newItems);
+                }}
+                className="col-span-1 p-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="9"
+                min="0"
+                max="28"
+                step="0.01"
+              />
+              <input 
+                type="number" 
+                value={item.igstRate}
+                onChange={(e) => {
+                  const newItems = [...items];
+                  newItems[idx].igstRate = parseFloat(e.target.value) || 0;
+                  setItems(newItems);
+                }}
+                className="col-span-1 p-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="0"
+                min="0"
+                max="28"
+                step="0.01"
+              />
+              <div className="col-span-2 p-3 border border-gray-200 rounded-lg bg-gray-50 text-right font-medium">
+                ₹ {((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
+                   (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100)).toLocaleString()}
+              </div>
               <button 
                 onClick={() => removeItem(idx)}
                 className="col-span-1 p-3 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
@@ -378,7 +784,19 @@ const CreatePO = () => {
               <span>₹ {calculateDiscount().toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span>Tax</span>
+              <span>CGST</span>
+              <span>₹ {calculateCGST().toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>SGST</span>
+              <span>₹ {calculateSGST().toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>IGST</span>
+              <span>₹ {calculateIGST().toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Tax</span>
               <span>₹ {calculateTax().toLocaleString()}</span>
             </div>
             <div className="border-t pt-3 flex justify-between text-xl font-bold">
@@ -389,17 +807,22 @@ const CreatePO = () => {
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-4">
-        <button className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
-          Cancel
-        </button>
-        <button 
-          onClick={handleCreatePO}
-          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Create
-        </button>
+        {/* Actions */}
+        <div className="flex justify-end gap-4 p-6 border-t bg-gray-50">
+          <button 
+            onClick={handleClose}
+            className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleCreatePO}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {editingPO ? 'Update' : 'Create'}
+          </button>
+        </div>
+        </div>
       </div>
     </div>
   );
