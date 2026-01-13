@@ -258,8 +258,8 @@ const PurchaseOrders = () => {
                         <tr>
                           <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-48">Item Name</th>
                           <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-24">HSN/SAC</th>
-                          <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-16">Qty</th>
-                          <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-20">Rate</th>
+                          <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-24">Qty</th>
+                          <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-28">Rate</th>
                           <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-20">Discount%</th>
                           <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-16">CGST%</th>
                           <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b w-16">SGST%</th>
@@ -297,7 +297,7 @@ const PurchaseOrders = () => {
                                 placeholder="HSN/SAC"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 w-24">
                               <input 
                                 type="number" 
                                 value={item.quantity}
@@ -306,12 +306,12 @@ const PurchaseOrders = () => {
                                   newItems[idx].quantity = parseInt(e.target.value) || 0;
                                   setItems(newItems);
                                 }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-20"
                                 placeholder="Qty"
                                 min="0"
                               />
                             </td>
-                            <td className="px-3 py-2">
+                            <td className="px-3 py-2 w-28">
                               <input 
                                 type="number" 
                                 value={item.rate}
@@ -320,7 +320,7 @@ const PurchaseOrders = () => {
                                   newItems[idx].rate = parseInt(e.target.value) || 0;
                                   setItems(newItems);
                                 }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-24"
                                 placeholder="Rate"
                                 min="0"
                               />
