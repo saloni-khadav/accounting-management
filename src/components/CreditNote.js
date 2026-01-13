@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown } from 'lucide-react';
 import { generateCreditNoteNumber } from '../utils/numberGenerator';
+import { exportToExcel } from '../utils/excelExport';
+import { generateCreditNotePDF } from '../utils/pdfGenerator';
 
 const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   const [creditNoteData, setCreditNoteData] = useState({
     // Credit Note Details
     creditNoteNumber: '',
     creditNoteDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
     originalInvoiceNumber: '',
+    originalInvoiceDate: '',
     reason: '',
     
     // Supplier Details
@@ -103,6 +108,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         creditNoteDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         originalInvoiceNumber: '',
+        originalInvoiceDate: '',
         reason: '',
         supplierName: 'ABC Enterprises',
         supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
@@ -337,14 +343,12 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     
     const savedCreditNote = {
       ...creditNoteData,
-      _id: editingCreditNote?._id || Date.now().toString(),
       status: 'Draft'
     };
     
     if (onSave) {
       onSave(savedCreditNote);
     }
-    alert('Credit Note saved successfully!');
   };
 
   const handleNewEntry = () => {
@@ -367,6 +371,102 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     setTimeout(() => setShowNotification(false), 3000);
   };
 
+  const handleClose = () => {
+    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      onClose();
+    }
+  };
+
+  const handleExportPDF = () => {
+    generateCreditNotePDF(creditNoteData);
+    setShowExportDropdown(false);
+  };
+
+  const handleExportExcel = () => {
+    // Main Credit Note Data
+    const mainData = {
+      'Credit Note Number': creditNoteData.creditNoteNumber,
+      'Credit Note Date': creditNoteData.creditNoteDate,
+      'Reference Number': creditNoteData.referenceNumber || '',
+      'Original Invoice Number': creditNoteData.originalInvoiceNumber,
+      'Original Invoice Date': creditNoteData.originalInvoiceDate || '',
+      'Reason': creditNoteData.reason || '',
+      
+      // Supplier Details
+      'Supplier Name': creditNoteData.supplierName,
+      'Supplier Address': creditNoteData.supplierAddress,
+      'Supplier GSTIN': creditNoteData.supplierGSTIN,
+      'Supplier PAN': creditNoteData.supplierPAN,
+      
+      // Customer Details
+      'Customer Name': creditNoteData.customerName,
+      'Customer Address': creditNoteData.customerAddress,
+      'Customer GSTIN': creditNoteData.customerGSTIN || '',
+      'Customer Place': creditNoteData.customerPlace || '',
+      
+      // Totals
+      'Subtotal': creditNoteData.subtotal || 0,
+      'Total Discount': creditNoteData.totalDiscount || 0,
+      'Taxable Value': creditNoteData.totalTaxableValue || 0,
+      'CGST Amount': creditNoteData.totalCGST || 0,
+      'SGST Amount': creditNoteData.totalSGST || 0,
+      'IGST Amount': creditNoteData.totalIGST || 0,
+      'Total Tax': creditNoteData.totalTax || 0,
+      'Grand Total': creditNoteData.grandTotal || 0,
+      
+      // Additional Info
+      'Notes': creditNoteData.notes || '',
+      'Terms & Conditions': creditNoteData.termsConditions || '',
+      'Status': 'Draft'
+    };
+    
+    // Items Data
+    const itemsData = creditNoteData.items.map((item, index) => ({
+      'Item No': index + 1,
+      'Product': item.product || '',
+      'Description': item.description || '',
+      'HSN/SAC Code': item.hsnCode || '',
+      'Quantity': item.quantity || 0,
+      'Unit': item.unit || 'Nos',
+      'Unit Price': item.unitPrice || 0,
+      'Discount': item.discount || 0,
+      'Taxable Value': item.taxableValue || 0,
+      'CGST Rate (%)': item.cgstRate || 0,
+      'CGST Amount': item.cgstAmount || 0,
+      'SGST Rate (%)': item.sgstRate || 0,
+      'SGST Amount': item.sgstAmount || 0,
+      'IGST Rate (%)': item.igstRate || 0,
+      'IGST Amount': item.igstAmount || 0,
+      'Total Amount': item.totalAmount || 0
+    }));
+    
+    // Create workbook with multiple sheets
+    const workbook = {
+      'Credit Note Summary': [mainData],
+      'Items Details': itemsData
+    };
+    
+    exportToExcel(workbook, `CreditNote_${creditNoteData.creditNoteNumber}_${new Date().toISOString().split('T')[0]}`);
+    setShowExportDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowExportDropdown(false);
+      }
+      if (!event.target.closest('.client-dropdown-container')) {
+        setShowClientDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -375,7 +475,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">{editingCreditNote ? 'Edit Credit Note' : 'Create Credit Note'}</h1>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
           >
             ×
@@ -429,7 +529,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       </div>
 
       {/* Credit Note Details */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Credit Note Number *</label>
           <input
@@ -454,6 +554,15 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             type="text"
             value={creditNoteData.originalInvoiceNumber}
             onChange={(e) => handleInputChange('originalInvoiceNumber', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Original Invoice Date</label>
+          <input
+            type="date"
+            value={creditNoteData.originalInvoiceDate}
+            onChange={(e) => handleInputChange('originalInvoiceDate', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -675,6 +784,38 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           >
             Cancel
           </button>
+          
+          {/* Export Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </button>
+            
+            {showExportDropdown && (
+              <div className="absolute right-0 bottom-full mb-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <button
+                  onClick={handleExportPDF}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-t-lg flex items-center"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  PDF
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-b-lg flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Excel
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button 
             onClick={handleSave}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"

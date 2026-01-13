@@ -14,6 +14,7 @@ const ocrRoutes = require('./routes/ocr-new');
 const gstRoutes = require('./routes/gst');
 const managerRoutes = require('./routes/manager');
 const poRoutes = require('./routes/pos');
+const creditNoteRoutes = require('./routes/creditNotes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/ocr', ocrRoutes);
 app.use('/api/gst', gstRoutes);
 app.use('/api/manager', managerRoutes);
 app.use('/api/pos', poRoutes);
+app.use('/api/credit-notes', creditNoteRoutes);
 
 // test route 
 
