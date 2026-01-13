@@ -27,7 +27,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     // Get pending invoices
     const pendingInvoices = await Invoice.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
-      .select('invoiceNumber customerName grandTotal createdAt createdBy status')
+      .select('invoiceNumber customerName grandTotal createdAt createdBy status reminderSent')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -39,14 +39,15 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${invoice.grandTotal.toLocaleString()}`,
         requestedBy: invoice.createdBy || 'System',
         requestDate: invoice.createdAt.toISOString().split('T')[0],
-        status: invoice.status === 'Draft' ? 'pending' : invoice.status.toLowerCase()
+        status: invoice.status === 'Draft' ? 'pending' : invoice.status.toLowerCase(),
+        reminderSent: invoice.reminderSent || false
       });
     });
     
     // Get pending POs
     const pendingPOs = await PO.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
       .populate('supplier', 'name')
-      .select('poNumber supplierName totalAmount createdAt status')
+      .select('poNumber supplierName totalAmount createdAt status reminderSent')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -58,7 +59,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${po.totalAmount.toLocaleString()}`,
         requestedBy: 'Purchase Team',
         requestDate: po.createdAt.toISOString().split('T')[0],
-        status: po.status === 'Draft' ? 'pending' : po.status.toLowerCase()
+        status: po.status === 'Draft' ? 'pending' : po.status.toLowerCase(),
+        reminderSent: po.reminderSent || false
       });
     });
     
@@ -105,7 +107,8 @@ router.post('/action', auth, requireManager, async (req, res) => {
       const updateData = {
         status: newStatus,
         updatedBy: req.user._id,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        reminderSent: false // Clear reminder when status changes
       };
       if (action === 'reject' && rejectionReason) {
         updateData.rejectionReason = rejectionReason;
@@ -114,7 +117,8 @@ router.post('/action', auth, requireManager, async (req, res) => {
     } else if (type === 'Purchase Order') {
       const updateData = {
         status: newStatus,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        reminderSent: false // Clear reminder when status changes
       };
       if (action === 'reject' && rejectionReason) {
         updateData.rejectionReason = rejectionReason;
@@ -123,7 +127,8 @@ router.post('/action', auth, requireManager, async (req, res) => {
     } else if (type === 'Client Approval') {
       const updateData = {
         approvalStatus: newStatus,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        reminderSent: false // Clear reminder when status changes
       };
       if (action === 'reject' && rejectionReason) {
         updateData.rejectionReason = rejectionReason;
@@ -154,37 +159,39 @@ router.get('/my-requests', auth, async (req, res) => {
     const userId = req.user._id;
     const userRequests = [];
     
-    // Get user's invoices
-    const userInvoices = await Invoice.find({ createdBy: userId })
-      .select('invoiceNumber customerName grandTotal createdAt status rejectionReason')
+    // Get ALL invoices from database
+    const allInvoices = await Invoice.find({})
+      .select('invoiceNumber customerName grandTotal createdAt status rejectionReason reminderSent')
       .sort({ createdAt: -1 });
     
-    userInvoices.forEach(invoice => {
+    allInvoices.forEach(invoice => {
       userRequests.push({
         id: invoice._id,
         type: 'Invoice',
         description: `Invoice ${invoice.invoiceNumber} - ${invoice.customerName}`,
         amount: `₹${invoice.grandTotal.toLocaleString()}`,
         requestDate: invoice.createdAt.toISOString().split('T')[0],
-        status: invoice.status || 'Draft',
-        rejectionReason: invoice.rejectionReason || null
+        status: invoice.status === 'Draft' ? 'Pending' : (invoice.status || 'Pending'),
+        rejectionReason: invoice.rejectionReason || null,
+        reminderSent: invoice.reminderSent || false
       });
     });
     
-    // Get user's POs (if they created any)
-    const userPOs = await PO.find({ createdBy: userId })
-      .select('poNumber supplierName totalAmount createdAt status rejectionReason')
+    // Get ALL POs from database
+    const allPOs = await PO.find({})
+      .select('poNumber supplierName totalAmount createdAt status rejectionReason reminderSent')
       .sort({ createdAt: -1 });
     
-    userPOs.forEach(po => {
+    allPOs.forEach(po => {
       userRequests.push({
         id: po._id,
         type: 'Purchase Order',
         description: `PO ${po.poNumber} - ${po.supplierName}`,
         amount: `₹${po.totalAmount.toLocaleString()}`,
         requestDate: po.createdAt.toISOString().split('T')[0],
-        status: po.status || 'Draft',
-        rejectionReason: po.rejectionReason || null
+        status: po.status === 'Draft' ? 'Pending' : (po.status || 'Pending'),
+        rejectionReason: po.rejectionReason || null,
+        reminderSent: po.reminderSent || false
       });
     });
     
@@ -216,6 +223,41 @@ router.get('/rejection-reason/:itemId/:type', auth, async (req, res) => {
     res.json({ rejectionReason: item.rejectionReason || 'No reason provided' });
   } catch (error) {
     console.error('Error fetching rejection reason:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Send reminder to manager for pending item
+router.post('/send-reminder', auth, async (req, res) => {
+  try {
+    const { itemId, type } = req.body;
+    const userId = req.user._id;
+    
+    let item;
+    if (type === 'Invoice') {
+      item = await Invoice.findByIdAndUpdate(
+        itemId, 
+        { reminderSent: true, reminderSentBy: userId, reminderSentAt: new Date() },
+        { new: true }
+      );
+    } else if (type === 'Purchase Order') {
+      item = await PO.findByIdAndUpdate(
+        itemId, 
+        { reminderSent: true, reminderSentBy: userId, reminderSentAt: new Date() },
+        { new: true }
+      );
+    }
+    
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
+    res.json({ 
+      message: 'Reminder sent to manager successfully',
+      success: true
+    });
+  } catch (error) {
+    console.error('Reminder error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

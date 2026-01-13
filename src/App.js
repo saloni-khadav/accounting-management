@@ -99,6 +99,8 @@ function App() {
         return <TaxReport />;
       case 'Assets':
         return <AssetsManagement />;
+      case 'Assets Dashboard':
+        return <AssetsManagement />;
       case 'Balance Sheet':
         return <BalanceSheet />;
       case 'GST Reconciliation':

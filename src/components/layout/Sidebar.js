@@ -42,17 +42,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: CreditCard, 
       label: 'Accounts Payable',
       submenu: [
-        { id: 'Accounts Payable', label: 'Overview' },
-        { id: 'Bills', label: 'Bills' },
-        { id: 'Payments', label: 'Payments' },
-        { id: 'Purchase Orders', label: 'Purchase Orders' },
-        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes' },
-        { id: 'TDS on Purchases', label: 'TDS on Purchases' },
-        { id: 'Vendors Aging', label: 'Vendors Aging' },
-        { id: 'Vendor Master', label: 'Vendor Master' },
-        { id: 'AP Reconciliation', label: 'AP Reconciliation' },
-        { id: 'AP Report', label: 'AP Report' },
-        { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
+        { id: 'Accounts Payable', label: 'Overview', icon: LayoutDashboard },
+        { id: 'Bills', label: 'Bills', icon: FileText },
+        { id: 'Payments', label: 'Payments', icon: DollarSign },
+        { id: 'Purchase Orders', label: 'Purchase Orders', icon: ShoppingCart },
+        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes', icon: Receipt },
+        { id: 'TDS on Purchases', label: 'TDS on Purchases', icon: Percent },
+        { id: 'Vendors Aging', label: 'Vendors Aging', icon: Clock },
+        { id: 'Vendor Master', label: 'Vendor Master', icon: Building },
+        { id: 'AP Reconciliation', label: 'AP Reconciliation', icon: FileCheck },
+        { id: 'AP Report', label: 'AP Report', icon: BarChart3 }
       ]
     },
     { 
@@ -60,15 +59,28 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: Calculator, 
       label: 'Taxation',
       submenu: [
-        { id: 'Taxation', label: 'TDS Reconciliation' },
-        { id: 'GST Reconciliation', label: 'GST Reconciliation' },
-        { id: 'GST Dashboard', label: 'GST Dashboard' },
-        { id: 'Tax Report', label: 'Tax Report' }
+        { id: 'Taxation', label: 'TDS Reconciliation', icon: FileCheck },
+        { id: 'GST Reconciliation', label: 'GST Reconciliation', icon: Sparkles },
+        { id: 'GST Dashboard', label: 'GST Dashboard', icon: LayoutDashboard },
+        { id: 'Tax Report', label: 'Tax Report', icon: BarChart3 }
       ]
     },
-    { id: 'Assets', icon: TrendingUp, label: 'Assets' },
+    { 
+      id: 'Assets', 
+      icon: TrendingUp, 
+      label: 'Assets',
+      submenu: [
+        { id: 'Assets Dashboard', label: 'Assets Dashboard', icon: LayoutDashboard },
+        { id: 'Asset Entry', label: 'Asset Entry', icon: FileText },
+        { id: 'Fixed Assets', label: 'Fixed Assets', icon: Building },
+        { id: 'Assets Report', label: 'Assets Report', icon: BarChart3 },
+        { id: 'Depreciation', label: 'Depreciation', icon: TrendingUp },
+        { id: 'Capital Work in Progress', label: 'Capital Work in Progress', icon: Clock }
+      ]
+    },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
+    { id: 'Approvals & Workflows', icon: FileCheck, label: 'Approvals & Workflows' },
   ];
 
   const receivableItems = [
@@ -245,7 +257,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     }
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    activePage === item.id
+                    activePage === item.id || (item.submenu && item.submenu.some(sub => sub.id === activePage))
                       ? 'bg-sidebar-active text-white'
                       : 'hover:bg-sidebar-hover'
                   }`}
@@ -262,20 +274,24 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                 </button>
                 {!isCollapsed && item.submenu && expandedMenu === item.id && (
                   <ul className="ml-8 mt-2 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <li key={subItem.id}>
-                        <button
-                          onClick={() => setActivePage(subItem.id)}
-                          className={`w-full text-left p-2 rounded-lg transition-colors text-sm ${
-                            activePage === subItem.id
-                              ? 'bg-sidebar-active text-white'
-                              : 'hover:bg-sidebar-hover'
-                          }`}
-                        >
-                          {subItem.label}
-                        </button>
-                      </li>
-                    ))}
+                    {item.submenu.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      return (
+                        <li key={subItem.id}>
+                          <button
+                            onClick={() => setActivePage(subItem.id)}
+                            className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                              activePage === subItem.id
+                                ? 'bg-sidebar-active text-white'
+                                : 'hover:bg-sidebar-hover'
+                            }`}
+                          >
+                            {SubIcon && <SubIcon size={16} />}
+                            <span className={`${SubIcon ? 'ml-2' : ''}`}>{subItem.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </li>
@@ -299,7 +315,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                 )}
               </button>
             </li>
-          )}}
+          )}
         </ul>
       </nav>
     </div>

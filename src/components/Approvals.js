@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, User, Calendar, DollarSign } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, Calendar, DollarSign, Bell } from 'lucide-react';
 
 const Approvals = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -141,7 +141,9 @@ const Approvals = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
-          <p className="text-sm text-gray-600 mt-1">{pendingApprovals.length} items awaiting your approval</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {pendingApprovals.filter(item => item.status === 'pending').length} items awaiting your approval
+          </p>
         </div>
 
         <div className="divide-y divide-gray-200">
@@ -158,6 +160,15 @@ const Approvals = () => {
                   </div>
                   
                   <h3 className="text-base font-medium text-gray-900 mb-2">{item.description}</h3>
+                  
+                  {item.reminderSent && item.status === 'pending' && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                        <Bell size={12} className="mr-1" />
+                        Reminder Received
+                      </span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center text-sm text-gray-500 space-x-4">
                     <div className="flex items-center">

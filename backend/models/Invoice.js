@@ -273,6 +273,17 @@ const invoiceSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  reminderSentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reminderSentAt: {
+    type: Date
+  },
   
   // Audit Fields
   createdBy: {
