@@ -27,7 +27,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     // Get pending invoices
     const pendingInvoices = await Invoice.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
-      .select('invoiceNumber customerName grandTotal createdAt createdBy status reminderSent')
+      .select('invoiceNumber customerName grandTotal createdAt createdBy status reminderSent approvedAt rejectedAt')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -40,14 +40,16 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         requestedBy: invoice.createdBy || 'System',
         requestDate: invoice.createdAt.toISOString().split('T')[0],
         status: invoice.status === 'Draft' ? 'pending' : invoice.status.toLowerCase(),
-        reminderSent: invoice.reminderSent || false
+        reminderSent: invoice.reminderSent || false,
+        approvedAt: invoice.approvedAt ? invoice.approvedAt.toISOString().split('T')[0] : null,
+        rejectedAt: invoice.rejectedAt ? invoice.rejectedAt.toISOString().split('T')[0] : null
       });
     });
     
     // Get pending POs
     const pendingPOs = await PO.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
       .populate('supplier', 'name')
-      .select('poNumber supplierName totalAmount createdAt status reminderSent')
+      .select('poNumber supplierName totalAmount createdAt status reminderSent approvedAt rejectedAt')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -60,7 +62,9 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         requestedBy: 'Purchase Team',
         requestDate: po.createdAt.toISOString().split('T')[0],
         status: po.status === 'Draft' ? 'pending' : po.status.toLowerCase(),
-        reminderSent: po.reminderSent || false
+        reminderSent: po.reminderSent || false,
+        approvedAt: po.approvedAt ? po.approvedAt.toISOString().split('T')[0] : null,
+        rejectedAt: po.rejectedAt ? po.rejectedAt.toISOString().split('T')[0] : null
       });
     });
     
@@ -110,8 +114,13 @@ router.post('/action', auth, requireManager, async (req, res) => {
         updatedAt: new Date(),
         reminderSent: false // Clear reminder when status changes
       };
-      if (action === 'reject' && rejectionReason) {
-        updateData.rejectionReason = rejectionReason;
+      if (action === 'approve') {
+        updateData.approvedAt = new Date();
+      } else if (action === 'reject') {
+        updateData.rejectedAt = new Date();
+        if (rejectionReason) {
+          updateData.rejectionReason = rejectionReason;
+        }
       }
       updateResult = await Invoice.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Purchase Order') {
@@ -120,8 +129,13 @@ router.post('/action', auth, requireManager, async (req, res) => {
         updatedAt: new Date(),
         reminderSent: false // Clear reminder when status changes
       };
-      if (action === 'reject' && rejectionReason) {
-        updateData.rejectionReason = rejectionReason;
+      if (action === 'approve') {
+        updateData.approvedAt = new Date();
+      } else if (action === 'reject') {
+        updateData.rejectedAt = new Date();
+        if (rejectionReason) {
+          updateData.rejectionReason = rejectionReason;
+        }
       }
       updateResult = await PO.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Client Approval') {
@@ -161,7 +175,7 @@ router.get('/my-requests', auth, async (req, res) => {
     
     // Get ALL invoices from database
     const allInvoices = await Invoice.find({})
-      .select('invoiceNumber customerName grandTotal createdAt status rejectionReason reminderSent')
+      .select('invoiceNumber customerName grandTotal createdAt status rejectionReason reminderSent approvedAt rejectedAt')
       .sort({ createdAt: -1 });
     
     allInvoices.forEach(invoice => {
@@ -173,13 +187,15 @@ router.get('/my-requests', auth, async (req, res) => {
         requestDate: invoice.createdAt.toISOString().split('T')[0],
         status: invoice.status === 'Draft' ? 'Pending' : (invoice.status || 'Pending'),
         rejectionReason: invoice.rejectionReason || null,
-        reminderSent: invoice.reminderSent || false
+        reminderSent: invoice.reminderSent || false,
+        approvedAt: invoice.approvedAt ? invoice.approvedAt.toISOString().split('T')[0] : null,
+        rejectedAt: invoice.rejectedAt ? invoice.rejectedAt.toISOString().split('T')[0] : null
       });
     });
     
     // Get ALL POs from database
     const allPOs = await PO.find({})
-      .select('poNumber supplierName totalAmount createdAt status rejectionReason reminderSent')
+      .select('poNumber supplierName totalAmount createdAt status rejectionReason reminderSent approvedAt rejectedAt')
       .sort({ createdAt: -1 });
     
     allPOs.forEach(po => {
@@ -191,7 +207,9 @@ router.get('/my-requests', auth, async (req, res) => {
         requestDate: po.createdAt.toISOString().split('T')[0],
         status: po.status === 'Draft' ? 'Pending' : (po.status || 'Pending'),
         rejectionReason: po.rejectionReason || null,
-        reminderSent: po.reminderSent || false
+        reminderSent: po.reminderSent || false,
+        approvedAt: po.approvedAt ? po.approvedAt.toISOString().split('T')[0] : null,
+        rejectedAt: po.rejectedAt ? po.rejectedAt.toISOString().split('T')[0] : null
       });
     });
     

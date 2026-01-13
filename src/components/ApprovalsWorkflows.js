@@ -269,6 +269,7 @@ const ApprovalsWorkflows = () => {
                 <th className="text-left p-4 font-semibold">Requested By</th>
                 <th className="text-left p-4 font-semibold">Request Date</th>
                 <th className="text-left p-4 font-semibold">Status</th>
+                <th className="text-left p-4 font-semibold">Action Date</th>
                 <th className="text-left p-4 font-semibold">Action</th>
               </tr>
             </thead>
@@ -295,6 +296,15 @@ const ApprovalsWorkflows = () => {
                         {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                       </span>
                     </div>
+                  </td>
+                  <td className="p-4">
+                    {(item.status === 'Approved' || item.status === 'approved') && item.approvedAt ? (
+                      <span className="text-green-600 font-medium">{item.approvedAt}</span>
+                    ) : (item.status === 'Rejected' || item.status === 'rejected') && item.rejectedAt ? (
+                      <span className="text-red-600 font-medium">{item.rejectedAt}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="p-4">
                     {(item.status === 'Rejected' || item.status === 'rejected') ? (

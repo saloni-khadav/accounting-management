@@ -69,6 +69,12 @@ const poSchema = new mongoose.Schema({
   reminderSentAt: {
     type: Date
   },
+  approvedAt: {
+    type: Date
+  },
+  rejectedAt: {
+    type: Date
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
