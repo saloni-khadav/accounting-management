@@ -1,10 +1,24 @@
 import * as XLSX from 'xlsx';
 
 export const exportToExcel = (data, filename = 'export') => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-  XLSX.writeFile(workbook, `${filename}.xlsx`);
+  // Check if data is an object with multiple sheets or simple array
+  if (Array.isArray(data)) {
+    // Simple array - single sheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  } else {
+    // Object with multiple sheets
+    const workbook = XLSX.utils.book_new();
+    
+    Object.keys(data).forEach(sheetName => {
+      const worksheet = XLSX.utils.json_to_sheet(data[sheetName]);
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    });
+    
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  }
 };
 
 export const exportClientsToExcel = (clients) => {
