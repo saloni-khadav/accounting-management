@@ -5,6 +5,32 @@ const Header = ({ setActivePage }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [companyName, setCompanyName] = useState('John Doe');
   const [companyLogo, setCompanyLogo] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // Available pages for search
+  const availablePages = [
+    { name: 'Dashboard', key: 'dashboard' },
+    { name: 'Invoice Management', key: 'Invoice Management' },
+    { name: 'Purchase Orders', key: 'Purchase Orders' },
+    { name: 'Client Master', key: 'Client Master' },
+    { name: 'Vendor Master', key: 'Vendor Master' },
+    { name: 'GST Dashboard', key: 'GST Dashboard' },
+    { name: 'Tax Report', key: 'Tax Report' },
+    { name: 'Manager Approvals', key: 'Approvals' },
+    { name: 'Approvals & Workflows', key: 'Approvals & Workflows' },
+    { name: 'Account Receivable', key: 'Account Receivable' },
+    { name: 'Accounts Payable', key: 'Accounts Payable' },
+    { name: 'Bank Dashboard', key: 'Bank Dashboard' },
+    { name: 'Assets', key: 'Assets' },
+    { name: 'Balance Sheet', key: 'Balance Sheet' },
+    { name: 'Profile', key: 'profile' },
+    { name: 'Settings', key: 'settings' }
+  ];
+
+  const filteredPages = availablePages.filter(page => 
+    page.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -45,6 +71,30 @@ const Header = ({ setActivePage }) => {
     setShowDropdown(false);
   };
 
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const matchedPage = availablePages.find(page => 
+        page.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      if (matchedPage) {
+        setActivePage(matchedPage.key);
+        setSearchQuery('');
+        setShowSearchResults(false);
+      }
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setShowSearchResults(e.target.value.length > 0);
+  };
+
+  const selectPage = (pageKey) => {
+    setActivePage(pageKey);
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
   const handleLogout = () => {
     // Add logout logic here
     alert('Logout functionality to be implemented');
@@ -55,15 +105,33 @@ const Header = ({ setActivePage }) => {
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Search */}
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-md relative">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search pages..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearch}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
+          
+          {/* Search Results Dropdown */}
+          {showSearchResults && filteredPages.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+              {filteredPages.map((page) => (
+                <button
+                  key={page.key}
+                  onClick={() => selectPage(page.key)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                >
+                  {page.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Section */}
