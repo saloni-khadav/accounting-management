@@ -5,6 +5,9 @@ const Approvals = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectItem, setRejectItem] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     fetchPendingApprovals();
@@ -45,10 +48,13 @@ const Approvals = () => {
         body: JSON.stringify({ itemId: id, action: 'approve', type })
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
+        alert(`${type} approved successfully!`);
         fetchPendingApprovals(); // Refresh data
       } else {
-        alert('Failed to approve item');
+        alert(data.message || 'Failed to approve item');
       }
     } catch (error) {
       alert('Error approving item');
@@ -56,6 +62,16 @@ const Approvals = () => {
   };
 
   const handleReject = async (id, type) => {
+    setRejectItem({ id, type });
+    setShowRejectModal(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectionReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5001/api/manager/action', {
@@ -64,13 +80,24 @@ const Approvals = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ itemId: id, action: 'reject', type })
+        body: JSON.stringify({ 
+          itemId: rejectItem.id, 
+          action: 'reject', 
+          type: rejectItem.type,
+          rejectionReason: rejectionReason.trim()
+        })
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
-        fetchPendingApprovals(); // Refresh data
+        alert(`${rejectItem.type} rejected successfully!`);
+        setShowRejectModal(false);
+        setRejectionReason('');
+        setRejectItem(null);
+        fetchPendingApprovals();
       } else {
-        alert('Failed to reject item');
+        alert(data.message || 'Failed to reject item');
       }
     } catch (error) {
       alert('Error rejecting item');
@@ -145,20 +172,36 @@ const Approvals = () => {
                 </div>
 
                 <div className="flex items-center space-x-3 ml-6">
-                  <button
-                    onClick={() => handleReject(item.id, item.type)}
-                    className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
-                  >
-                    <XCircle size={16} className="mr-1" />
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleApprove(item.id, item.type)}
-                    className="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
-                  >
-                    <CheckCircle size={16} className="mr-1" />
-                    Approve
-                  </button>
+                  {item.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => handleReject(item.id, item.type)}
+                        className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
+                      >
+                        <XCircle size={16} className="mr-1" />
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleApprove(item.id, item.type)}
+                        className="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
+                      >
+                        <CheckCircle size={16} className="mr-1" />
+                        Approve
+                      </button>
+                    </>
+                  )}
+                  {item.status === 'approved' && (
+                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md">
+                      <CheckCircle size={16} className="mr-1" />
+                      Approved
+                    </span>
+                  )}
+                  {item.status === 'rejected' && (
+                    <span className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md">
+                      <XCircle size={16} className="mr-1" />
+                      Rejected
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -173,6 +216,40 @@ const Approvals = () => {
           </div>
         )}
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Request</h3>
+            <p className="text-gray-600 mb-4">Please provide a reason for rejecting this request:</p>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none h-24 focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Enter rejection reason..."
+            />
+            <div className="flex justify-end space-x-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectionReason('');
+                  setRejectItem(null);
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReject}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
