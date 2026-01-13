@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Clock, Bell } from 'lucide-react';
 
 const ApprovalsWorkflows = () => {
   const [activeTab, setActiveTab] = useState('approvals');
@@ -36,6 +36,34 @@ const ApprovalsWorkflows = () => {
     }
   };
 
+  const sendReminder = async (itemId, itemType) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/send-reminder', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ itemId, type: itemType })
+      });
+      
+      if (response.ok) {
+        alert('Reminder sent to manager successfully!');
+        // Refresh data
+        if (userRole === 'manager') {
+          fetchPendingApprovals();
+        } else {
+          fetchMyRequests();
+        }
+      } else {
+        alert('Failed to send reminder');
+      }
+    } catch (error) {
+      alert('Error sending reminder');
+    }
+  };
+
   useEffect(() => {
     // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -46,6 +74,17 @@ const ApprovalsWorkflows = () => {
     } else {
       fetchMyRequests();
     }
+
+    // Auto-refresh every 30 seconds for real-time updates
+    const interval = setInterval(() => {
+      if (user.role === 'manager') {
+        fetchPendingApprovals();
+      } else {
+        fetchMyRequests();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchMyRequests = async () => {
@@ -149,9 +188,15 @@ const ApprovalsWorkflows = () => {
 
   // Calculate stats from real data based on user role
   const dataToUse = userRole === 'manager' ? pendingApprovals : myRequests;
-  const pendingCount = dataToUse.filter(item => item.status === 'pending' || item.status === 'Draft').length;
-  const approvedCount = dataToUse.filter(item => item.status === 'approved' || item.status === 'Approved').length;
-  const rejectedCount = dataToUse.filter(item => item.status === 'rejected' || item.status === 'Rejected').length;
+  const pendingCount = dataToUse.filter(item => 
+    item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending'
+  ).length;
+  const approvedCount = dataToUse.filter(item => 
+    item.status === 'approved' || item.status === 'Approved'
+  ).length;
+  const rejectedCount = dataToUse.filter(item => 
+    item.status === 'rejected' || item.status === 'Rejected'
+  ).length;
 
   return (
     <div className="p-8">
@@ -242,7 +287,7 @@ const ApprovalsWorkflows = () => {
                   <td className="p-4">
                     <div>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        (item.status === 'pending' || item.status === 'Draft') ? 'bg-yellow-100 text-yellow-800' :
+                        (item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending') ? 'bg-yellow-100 text-yellow-800' :
                         (item.status === 'approved' || item.status === 'Approved') ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
                       }`}>
@@ -258,6 +303,19 @@ const ApprovalsWorkflows = () => {
                         className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200 transition-colors"
                       >
                         View Reason
+                      </button>
+                    ) : (item.status === 'Pending' || item.status === 'pending') && userRole === 'user' ? (
+                      <button
+                        onClick={() => sendReminder(item.id, item.type)}
+                        disabled={item.reminderSent}
+                        className={`px-3 py-1 rounded text-sm transition-colors flex items-center gap-1 ${
+                          item.reminderSent 
+                            ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        }`}
+                      >
+                        <Bell size={12} />
+                        {item.reminderSent ? 'Reminded' : 'Remind'}
                       </button>
                     ) : (
                       <span className="text-gray-400 text-sm">-</span>

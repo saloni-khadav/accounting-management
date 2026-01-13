@@ -11,19 +11,43 @@ const Header = ({ setActivePage }) => {
   // Available pages for search
   const availablePages = [
     { name: 'Dashboard', key: 'dashboard' },
-    { name: 'Invoice Management', key: 'Invoice Management' },
-    { name: 'Purchase Orders', key: 'Purchase Orders' },
+    // Account Receivable
+    { name: 'Account Receivable', key: 'Account Receivable' },
+    { name: 'AR Dashboard', key: 'AR Dashboard' },
     { name: 'Client Master', key: 'Client Master' },
+    { name: 'AR Reconciliation', key: 'AR Reconciliation' },
+    { name: 'Proforma Invoice', key: 'Create PO' },
+    { name: 'Client Outstanding', key: 'Client Outstanding' },
+    { name: 'Debtors Aging', key: 'Debtors Aging' },
+    { name: 'Collection Register', key: 'Collection Register' },
+    { name: 'Credit Note', key: 'Credit Note' },
+    { name: 'Tax Invoice', key: 'Invoice Management' },
+    // Accounts Payable
+    { name: 'Accounts Payable', key: 'Accounts Payable' },
+    { name: 'Bills', key: 'Bills' },
+    { name: 'Payments', key: 'Payments' },
+    { name: 'Purchase Orders', key: 'Purchase Orders' },
+    { name: 'Credit/Debit Notes', key: 'Credit/Debit Notes' },
+    { name: 'TDS on Purchases', key: 'TDS on Purchases' },
+    { name: 'Vendors Aging', key: 'Vendors Aging' },
     { name: 'Vendor Master', key: 'Vendor Master' },
+    { name: 'AP Reconciliation', key: 'AP Reconciliation' },
+    { name: 'AP Report', key: 'AP Report' },
+    // Bank
+    { name: 'Bank Dashboard', key: 'Bank Dashboard' },
+    { name: 'Bank Reconciliation', key: 'Bank Reconciliation' },
+    { name: 'Bank Statement Upload', key: 'Bank Statement Upload' },
+    // Taxation
+    { name: 'TDS Reconciliation', key: 'Taxation' },
+    { name: 'GST Reconciliation', key: 'GST Reconciliation' },
     { name: 'GST Dashboard', key: 'GST Dashboard' },
     { name: 'Tax Report', key: 'Tax Report' },
-    { name: 'Manager Approvals', key: 'Approvals' },
-    { name: 'Approvals & Workflows', key: 'Approvals & Workflows' },
-    { name: 'Account Receivable', key: 'Account Receivable' },
-    { name: 'Accounts Payable', key: 'Accounts Payable' },
-    { name: 'Bank Dashboard', key: 'Bank Dashboard' },
+    // Other Pages
     { name: 'Assets', key: 'Assets' },
     { name: 'Balance Sheet', key: 'Balance Sheet' },
+    { name: 'Import/Export', key: 'Import/Export' },
+    { name: 'Approvals & Workflows', key: 'Approvals & Workflows' },
+    { name: 'Manager Approvals', key: 'Approvals' },
     { name: 'Profile', key: 'profile' },
     { name: 'Settings', key: 'settings' }
   ];

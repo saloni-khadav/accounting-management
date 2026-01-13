@@ -58,6 +58,17 @@ const poSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  reminderSentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reminderSentAt: {
+    type: Date
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
