@@ -284,6 +284,12 @@ const invoiceSchema = new mongoose.Schema({
   reminderSentAt: {
     type: Date
   },
+  approvedAt: {
+    type: Date
+  },
+  rejectedAt: {
+    type: Date
+  },
   
   // Audit Fields
   createdBy: {
