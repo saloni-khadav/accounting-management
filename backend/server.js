@@ -15,6 +15,7 @@ const gstRoutes = require('./routes/gst');
 const managerRoutes = require('./routes/manager');
 const poRoutes = require('./routes/pos');
 const creditNoteRoutes = require('./routes/creditNotes');
+const assetRoutes = require('./routes/assets');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/gst', gstRoutes);
 app.use('/api/manager', managerRoutes);
 app.use('/api/pos', poRoutes);
 app.use('/api/credit-notes', creditNoteRoutes);
+app.use('/api/assets', assetRoutes);
 
 // test route 
 

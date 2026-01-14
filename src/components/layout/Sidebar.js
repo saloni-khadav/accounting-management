@@ -72,7 +72,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       submenu: [
         { id: 'Assets Dashboard', label: 'Assets Dashboard', icon: LayoutDashboard },
         { id: 'Asset Entry', label: 'Asset Entry', icon: FileText },
-        { id: 'Fixed Assets', label: 'Fixed Assets', icon: Building },
         { id: 'Assets Report', label: 'Assets Report', icon: BarChart3 },
         { id: 'Depreciation', label: 'Depreciation', icon: TrendingUp },
         { id: 'Capital Work in Progress', label: 'Capital Work in Progress', icon: Clock }

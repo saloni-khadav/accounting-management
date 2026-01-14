@@ -656,12 +656,17 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           <table className="w-full border border-gray-200 rounded-lg">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Unit</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">IGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Total</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Action</th>
               </tr>
@@ -669,6 +674,15 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             <tbody>
               {creditNoteData.items.map((item, index) => (
                 <tr key={index} className="border-b">
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={item.product || ''}
+                      onChange={(e) => handleItemChange(index, 'product', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      placeholder="Product/Item"
+                    />
+                  </td>
                   <td className="px-3 py-2">
                     <input
                       type="text"
@@ -694,7 +708,21 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
+                      step="0.01"
                     />
+                  </td>
+                  <td className="px-3 py-2">
+                    <select
+                      value={item.unit}
+                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="Nos">Nos</option>
+                      <option value="Kg">Kg</option>
+                      <option value="Liters">Liters</option>
+                      <option value="Hours">Hours</option>
+                      <option value="Pieces">Pieces</option>
+                    </select>
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -703,8 +731,20 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
+                      step="0.01"
                     />
                   </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={item.discount}
+                      onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
                   <td className="px-3 py-2">
                     <input
                       type="number"
@@ -713,6 +753,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
                       max="28"
+                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -723,6 +764,18 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
                       max="28"
+                      step="0.01"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={item.igstRate}
+                      onChange={(e) => handleItemChange(index, 'igstRate', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                      max="28"
+                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
@@ -730,6 +783,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                     <button
                       onClick={() => removeItem(index)}
                       className="text-red-600 hover:text-red-800"
+                      disabled={creditNoteData.items.length === 1}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -760,12 +814,28 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             <span className="font-medium">₹{(creditNoteData.subtotal || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-gray-600">Total Discount:</span>
+            <span className="font-medium">₹{(creditNoteData.totalDiscount || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Taxable Value:</span>
+            <span className="font-medium">₹{(creditNoteData.totalTaxableValue || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-gray-600">CGST:</span>
             <span className="font-medium">₹{(creditNoteData.totalCGST || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">SGST:</span>
             <span className="font-medium">₹{(creditNoteData.totalSGST || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">IGST:</span>
+            <span className="font-medium">₹{(creditNoteData.totalIGST || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total Tax:</span>
+            <span className="font-medium">₹{(creditNoteData.totalTax || 0).toFixed(2)}</span>
           </div>
           <hr className="my-2" />
           <div className="flex justify-between text-lg font-bold">

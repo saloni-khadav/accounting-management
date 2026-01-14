@@ -18,6 +18,10 @@ import BankReconciliation from './components/BankReconciliation';
 import BankDashboard from './components/BankDashboard';
 import BankStatementUpload from './components/BankStatementUpload';
 import AssetsManagement from './components/AssetsManagement';
+import AssetsEntry from './components/AssetsEntry';
+import AssetsReport from './components/AssetsReport';
+import Depreciation from './components/Depreciation';
+import CapitalWorkInProgress from './components/CapitalWorkInProgress';
 import BalanceSheet from './components/BalanceSheet';
 import TDSReconciliation from './components/TDSReconciliation';
 import GSTReconciliation from './components/GSTReconciliation';
@@ -101,6 +105,14 @@ function App() {
         return <AssetsManagement />;
       case 'Assets Dashboard':
         return <AssetsManagement />;
+      case 'Asset Entry':
+        return <AssetsEntry />;
+      case 'Assets Report':
+        return <AssetsReport />;
+      case 'Depreciation':
+        return <Depreciation />;
+      case 'Capital Work in Progress':
+        return <CapitalWorkInProgress />;
       case 'Balance Sheet':
         return <BalanceSheet />;
       case 'GST Reconciliation':
