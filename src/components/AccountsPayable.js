@@ -1,7 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Plus, X } from 'lucide-react';
 
 const AccountsPayable = () => {
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    vendor: '',
+    invoiceNumber: '',
+    amount: '',
+    paymentDate: '',
+    paymentMethod: 'Bank Transfer',
+    referenceNumber: '',
+    description: ''
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Payment Data:', formData);
+    alert('Payment recorded successfully!');
+    setIsPaymentFormOpen(false);
+    setFormData({
+      vendor: '',
+      invoiceNumber: '',
+      amount: '',
+      paymentDate: '',
+      paymentMethod: 'Bank Transfer',
+      referenceNumber: '',
+      description: ''
+    });
+  };
   const purchaseData = [
     { month: 'Jan', purchases: 35000, payments: 28000 },
     { month: 'May', purchases: 42000, payments: 38000 },
@@ -19,8 +51,18 @@ const AccountsPayable = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Accounts Payable</h1>
+        <button
+          onClick={() => {
+            console.log('Button clicked!');
+            setIsPaymentFormOpen(true);
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          New Payment
+        </button>
       </div>
 
       {/* Top Summary Cards */}
@@ -153,6 +195,166 @@ const AccountsPayable = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Form Modal */}
+      {isPaymentFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Record New Payment</h2>
+              <button
+                onClick={() => setIsPaymentFormOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Vendor */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vendor Name <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="vendor"
+                    value={formData.vendor}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Vendor</option>
+                    <option value="Bright Solutions">Bright Solutions</option>
+                    <option value="Anderson Supplies">Anderson Supplies</option>
+                    <option value="Northwest Traders">Northwest Traders</option>
+                    <option value="Metro Manufacturing">Metro Manufacturing</option>
+                    <option value="Summit Enterprises">Summit Enterprises</option>
+                    <option value="Global Distributors">Global Distributors</option>
+                  </select>
+                </div>
+
+                {/* Invoice Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Invoice Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="invoiceNumber"
+                    value={formData.invoiceNumber}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="INV-2024-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Amount <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Payment Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={formData.paymentDate}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Method <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Check">Check</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="UPI">UPI</option>
+                    <option value="NEFT/RTGS">NEFT/RTGS</option>
+                  </select>
+                </div>
+
+                {/* Reference Number */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reference/Transaction Number
+                  </label>
+                  <input
+                    type="text"
+                    name="referenceNumber"
+                    value={formData.referenceNumber}
+                    onChange={handleInputChange}
+                    placeholder="TXN123456789"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description/Notes
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="Add any additional notes..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentFormOpen(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Record Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

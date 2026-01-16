@@ -30,6 +30,9 @@ const AssetsEntry = () => {
     warrantyPeriod: '',
     status: 'Active'
   });
+  const [items, setItems] = useState([
+    { name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
+  ]);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -107,8 +110,57 @@ const AssetsEntry = () => {
       ...prev,
       vendor: vendorName
     }));
-    setVendorSearchTerm(vendorName);
     setShowVendorDropdown(false);
+  };
+
+  const addItem = () => {
+    setItems([...items, { name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+  };
+
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const calculateSubTotal = () => {
+    return items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+  };
+
+  const calculateDiscount = () => {
+    return items.reduce((sum, item) => {
+      const itemTotal = item.quantity * item.rate;
+      return sum + (itemTotal * item.discount / 100);
+    }, 0);
+  };
+
+  const calculateCGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.cgstRate || 0)) / 100;
+    }, 0);
+  };
+
+  const calculateSGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.sgstRate || 0)) / 100;
+    }, 0);
+  };
+
+  const calculateIGST = () => {
+    return items.reduce((sum, item) => {
+      const afterDiscount = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
+      return sum + (afterDiscount * (item.igstRate || 0)) / 100;
+    }, 0);
+  };
+
+  const calculateTax = () => {
+    return calculateCGST() + calculateSGST() + calculateIGST();
+  };
+
+  const calculateTotal = () => {
+    return calculateSubTotal() - calculateDiscount() + calculateTax();
   };
 
   const filteredVendors = vendors.filter(vendor =>
@@ -120,7 +172,7 @@ const AssetsEntry = () => {
     if (!formData.assetName) newErrors.assetName = 'Asset name is required';
     if (!formData.category) newErrors.category = 'Category is required';
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Purchase date is required';
-    if (!formData.purchaseValue) newErrors.purchaseValue = 'Purchase value is required';
+    if (calculateTotal() <= 0) newErrors.purchaseValue = 'Please add at least one item with valid amount';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -136,12 +188,19 @@ const AssetsEntry = () => {
         
         const method = editingAsset ? 'PUT' : 'POST';
         
+        const totalAmount = calculateTotal();
+        const assetData = {
+          ...formData,
+          purchaseValue: totalAmount,
+          items: items
+        };
+        
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(assetData),
         });
         
         if (response.ok) {
@@ -187,6 +246,9 @@ const AssetsEntry = () => {
       warrantyPeriod: asset.warrantyPeriod || '',
       status: asset.status
     });
+    if (asset.items && asset.items.length > 0) {
+      setItems(asset.items);
+    }
     setIsFormOpen(true);
   };
 
@@ -210,6 +272,13 @@ const AssetsEntry = () => {
     }
   };
 
+  const handleCloseForm = () => {
+    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      setIsFormOpen(false);
+      resetForm();
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       assetName: '',
@@ -228,6 +297,7 @@ const AssetsEntry = () => {
       warrantyPeriod: '',
       status: 'Active'
     });
+    setItems([{ name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
     setErrors({});
     setEditingAsset(null);
     setShowVendorDropdown(false);
@@ -305,7 +375,7 @@ const AssetsEntry = () => {
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Total Value</h3>
-          <p className="text-2xl font-bold text-green-600">₹{(totalValue/100000).toFixed(1)}L</p>
+          <p className="text-2xl font-bold text-green-600">₹{totalValue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Active Assets</h3>
@@ -466,17 +536,14 @@ const AssetsEntry = () => {
       {/* Add Asset Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   {editingAsset ? 'Edit Asset' : 'Add New Asset'}
                 </h2>
                 <button
-                  onClick={() => {
-                    setIsFormOpen(false);
-                    resetForm();
-                  }}
+                  onClick={handleCloseForm}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
@@ -587,11 +654,10 @@ const AssetsEntry = () => {
 
                 {/* Purchase Information */}
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                    <DollarSign className="mr-2 text-blue-600" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
                     Purchase Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Purchase Date *
@@ -608,23 +674,6 @@ const AssetsEntry = () => {
                       {errors.purchaseDate && <p className="text-red-500 text-sm mt-1">{errors.purchaseDate}</p>}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Purchase Value *
-                      </label>
-                      <input
-                        type="number"
-                        name="purchaseValue"
-                        value={formData.purchaseValue}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.purchaseValue ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="0.00"
-                      />
-                      {errors.purchaseValue && <p className="text-red-500 text-sm mt-1">{errors.purchaseValue}</p>}
-                    </div>
-
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Vendor
@@ -635,7 +684,6 @@ const AssetsEntry = () => {
                         value={formData.vendor}
                         onChange={handleInputChange}
                         onFocus={() => setShowVendorDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Search or type vendor name"
                         autoComplete="off"
@@ -645,7 +693,10 @@ const AssetsEntry = () => {
                           {filteredVendors.map(vendor => (
                             <div
                               key={vendor._id}
-                              onClick={() => handleVendorSelect(vendor.vendorName)}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleVendorSelect(vendor.vendorName);
+                              }}
                               className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
                             >
                               {vendor.vendorName}
@@ -667,6 +718,197 @@ const AssetsEntry = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="12"
                       />
+                    </div>
+                  </div>
+
+                  {/* Product Details Table */}
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Product Details</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border border-gray-200 rounded-lg">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Item Name</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">HSN/SAC</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Qty</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Rate</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Discount%</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">CGST%</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">SGST%</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">IGST%</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Total</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 border-b">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((item, idx) => (
+                            <tr key={idx} className="border-b">
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="text" 
+                                  value={item.name}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].name = e.target.value;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                  placeholder="Item name"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="text" 
+                                  value={item.hsn}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].hsn = e.target.value;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  placeholder="HSN"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].quantity = parseInt(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.rate}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].rate = parseInt(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-24 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.discount}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].discount = parseInt(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                  max="100"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.cgstRate}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].cgstRate = parseFloat(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.sgstRate}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].sgstRate = parseFloat(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input 
+                                  type="number" 
+                                  value={item.igstRate}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    newItems[idx].igstRate = parseFloat(e.target.value) || 0;
+                                    setItems(newItems);
+                                  }}
+                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-xs font-medium">
+                                ₹{((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
+                                   (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100)).toFixed(2)}
+                              </td>
+                              <td className="px-3 py-2">
+                                <button 
+                                  onClick={() => removeItem(idx)}
+                                  className="text-red-600 hover:text-red-800"
+                                  disabled={items.length === 1}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <button 
+                      onClick={addItem}
+                      className="flex items-center gap-2 text-blue-600 font-medium mt-3 hover:text-blue-700 text-sm"
+                    >
+                      <Plus size={16} />
+                      Add Item
+                    </button>
+
+                    {/* Summary */}
+                    <div className="mt-4 bg-white p-3 rounded-lg border border-gray-200">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Sub Total</span>
+                          <span className="font-semibold">₹{calculateSubTotal().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Discount</span>
+                          <span>₹{calculateDiscount().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>CGST</span>
+                          <span>₹{calculateCGST().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>SGST</span>
+                          <span>₹{calculateSGST().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>IGST</span>
+                          <span>₹{calculateIGST().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Tax</span>
+                          <span>₹{calculateTax().toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between text-base font-bold">
+                          <span>Total Amount</span>
+                          <span>₹{calculateTotal().toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -740,10 +982,7 @@ const AssetsEntry = () => {
                 <div className="flex justify-end space-x-4 pt-6 border-t">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsFormOpen(false);
-                      resetForm();
-                    }}
+                    onClick={handleCloseForm}
                     className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center"
                   >
                     <X className="w-4 h-4 mr-2" />

@@ -76,7 +76,17 @@ const assetSchema = new mongoose.Schema({
     type: Number,
     min: 0,
     default: 0
-  }
+  },
+  items: [{
+    name: String,
+    hsn: String,
+    quantity: Number,
+    rate: Number,
+    discount: Number,
+    cgstRate: Number,
+    sgstRate: Number,
+    igstRate: Number
+  }]
 }, {
   timestamps: true
 });

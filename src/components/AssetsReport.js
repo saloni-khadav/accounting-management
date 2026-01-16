@@ -133,17 +133,17 @@ const AssetsReport = () => {
             </div>
             <div className="bg-green-50 rounded-lg p-6">
               <h3 className="text-sm font-medium text-green-600 mb-2">Total Value</h3>
-              <p className="text-3xl font-bold text-green-900">₹{(reportData.summary.totalValue/100000).toFixed(1)}L</p>
+              <p className="text-3xl font-bold text-green-900">₹{reportData.summary.totalValue.toLocaleString('en-IN')}</p>
               <p className="text-sm text-green-600 mt-1">Original purchase value</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-6">
               <h3 className="text-sm font-medium text-purple-600 mb-2">Current Value</h3>
-              <p className="text-3xl font-bold text-purple-900">₹{(reportData.summary.currentValue/100000).toFixed(1)}L</p>
+              <p className="text-3xl font-bold text-purple-900">₹{reportData.summary.currentValue.toLocaleString('en-IN')}</p>
               <p className="text-sm text-purple-600 mt-1">After depreciation</p>
             </div>
             <div className="bg-red-50 rounded-lg p-6">
               <h3 className="text-sm font-medium text-red-600 mb-2">Depreciation</h3>
-              <p className="text-3xl font-bold text-red-900">₹{(reportData.summary.totalDepreciation/100000).toFixed(1)}L</p>
+              <p className="text-3xl font-bold text-red-900">₹{reportData.summary.totalDepreciation.toLocaleString('en-IN')}</p>
               <p className="text-sm text-red-600 mt-1">Accumulated</p>
             </div>
           </div>

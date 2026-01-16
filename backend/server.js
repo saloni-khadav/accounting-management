@@ -10,12 +10,14 @@ const aiRoutes = require('./routes/ai');
 const clientRoutes = require('./routes/clients');
 const vendorRoutes = require('./routes/vendors');
 const invoiceRoutes = require('./routes/invoices');
+const billRoutes = require('./routes/bills');
 const ocrRoutes = require('./routes/ocr-new');
 const gstRoutes = require('./routes/gst');
 const managerRoutes = require('./routes/manager');
 const poRoutes = require('./routes/pos');
 const creditNoteRoutes = require('./routes/creditNotes');
 const assetRoutes = require('./routes/assets');
+const paymentRoutes = require('./routes/payments');
 
 const app = express();
 
@@ -29,12 +31,14 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/bills', billRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/gst', gstRoutes);
 app.use('/api/manager', managerRoutes);
 app.use('/api/pos', poRoutes);
 app.use('/api/credit-notes', creditNoteRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // test route 
 

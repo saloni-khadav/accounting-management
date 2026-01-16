@@ -29,12 +29,39 @@ import {
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [userRole, setUserRole] = useState('user');
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     // Get user role from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setUserRole(user.role || 'user'); // Use actual user role from database
+    
+    // Fetch pending approvals count for managers
+    if (user.role === 'manager') {
+      fetchPendingCount();
+      const interval = setInterval(fetchPendingCount, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
   }, []);
+
+  const fetchPendingCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/pending', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const pending = data.approvals.filter(item => item.status === 'pending').length;
+        setPendingCount(pending);
+      }
+    } catch (error) {
+      console.error('Error fetching pending count:', error);
+    }
+  };
 
   const menuItems = [
     { 
@@ -79,8 +106,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
     },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
-    { id: 'Approvals & Workflows', icon: FileCheck, label: 'Approvals & Workflows' },
   ];
+
+  // Add Approvals & Workflows only for non-manager users
+  const allMenuItems = userRole === 'manager' 
+    ? menuItems 
+    : [...menuItems, { id: 'Approvals & Workflows', icon: FileCheck, label: 'Workflows' }];
 
   const receivableItems = [
     { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -243,7 +274,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
           </li>
           
           {/* Other Menu Items */}
-          {menuItems.map((item) => {
+          {allMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.id}>
@@ -302,7 +333,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
             <li>
               <button
                 onClick={() => setActivePage('Approvals')}
-                className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                className={`w-full flex items-center p-3 rounded-lg transition-colors relative ${
                   activePage === 'Approvals'
                     ? 'bg-sidebar-active text-white'
                     : 'hover:bg-sidebar-hover'
@@ -311,6 +342,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                 <CheckCircle size={20} />
                 {!isCollapsed && (
                   <span className="ml-3 font-medium">Approvals</span>
+                )}
+                {pendingCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
                 )}
               </button>
             </li>

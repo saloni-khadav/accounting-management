@@ -1,20 +1,226 @@
-import React from 'react';
-import { Plus, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, ChevronLeft, X } from 'lucide-react';
 
 const Payments = () => {
-  const paymentsData = [
-    { paymentNo: 'PYMT-004', date: 'May 15, 2023', vendor: 'Omni Enterprises', amount: '₹25,000', color: 'bg-green-100' },
-    { paymentNo: 'PYMT-003', date: 'May 10, 2023', vendor: 'JK Manufacturing', amount: '₹45,000', color: 'bg-green-100' },
-    { paymentNo: 'PYMT-002', date: 'Apr 28, 2023', vendor: 'Global Systems', amount: '₹75,000', color: 'bg-green-100' },
-    { paymentNo: 'PYMT-001', date: 'Apr 20, 2023', vendor: 'Ace Solutions', amount: '₹75,000', color: 'bg-red-100' },
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ completed: 0, pending: 0, upcoming: 0 });
+  const [vendors, setVendors] = useState([]);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [vendorSearchTerm, setVendorSearchTerm] = useState('');
+  const [formData, setFormData] = useState({
+    vendor: '',
+    invoiceNumber: '',
+    amount: '',
+    tdsSection: '',
+    tdsAmount: '',
+    tdsPercentage: '',
+    paymentDate: '',
+    paymentMethod: 'Bank Transfer',
+    referenceNumber: '',
+    description: ''
+  });
+
+  const tdsSection = [
+    { code: '194H', rate: 5, description: 'Commission or Brokerage' },
+    { code: '194C', rate: 1, description: 'Individual/HUF' },
+    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194J(a)', rate: 2, description: 'Technical Services' },
+    { code: '194J(b)', rate: 10, description: 'Professional' },
+    { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
+    { code: '194I(b)', rate: 10, description: 'Rent - Land & Building' },
+    { code: '194A', rate: 10, description: 'Interest other than on Securities' }
   ];
+
+  useEffect(() => {
+    fetchPayments();
+    fetchStats();
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/vendors');
+      if (response.ok) {
+        const data = await response.json();
+        setVendors(data);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    }
+  };
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/payments');
+      if (response.ok) {
+        const data = await response.json();
+        setPayments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/payments/stats/summary');
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          completed: data.completed,
+          pending: data.pending,
+          upcoming: data.upcoming
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'vendor') {
+      setVendorSearchTerm(value);
+      setShowVendorDropdown(true);
+    }
+    
+    if (name === 'tdsSection') {
+      const selectedSection = tdsSection.find(s => s.code === value);
+      if (selectedSection && formData.amount) {
+        const calculatedTds = ((formData.amount * selectedSection.rate) / 100).toFixed(2);
+        setFormData(prev => ({
+          ...prev,
+          tdsSection: value,
+          tdsPercentage: selectedSection.rate,
+          tdsAmount: calculatedTds
+        }));
+        return;
+      }
+    }
+    
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      
+      // Auto-calculate TDS amount when percentage changes
+      if (name === 'tdsPercentage' && prev.amount) {
+        updated.tdsAmount = ((prev.amount * value) / 100).toFixed(2);
+      }
+      // Auto-calculate TDS percentage when amount changes
+      if (name === 'tdsAmount' && prev.amount) {
+        updated.tdsPercentage = ((value / prev.amount) * 100).toFixed(2);
+      }
+      // Recalculate TDS when amount changes and section is selected
+      if (name === 'amount' && prev.tdsSection) {
+        const selectedSection = tdsSection.find(s => s.code === prev.tdsSection);
+        if (selectedSection) {
+          updated.tdsAmount = ((value * selectedSection.rate) / 100).toFixed(2);
+          updated.tdsPercentage = selectedSection.rate;
+        }
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleVendorSelect = (vendorName) => {
+    setFormData(prev => ({ ...prev, vendor: vendorName }));
+    setVendorSearchTerm(vendorName);
+    setShowVendorDropdown(false);
+  };
+
+  const filteredVendors = vendors.filter(vendor =>
+    vendor.vendorName.toLowerCase().includes((vendorSearchTerm || formData.vendor || '').toLowerCase()) ||
+    vendor.vendorCode.toLowerCase().includes((vendorSearchTerm || formData.vendor || '').toLowerCase())
+  );
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const netAmount = parseFloat(formData.amount) - (parseFloat(formData.tdsAmount) || 0);
+      
+      // Auto-determine status based on payment date
+      const paymentDate = new Date(formData.paymentDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      paymentDate.setHours(0, 0, 0, 0);
+      
+      let status;
+      if (paymentDate > today) {
+        status = 'Upcoming';
+      } else if (paymentDate.getTime() === today.getTime()) {
+        status = 'Completed';
+      } else {
+        status = 'Pending';
+      }
+      
+      const payload = {
+        ...formData,
+        netAmount,
+        status,
+        amount: parseFloat(formData.amount),
+        tdsAmount: parseFloat(formData.tdsAmount) || 0,
+        tdsPercentage: parseFloat(formData.tdsPercentage) || 0
+      };
+      
+      const response = await fetch('http://localhost:5001/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        alert('Payment recorded successfully!');
+        setIsPaymentFormOpen(false);
+        setFormData({
+          vendor: '',
+          invoiceNumber: '',
+          amount: '',
+          tdsSection: '',
+          tdsAmount: '',
+          tdsPercentage: '',
+          paymentDate: '',
+          paymentMethod: 'Bank Transfer',
+          referenceNumber: '',
+          description: ''
+        });
+        setVendorSearchTerm('');
+        fetchPayments();
+        fetchStats();
+      } else {
+        const errorData = await response.json();
+        alert('Error: ' + (errorData.message || 'Error recording payment'));
+        console.error('Error details:', errorData);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error recording payment');
+    }
+  };
+  
+  const paymentsData = payments.map(payment => ({
+    paymentNo: payment.paymentNumber,
+    date: new Date(payment.paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+    vendor: payment.vendor,
+    amount: `₹${payment.netAmount.toLocaleString('en-IN')}`,
+    color: payment.status === 'Completed' ? 'bg-green-100' : 'bg-red-100'
+  }));
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Payments</h1>
-        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+        <button 
+          onClick={() => setIsPaymentFormOpen(true)}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+        >
           <Plus size={20} />
           New Payment
         </button>
@@ -22,19 +228,18 @@ const Payments = () => {
 
       {/* Payments Summary Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Payments</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg text-gray-700 mb-2">Upcoming Payments</h3>
-            <p className="text-4xl font-bold text-gray-900">₹25,000</p>
+            <p className="text-4xl font-bold text-gray-900">₹{stats.upcoming.toLocaleString('en-IN')}</p>
           </div>
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg text-gray-700 mb-2">Completed Payments</h3>
-            <p className="text-4xl font-bold text-gray-900">₹120,000</p>
+            <p className="text-4xl font-bold text-gray-900">₹{stats.completed.toLocaleString('en-IN')}</p>
           </div>
           <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h3 className="text-lg text-gray-700 mb-2">Payments Overdue</h3>
-            <p className="text-4xl font-bold text-gray-900">₹10,000</p>
+            <h3 className="text-lg text-gray-700 mb-2">Pending Payments</h3>
+            <p className="text-4xl font-bold text-gray-900">₹{stats.pending.toLocaleString('en-IN')}</p>
           </div>
         </div>
       </div>
@@ -53,7 +258,20 @@ const Payments = () => {
               </tr>
             </thead>
             <tbody>
-              {paymentsData.map((payment) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="py-8 text-center text-gray-500">
+                    Loading payments...
+                  </td>
+                </tr>
+              ) : paymentsData.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="py-8 text-center text-gray-500">
+                    No payments found
+                  </td>
+                </tr>
+              ) : (
+                paymentsData.map((payment) => (
                 <tr key={payment.paymentNo} className="border-b border-gray-100">
                   <td className="py-5 px-4 text-gray-900 font-medium">{payment.paymentNo}</td>
                   <td className="py-5 px-4 text-gray-900">{payment.date}</td>
@@ -64,7 +282,8 @@ const Payments = () => {
                     </span>
                   </td>
                 </tr>
-              ))}
+              )))
+              }
             </tbody>
           </table>
         </div>
@@ -81,6 +300,237 @@ const Payments = () => {
           <button className="px-4 py-2 hover:bg-gray-100 rounded-lg text-gray-700">5</button>
         </div>
       </div>
+
+      {/* Payment Form Modal */}
+      {isPaymentFormOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Record New Payment</h2>
+              <button
+                onClick={() => setIsPaymentFormOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vendor Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="vendor"
+                      value={vendorSearchTerm || formData.vendor}
+                      onChange={handleInputChange}
+                      onFocus={() => setShowVendorDropdown(true)}
+                      required
+                      placeholder="Search or select vendor"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoComplete="off"
+                    />
+                    {showVendorDropdown && filteredVendors.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredVendors.map((vendor) => (
+                          <div
+                            key={vendor._id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleVendorSelect(vendor.vendorName);
+                            }}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{vendor.vendorName}</div>
+                            <div className="text-sm text-gray-500">{vendor.vendorCode}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Invoice Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="invoiceNumber"
+                    value={formData.invoiceNumber}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="INV-2024-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Amount <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    TDS Section
+                  </label>
+                  <select
+                    name="tdsSection"
+                    value={formData.tdsSection}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select TDS Section</option>
+                    {tdsSection.map((section, idx) => (
+                      <option key={idx} value={section.code}>
+                        {section.code} - {section.rate}% ({section.description})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    TDS Percentage (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="tdsPercentage"
+                    value={formData.tdsPercentage}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    TDS Amount
+                  </label>
+                  <input
+                    type="number"
+                    name="tdsAmount"
+                    value={formData.tdsAmount}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Net Payment Amount
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.amount && formData.tdsAmount ? (parseFloat(formData.amount) - parseFloat(formData.tdsAmount)).toFixed(2) : formData.amount || '0.00'}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={formData.paymentDate}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Method <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Check">Check</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="UPI">UPI</option>
+                    <option value="NEFT/RTGS">NEFT/RTGS</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Reference/Transaction Number
+                  </label>
+                  <input
+                    type="text"
+                    name="referenceNumber"
+                    value={formData.referenceNumber}
+                    onChange={handleInputChange}
+                    placeholder="TXN123456789"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description/Notes
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="Add any additional notes..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentFormOpen(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Record Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

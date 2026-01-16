@@ -125,17 +125,17 @@ const CapitalWorkInProgress = () => {
             </div>
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Total Budget</h3>
-              <p className="text-2xl font-bold text-green-600">₹{(totalBudget/100000).toFixed(1)}L</p>
+              <p className="text-2xl font-bold text-green-600">₹{totalBudget.toLocaleString('en-IN')}</p>
               <p className="text-sm text-gray-500 mt-1">Allocated budget</p>
             </div>
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Amount Spent</h3>
-              <p className="text-2xl font-bold text-orange-600">₹{(totalSpent/100000).toFixed(1)}L</p>
+              <p className="text-2xl font-bold text-orange-600">₹{totalSpent.toLocaleString('en-IN')}</p>
               <p className="text-sm text-gray-500 mt-1">{totalBudget > 0 ? ((totalSpent/totalBudget)*100).toFixed(1) : 0}% utilized</p>
             </div>
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Remaining</h3>
-              <p className="text-2xl font-bold text-purple-600">₹{(totalRemaining/100000).toFixed(1)}L</p>
+              <p className="text-2xl font-bold text-purple-600">₹{totalRemaining.toLocaleString('en-IN')}</p>
               <p className="text-sm text-gray-500 mt-1">Available budget</p>
             </div>
           </div>
@@ -272,11 +272,11 @@ const CapitalWorkInProgress = () => {
               <div className="grid grid-cols-2 gap-4 pt-3 border-t">
                 <div>
                   <p className="text-xs text-gray-500">Budget</p>
-                  <p className="font-semibold text-gray-900">₹{(project.budgetAmount/100000).toFixed(1)}L</p>
+                  <p className="font-semibold text-gray-900">₹{project.budgetAmount.toLocaleString('en-IN')}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Spent</p>
-                  <p className="font-semibold text-orange-600">₹{(project.spentAmount/100000).toFixed(1)}L</p>
+                  <p className="font-semibold text-orange-600">₹{project.spentAmount.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>

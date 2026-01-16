@@ -200,32 +200,6 @@ const ApprovalsWorkflows = () => {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Approvals & Workflows</h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
-          <Plus size={20} />
-        </button>
-      </div>
-
-      <div className="flex gap-8 mb-8 border-b">
-        <button
-          onClick={() => setActiveTab('approvals')}
-          className={`pb-3 font-medium ${activeTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-        >
-          Approvals
-        </button>
-        <button
-          onClick={() => setActiveTab('workflows')}
-          className={`pb-3 font-medium ${activeTab === 'workflows' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
-        >
-          Workflows
-        </button>
-      </div>
-
-      <h2 className="text-2xl font-semibold mb-6">
-        {userRole === 'manager' ? 'Pending Approvals' : 'My Requests'}
-      </h2>
-
       <div className="grid grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Pending Requests</p>
@@ -274,7 +248,9 @@ const ApprovalsWorkflows = () => {
               </tr>
             </thead>
             <tbody>
-              {dataToUse.map((item, index) => (
+              {dataToUse
+                .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate))
+                .map((item, index) => (
                 <tr key={item.id || index} className="border-b last:border-b-0 hover:bg-gray-50">
                   <td className="p-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

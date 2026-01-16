@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Invoice = require('../models/Invoice');
 const PO = require('../models/PO');
+const Bill = require('../models/Bill');
 const Client = require('../models/Client');
 
 const router = express.Router();
@@ -31,6 +32,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       .limit(10)
       .sort({ createdAt: -1 });
     
+    console.log('Pending Invoices:', pendingInvoices.length);
+    
     pendingInvoices.forEach(invoice => {
       pendingApprovals.push({
         id: invoice._id,
@@ -53,6 +56,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       .limit(10)
       .sort({ createdAt: -1 });
     
+    console.log('Pending POs:', pendingPOs.length);
+    
     pendingPOs.forEach(po => {
       pendingApprovals.push({
         id: po._id,
@@ -67,6 +72,32 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         rejectedAt: po.rejectedAt ? po.rejectedAt.toISOString().split('T')[0] : null
       });
     });
+    
+    // Get pending Bills
+    const pendingBills = await Bill.find({ approvalStatus: 'pending' })
+      .select('billNumber vendorName grandTotal createdAt approvalStatus reminderSent')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    console.log('Pending Bills:', pendingBills.length);
+    
+    pendingBills.forEach(bill => {
+      pendingApprovals.push({
+        id: bill._id,
+        type: 'Bill',
+        description: `Bill ${bill.billNumber} - ${bill.vendorName}`,
+        amount: `₹${bill.grandTotal.toLocaleString()}`,
+        requestedBy: 'Accounts Team',
+        requestDate: bill.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: bill.reminderSent || false
+      });
+    });
+    
+    console.log('Total Pending Approvals:', pendingApprovals.length);
+    
+    // Sort by request date (newest first)
+    pendingApprovals.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
     
     // Get high-value clients for approval
     const highValueClients = await Client.find({ 
@@ -138,6 +169,17 @@ router.post('/action', auth, requireManager, async (req, res) => {
         }
       }
       updateResult = await PO.findByIdAndUpdate(itemId, updateData, { new: true });
+    } else if (type === 'Bill') {
+      const updateData = {
+        approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+        status: action === 'approve' ? 'Pending' : 'Cancelled',
+        updatedAt: new Date(),
+        reminderSent: false
+      };
+      if (action === 'reject' && rejectionReason) {
+        updateData.rejectionReason = rejectionReason;
+      }
+      updateResult = await Bill.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Client Approval') {
       const updateData = {
         approvalStatus: newStatus,
@@ -213,6 +255,25 @@ router.get('/my-requests', auth, async (req, res) => {
       });
     });
     
+    // Get ALL Bills from database
+    const allBills = await Bill.find({})
+      .select('billNumber vendorName grandTotal createdAt approvalStatus rejectionReason reminderSent')
+      .sort({ createdAt: -1 });
+    
+    allBills.forEach(bill => {
+      userRequests.push({
+        id: bill._id,
+        type: 'Bill',
+        description: `Bill ${bill.billNumber} - ${bill.vendorName}`,
+        amount: `₹${bill.grandTotal.toLocaleString()}`,
+        requestDate: bill.createdAt.toISOString().split('T')[0],
+        status: bill.approvalStatus === 'pending' ? 'Pending' : 
+                bill.approvalStatus === 'approved' ? 'Approved' : 'Rejected',
+        rejectionReason: bill.rejectionReason || null,
+        reminderSent: bill.reminderSent || false
+      });
+    });
+    
     res.json({ requests: userRequests });
   } catch (error) {
     console.error('Error fetching user requests:', error);
@@ -230,6 +291,8 @@ router.get('/rejection-reason/:itemId/:type', auth, async (req, res) => {
       item = await Invoice.findById(itemId).select('rejectionReason');
     } else if (type === 'Purchase Order') {
       item = await PO.findById(itemId).select('rejectionReason');
+    } else if (type === 'Bill') {
+      item = await Bill.findById(itemId).select('rejectionReason');
     } else if (type === 'Client Approval') {
       item = await Client.findById(itemId).select('rejectionReason');
     }
@@ -260,6 +323,12 @@ router.post('/send-reminder', auth, async (req, res) => {
       );
     } else if (type === 'Purchase Order') {
       item = await PO.findByIdAndUpdate(
+        itemId, 
+        { reminderSent: true, reminderSentBy: userId, reminderSentAt: new Date() },
+        { new: true }
+      );
+    } else if (type === 'Bill') {
+      item = await Bill.findByIdAndUpdate(
         itemId, 
         { reminderSent: true, reminderSentBy: userId, reminderSentAt: new Date() },
         { new: true }

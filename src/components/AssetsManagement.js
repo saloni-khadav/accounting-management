@@ -86,15 +86,15 @@ const AssetsManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Total Asset Value</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{(summary.totalValue/100000).toFixed(1)}L</p>
+          <p className="text-2xl font-bold text-blue-600">₹{summary.totalValue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Accumulated Depreciation</h3>
-          <p className="text-2xl font-bold text-green-600">₹{(summary.totalDepreciation/100000).toFixed(1)}L</p>
+          <p className="text-2xl font-bold text-green-600">₹{summary.totalDepreciation.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Net Asset Value</h3>
-          <p className="text-2xl font-bold text-purple-600">₹{(summary.netValue/100000).toFixed(1)}L</p>
+          <p className="text-2xl font-bold text-purple-600">₹{summary.netValue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Total Assets</h3>
