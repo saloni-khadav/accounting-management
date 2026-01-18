@@ -86,6 +86,17 @@ const assetSchema = new mongoose.Schema({
     cgstRate: Number,
     sgstRate: Number,
     igstRate: Number
+  }],
+  attachments: [{
+    filename: String,
+    originalName: String,
+    path: String,
+    size: Number,
+    mimetype: String,
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
   }]
 }, {
   timestamps: true

@@ -219,7 +219,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   useEffect(() => {
     calculateTotals();
-  }, [invoiceData.items]);
+  }, [invoiceData.items.length, invoiceData.items.map(item => `${item.quantity}-${item.unitPrice}-${item.discount}-${item.cgstRate}-${item.sgstRate}-${item.igstRate}`).join(',')]);
 
   // Fetch clients data
   useEffect(() => {
@@ -349,19 +349,31 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST + totalCESS);
     const grandTotal = Math.max(0, totalTaxableValue + totalTax);
 
-    setInvoiceData(prev => ({
-      ...prev,
-      items: updatedItems,
-      subtotal,
-      totalDiscount,
-      totalTaxableValue,
-      totalCGST,
-      totalSGST,
-      totalIGST,
-      totalCESS,
-      totalTax,
-      grandTotal
-    }));
+    // Only update if values have actually changed
+    if (invoiceData.subtotal !== subtotal || 
+        invoiceData.totalDiscount !== totalDiscount ||
+        invoiceData.totalTaxableValue !== totalTaxableValue ||
+        invoiceData.totalCGST !== totalCGST ||
+        invoiceData.totalSGST !== totalSGST ||
+        invoiceData.totalIGST !== totalIGST ||
+        invoiceData.totalCESS !== totalCESS ||
+        invoiceData.totalTax !== totalTax ||
+        invoiceData.grandTotal !== grandTotal) {
+      
+      setInvoiceData(prev => ({
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalDiscount,
+        totalTaxableValue,
+        totalCGST,
+        totalSGST,
+        totalIGST,
+        totalCESS,
+        totalTax,
+        grandTotal
+      }));
+    }
   };
 
   const handleInputChange = (field, value) => {

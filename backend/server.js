@@ -18,6 +18,7 @@ const poRoutes = require('./routes/pos');
 const creditNoteRoutes = require('./routes/creditNotes');
 const assetRoutes = require('./routes/assets');
 const paymentRoutes = require('./routes/payments');
+const collectionRoutes = require('./routes/collections');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/pos', poRoutes);
 app.use('/api/credit-notes', creditNoteRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/collections', collectionRoutes);
 
 // test route 
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, DollarSign } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, DollarSign, Upload, Paperclip } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 const AssetsEntry = () => {
@@ -34,6 +34,7 @@ const AssetsEntry = () => {
     { name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
   const [errors, setErrors] = useState({});
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     fetchAssets();
@@ -113,6 +114,26 @@ const AssetsEntry = () => {
     setShowVendorDropdown(false);
   };
 
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const downloadAttachment = (file) => {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const addItem = () => {
     setItems([...items, { name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
   };
@@ -189,18 +210,34 @@ const AssetsEntry = () => {
         const method = editingAsset ? 'PUT' : 'POST';
         
         const totalAmount = calculateTotal();
-        const assetData = {
-          ...formData,
-          purchaseValue: totalAmount,
-          items: items
-        };
+        
+        // Create FormData for file upload
+        const formDataToSend = new FormData();
+        formDataToSend.append('assetName', formData.assetName);
+        formDataToSend.append('assetCode', formData.assetCode);
+        formDataToSend.append('category', formData.category);
+        formDataToSend.append('subCategory', formData.subCategory);
+        formDataToSend.append('purchaseDate', formData.purchaseDate);
+        formDataToSend.append('purchaseValue', totalAmount);
+        formDataToSend.append('vendor', formData.vendor);
+        formDataToSend.append('location', formData.location);
+        formDataToSend.append('depreciationMethod', formData.depreciationMethod);
+        formDataToSend.append('usefulLife', formData.usefulLife);
+        formDataToSend.append('salvageValue', formData.salvageValue);
+        formDataToSend.append('description', formData.description);
+        formDataToSend.append('serialNumber', formData.serialNumber);
+        formDataToSend.append('warrantyPeriod', formData.warrantyPeriod);
+        formDataToSend.append('status', formData.status);
+        formDataToSend.append('items', JSON.stringify(items));
+        
+        // Append attachments
+        attachments.forEach((file) => {
+          formDataToSend.append('attachments', file);
+        });
         
         const response = await fetch(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(assetData),
+          body: formDataToSend,
         });
         
         if (response.ok) {
@@ -279,13 +316,23 @@ const AssetsEntry = () => {
     }
   };
 
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    console.log('Current Date:', dateString, '| Full Date Object:', today);
+    return dateString;
+  };
+
   const resetForm = () => {
     setFormData({
       assetName: '',
       assetCode: '',
       category: '',
       subCategory: '',
-      purchaseDate: '',
+      purchaseDate: getTodayDate(),
       purchaseValue: '',
       vendor: '',
       location: '',
@@ -302,6 +349,7 @@ const AssetsEntry = () => {
     setEditingAsset(null);
     setShowVendorDropdown(false);
     setVendorSearchTerm('');
+    setAttachments([]);
   };
 
   const handleExportToExcel = () => {
@@ -667,6 +715,7 @@ const AssetsEntry = () => {
                         name="purchaseDate"
                         value={formData.purchaseDate}
                         onChange={handleInputChange}
+                        max={getTodayDate()}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.purchaseDate ? 'border-red-500' : 'border-gray-300'
                         }`}
@@ -976,6 +1025,64 @@ const AssetsEntry = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Asset description and additional notes"
                   />
+                </div>
+
+                {/* Attachments */}
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Attachments</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Documents (Invoice, Warranty, etc.)
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <Upload className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-700">Choose Files</span>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        />
+                      </label>
+                      <span className="text-sm text-gray-500">
+                        {attachments.length} file(s) selected
+                      </span>
+                    </div>
+                    
+                    {attachments.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-700">{file.name}</span>
+                              <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(2)} KB)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => downloadAttachment(file)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Download"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeAttachment(index)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Remove"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

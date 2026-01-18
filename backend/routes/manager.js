@@ -27,7 +27,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     const pendingApprovals = [];
     
     // Get pending invoices
-    const pendingInvoices = await Invoice.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
+    const pendingInvoices = await Invoice.find({ status: 'Draft' })
       .select('invoiceNumber customerName grandTotal createdAt createdBy status reminderSent approvedAt rejectedAt')
       .limit(10)
       .sort({ createdAt: -1 });
@@ -50,7 +50,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     });
     
     // Get pending POs
-    const pendingPOs = await PO.find({ status: { $in: ['Draft', 'Approved', 'Rejected'] } })
+    const pendingPOs = await PO.find({ status: 'Draft' })
       .populate('supplier', 'name')
       .select('poNumber supplierName totalAmount createdAt status reminderSent approvedAt rejectedAt')
       .limit(10)

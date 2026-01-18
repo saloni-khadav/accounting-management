@@ -1,29 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
+import axios from 'axios';
 
 const DebtorsAging = () => {
-  const agingData = [
-    { label: '32 Invoices', value: 100, color: 'bg-blue-600' },
-    { label: '20 1-30 Day', value: 75, color: 'bg-blue-600' },
-    { label: '18 1-60 Day', value: 55, color: 'bg-blue-500' },
-    { label: '14 1-90 Days', value: 35, color: 'bg-blue-300' }
-  ];
+  const [debtorsData, setDebtorsData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const debtorsData = [
-    { customer: 'Alpha Enterprises', totalDue: '₹38,000', notDue: '15,000', days1_30: '10,000', days31_60: '10,000', days61_90: '13,000', days90Plus: '40' },
-    { customer: 'Sun Corporation', totalDue: '₹26,000', notDue: '30,000', days1_30: '6,000', days31_60: '13,000', days61_90: '100', days90Plus: '20' },
-    { customer: 'Global Solutions', totalDue: '₹26,000', notDue: '26,000', days1_30: '11,000', days31_60: '600', days61_90: '1,000', days90Plus: '20' },
-    { customer: 'K.P.Industries', totalDue: '₹30,000', notDue: '10,000', days1_30: '3,800', days31_60: '16,000', days61_90: '600', days90Plus: '10' },
-    { customer: 'Vision Tech', totalDue: '₹26,000', notDue: '26,000', days1_30: '26,000', days31_60: '12,000', days61_90: '3,000', days90Plus: '5' }
-  ];
+  useEffect(() => {
+    fetchDebtorsAging();
+  }, []);
 
-  const totals = {
-    totalDue: '₹132,000',
-    notDue: '26,800',
-    days1_30: '215,000',
-    days31_60: '31-000',
-    days61_90: '8,000'
+  const fetchDebtorsAging = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/invoices/reports/debtors-aging', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDebtorsData(response.data);
+    } catch (error) {
+      console.error('Error fetching debtors aging:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const totals = debtorsData.reduce((acc, debtor) => ({
+    totalDue: acc.totalDue + debtor.totalDue,
+    days1_30: acc.days1_30 + debtor.days1_30,
+    days31_60: acc.days31_60 + debtor.days31_60,
+    days61_120: acc.days61_120 + debtor.days61_120,
+    days121_180: acc.days121_180 + debtor.days121_180,
+    days180Plus: acc.days180Plus + debtor.days180Plus
+  }), { totalDue: 0, days1_30: 0, days31_60: 0, days61_120: 0, days121_180: 0, days180Plus: 0 });
+
+  const agingData = [
+    { label: '1-30 Days', value: totals.days1_30 > 0 ? (totals.days1_30 / totals.totalDue) * 100 : 0, color: 'bg-green-500' },
+    { label: '31-60 Days', value: totals.days31_60 > 0 ? (totals.days31_60 / totals.totalDue) * 100 : 0, color: 'bg-yellow-500' },
+    { label: '61-120 Days', value: totals.days61_120 > 0 ? (totals.days61_120 / totals.totalDue) * 100 : 0, color: 'bg-orange-500' },
+    { label: '121-180 Days', value: totals.days121_180 > 0 ? (totals.days121_180 / totals.totalDue) * 100 : 0, color: 'bg-red-500' },
+    { label: '180+ Days', value: totals.days180Plus > 0 ? (totals.days180Plus / totals.totalDue) * 100 : 0, color: 'bg-red-700' }
+  ];
+
+  if (loading) {
+    return <div className="p-6 bg-gray-50 min-h-screen"><div className="text-center py-8">Loading...</div></div>;
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -53,7 +81,7 @@ const DebtorsAging = () => {
           {/* Right - Total Outstanding */}
           <div className="flex flex-col items-end justify-center">
             <h3 className="text-lg font-medium text-gray-600 mb-2">Total Outstanding</h3>
-            <p className="text-5xl font-bold text-gray-900 mb-6">₹182,500</p>
+            <p className="text-5xl font-bold text-gray-900 mb-6">{formatCurrency(totals.totalDue)}</p>
             <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
               <Download size={20} />
               EXPORT
@@ -70,35 +98,42 @@ const DebtorsAging = () => {
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="text-left py-4 px-6 font-semibold text-gray-700">Customer Name</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700">Total Due</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Not Due</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700">1-30 Days</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700">31-60 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">61-90 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">&gt;90 Das</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">61-120 Days</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">121-180 Days</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700">180+ Days</th>
               </tr>
             </thead>
             <tbody>
               {debtorsData.map((debtor, index) => (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">{debtor.customer}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.totalDue}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.notDue}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days1_30}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days31_60}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days61_90}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days90Plus}</td>
+                  <td className="py-4 px-6 font-medium text-gray-900">{debtor.customerName}</td>
+                  <td className="py-4 px-6 text-gray-700 font-semibold">{formatCurrency(debtor.totalDue)}</td>
+                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days1_30)}</td>
+                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days31_60)}</td>
+                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days61_120)}</td>
+                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days121_180)}</td>
+                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days180Plus)}</td>
                 </tr>
               ))}
+              {debtorsData.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">No overdue invoices found</td>
+                </tr>
+              )}
               {/* Totals Row */}
-              <tr className="bg-gray-50 font-semibold">
-                <td className="py-4 px-6 text-gray-900"></td>
-                <td className="py-4 px-6 text-gray-900">{totals.totalDue}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.notDue}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days1_30}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days31_60}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days61_90}</td>
-                <td className="py-4 px-6 text-gray-900"></td>
-              </tr>
+              {debtorsData.length > 0 && (
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="py-4 px-6 text-gray-900">Total</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.totalDue)}</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days1_30)}</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days31_60)}</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days61_120)}</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days121_180)}</td>
+                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days180Plus)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -7,16 +7,19 @@ const Payments = () => {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ completed: 0, pending: 0, upcoming: 0 });
   const [vendors, setVendors] = useState([]);
+  const [bills, setBills] = useState([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [showBillDropdown, setShowBillDropdown] = useState(false);
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     vendor: '',
     invoiceNumber: '',
+    invoiceDate: new Date().toISOString().split('T')[0],
     amount: '',
     tdsSection: '',
     tdsAmount: '',
     tdsPercentage: '',
-    paymentDate: '',
+    paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Bank Transfer',
     referenceNumber: '',
     description: ''
@@ -48,6 +51,21 @@ const Payments = () => {
       }
     } catch (error) {
       console.error('Error fetching vendors:', error);
+    }
+  };
+
+  const fetchBillsByVendor = async (vendorName) => {
+    try {
+      console.log('Fetching bills for vendor:', vendorName);
+      const response = await fetch(`http://localhost:5001/api/bills?vendorName=${encodeURIComponent(vendorName)}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched bills:', data);
+        setBills(data);
+      }
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+      setBills([]);
     }
   };
 
@@ -127,10 +145,23 @@ const Payments = () => {
     });
   };
 
-  const handleVendorSelect = (vendorName) => {
-    setFormData(prev => ({ ...prev, vendor: vendorName }));
+  const handleVendorSelect = async (vendorName) => {
+    setFormData(prev => ({ ...prev, vendor: vendorName, invoiceNumber: '', invoiceDate: '' }));
     setVendorSearchTerm(vendorName);
     setShowVendorDropdown(false);
+    await fetchBillsByVendor(vendorName);
+    setShowBillDropdown(true);
+  };
+
+  const handleBillSelect = (bill) => {
+    console.log('Selected bill:', bill); // Debug log
+    setFormData(prev => ({
+      ...prev,
+      invoiceNumber: bill.billId || bill.invoiceNumber || bill.billNumber,
+      invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
+      amount: bill.totalAmount || bill.amount || 0
+    }));
+    setShowBillDropdown(false);
   };
 
   const filteredVendors = vendors.filter(vendor =>
@@ -181,11 +212,12 @@ const Payments = () => {
         setFormData({
           vendor: '',
           invoiceNumber: '',
+          invoiceDate: new Date().toISOString().split('T')[0],
           amount: '',
           tdsSection: '',
           tdsAmount: '',
           tdsPercentage: '',
-          paymentDate: '',
+          paymentDate: new Date().toISOString().split('T')[0],
           paymentMethod: 'Bank Transfer',
           referenceNumber: '',
           description: ''
@@ -218,7 +250,10 @@ const Payments = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Payments</h1>
         <button 
-          onClick={() => setIsPaymentFormOpen(true)}
+          onClick={() => {
+            setFormData(prev => ({ ...prev, paymentDate: new Date().toISOString().split('T')[0] }));
+            setIsPaymentFormOpen(true);
+          }}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
         >
           <Plus size={20} />
@@ -357,13 +392,58 @@ const Payments = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Invoice Number <span className="text-red-500">*</span>
                   </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="invoiceNumber"
+                      value={formData.invoiceNumber}
+                      onChange={handleInputChange}
+                      onFocus={() => formData.vendor && setShowBillDropdown(true)}
+                      onClick={() => formData.vendor && setShowBillDropdown(true)}
+                      required
+                      placeholder="Select from bills or enter manually"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {showBillDropdown && bills.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor).length > 0 ? (
+                          bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor).map((bill) => (
+                            <div
+                              key={bill._id}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleBillSelect(bill);
+                                setShowBillDropdown(false);
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-gray-900">{bill.billId || bill.invoiceNumber || bill.billNumber || 'No Invoice Number'}</div>
+                              <div className="text-sm text-gray-500">
+                                {new Date(bill.billDate).toLocaleDateString()} | ₹{(bill.totalAmount || 0).toLocaleString('en-IN')}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-500 text-sm">
+                            No approved bills found for this vendor
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Invoice Date <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="text"
-                    name="invoiceNumber"
-                    value={formData.invoiceNumber}
+                    type="date"
+                    name="invoiceDate"
+                    value={formData.invoiceDate}
                     onChange={handleInputChange}
+                    max={new Date().toISOString().split('T')[0]}
                     required
-                    placeholder="INV-2024-001"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -406,23 +486,6 @@ const Payments = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Percentage (%)
-                  </label>
-                  <input
-                    type="number"
-                    name="tdsPercentage"
-                    value={formData.tdsPercentage}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     TDS Amount
                   </label>
                   <input
@@ -458,6 +521,7 @@ const Payments = () => {
                     name="paymentDate"
                     value={formData.paymentDate}
                     onChange={handleInputChange}
+                    max={new Date().toISOString().split('T')[0]}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
