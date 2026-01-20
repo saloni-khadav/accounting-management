@@ -15,6 +15,17 @@ const Bills = () => {
   useEffect(() => {
     fetchBills();
     fetchUserRole();
+    
+    // Add event listener for focus to refresh data when user returns to bills page
+    const handleFocus = () => {
+      fetchBills();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const fetchUserRole = async () => {
@@ -124,30 +135,47 @@ const Bills = () => {
       const matchesSearch = searchTerm === '' || 
         bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bill.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === '' || bill.status === statusFilter;
+      
+      // Convert status for filtering
+      let filterStatus = bill.status;
+      if (bill.status === 'Draft' || bill.status === 'Cancelled') {
+        filterStatus = 'Not Paid';
+      }
+      
+      const matchesStatus = statusFilter === '' || filterStatus === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .map(bill => {
       const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+      // Convert Draft and Cancelled to Not Paid for display
+      let displayStatus = bill.status;
+      if (bill.status === 'Draft' || bill.status === 'Cancelled') {
+        displayStatus = 'Not Paid';
+      }
       return {
         id: bill.billNumber,
         vendor: bill.vendorName,
         billDate: new Date(bill.billDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
         dueDate: bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-',
-        status: bill.status,
+        status: displayStatus,
         amount: `₹${netPayable.toLocaleString('en-IN')}`
       };
     });
 
   const overdueCount = bills.filter(bill => bill.status === 'Overdue').length;
   const dueSoonCount = bills.filter(bill => bill.status === 'Due Soon').length;
-  const draftCount = bills.filter(bill => bill.status === 'Draft').length;
+  const notPaidCount = bills.filter(bill => bill.status === 'Not Paid' || bill.status === 'Draft' || bill.status === 'Cancelled').length;
+  const partiallyPaidCount = bills.filter(bill => bill.status === 'Partially Paid').length;
 
   const getStatusColor = (status) => {
     switch(status) {
       case 'Overdue': return 'bg-red-500 text-white';
       case 'Due Soon': return 'bg-orange-400 text-white';
-      case 'Draft': return 'bg-orange-300 text-white';
+      case 'Not Paid': return 'bg-blue-400 text-white';
+      case 'Partially Paid': return 'bg-yellow-500 text-white';
+      case 'Fully Paid': return 'bg-green-500 text-white';
+      case 'Draft': return 'bg-gray-400 text-white';
+      case 'Cancelled': return 'bg-red-300 text-white';
       default: return 'bg-blue-400 text-white';
     }
   };
@@ -166,18 +194,22 @@ const Bills = () => {
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-slate-800 text-white rounded-xl p-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-red-500 text-white rounded-xl p-6">
           <div className="text-sm mb-2">Overdue</div>
           <div className="text-5xl font-bold">{overdueCount}</div>
         </div>
-        <div className="bg-blue-400 text-white rounded-xl p-6">
+        <div className="bg-orange-400 text-white rounded-xl p-6">
           <div className="text-sm mb-2">Due Soon</div>
           <div className="text-5xl font-bold">{dueSoonCount}</div>
         </div>
-        <div className="bg-gray-200 text-gray-700 rounded-xl p-6">
-          <div className="text-sm mb-2">Draft</div>
-          <div className="text-5xl font-bold">{draftCount}</div>
+        <div className="bg-blue-400 text-white rounded-xl p-6">
+          <div className="text-sm mb-2">Not Paid</div>
+          <div className="text-5xl font-bold">{notPaidCount}</div>
+        </div>
+        <div className="bg-yellow-500 text-white rounded-xl p-6">
+          <div className="text-sm mb-2">Partially Paid</div>
+          <div className="text-5xl font-bold">{partiallyPaidCount}</div>
         </div>
       </div>
 
@@ -200,11 +232,11 @@ const Bills = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
           >
             <option value="">All Status</option>
-            <option value="Draft">Draft</option>
+            <option value="Not Paid">Not Paid</option>
             <option value="Due Soon">Due Soon</option>
             <option value="Overdue">Overdue</option>
-            <option value="Paid">Paid</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="Partially Paid">Partially Paid</option>
+            <option value="Fully Paid">Fully Paid</option>
           </select>
         </div>
       </div>
@@ -238,20 +270,12 @@ const Bills = () => {
                   <td className="py-4 px-6 text-gray-600">{bill.billDate}</td>
                   <td className="py-4 px-6 text-gray-600">{bill.dueDate}</td>
                   <td className="py-4 px-6">
-                    <select
-                      value={bill.status}
-                      onChange={(e) => handleStatusChange(originalBill._id, e.target.value)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium cursor-pointer ${getStatusColor(bill.status)}`}
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Due Soon">Due Soon</option>
-                      <option value="Overdue">Overdue</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getStatusColor(bill.status)}`}>
+                      {bill.status}
+                    </span>
                   </td>
                   <td className="py-4 px-6 text-right font-semibold text-gray-900">{bill.amount}</td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 text-center">
                     {userRole === 'manager' && originalBill.approvalStatus === 'pending' ? (
                       <div className="flex items-center justify-center gap-2">
                         <button
@@ -268,14 +292,16 @@ const Bills = () => {
                         </button>
                       </div>
                     ) : (
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        originalBill.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' : 
-                        originalBill.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {originalBill.approvalStatus === 'approved' ? 'Approved' : 
-                         originalBill.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
-                      </span>
+                      <div className="flex justify-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          originalBill.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' : 
+                          originalBill.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {originalBill.approvalStatus === 'approved' ? 'Approved' : 
+                           originalBill.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                        </span>
+                      </div>
                     )}
                   </td>
                   <td className="py-4 px-6">

@@ -22,7 +22,8 @@ const Payments = () => {
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Bank Transfer',
     referenceNumber: '',
-    description: ''
+    description: '',
+    billId: '' // Add billId to track which bill this payment is for
   });
 
   const tdsSection = [
@@ -155,11 +156,13 @@ const Payments = () => {
 
   const handleBillSelect = (bill) => {
     console.log('Selected bill:', bill); // Debug log
+    const remainingAmount = (bill.grandTotal || 0) - (bill.paidAmount || 0);
     setFormData(prev => ({
       ...prev,
-      invoiceNumber: bill.billId || bill.invoiceNumber || bill.billNumber,
+      billId: bill._id, // Store the bill ID
+      invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: bill.totalAmount || bill.amount || 0
+      amount: remainingAmount // Set to remaining amount, user can modify for partial payment
     }));
     setShowBillDropdown(false);
   };
@@ -220,7 +223,8 @@ const Payments = () => {
           paymentDate: new Date().toISOString().split('T')[0],
           paymentMethod: 'Bank Transfer',
           referenceNumber: '',
-          description: ''
+          description: '',
+          billId: ''
         });
         setVendorSearchTerm('');
         fetchPayments();
@@ -406,8 +410,10 @@ const Payments = () => {
                     />
                     {showBillDropdown && bills.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor).length > 0 ? (
-                          bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor).map((bill) => (
+                        {bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').length > 0 ? (
+                          bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').map((bill) => {
+                            const remainingAmount = (bill.grandTotal || 0) - (bill.paidAmount || 0);
+                            return (
                             <div
                               key={bill._id}
                               onMouseDown={(e) => {
@@ -417,12 +423,21 @@ const Payments = () => {
                               }}
                               className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                             >
-                              <div className="font-medium text-gray-900">{bill.billId || bill.invoiceNumber || bill.billNumber || 'No Invoice Number'}</div>
+                              <div className="font-medium text-gray-900">{bill.billNumber || 'No Bill Number'}</div>
                               <div className="text-sm text-gray-500">
-                                {new Date(bill.billDate).toLocaleDateString()} | ₹{(bill.totalAmount || 0).toLocaleString('en-IN')}
+                                {new Date(bill.billDate).toLocaleDateString()} | Total: ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                Status: <span className={`font-medium ${
+                                  bill.status === 'Fully Paid' ? 'text-green-600' :
+                                  bill.status === 'Partially Paid' ? 'text-yellow-600' :
+                                  bill.status === 'Overdue' ? 'text-red-600' :
+                                  bill.status === 'Due Soon' ? 'text-orange-600' :
+                                  'text-blue-600'
+                                }`}>{bill.status}</span> | Remaining: ₹{remainingAmount.toLocaleString('en-IN')}
                               </div>
                             </div>
-                          ))
+                          )})
                         ) : (
                           <div className="px-3 py-2 text-gray-500 text-sm">
                             No approved bills found for this vendor
@@ -451,6 +466,11 @@ const Payments = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Payment Amount <span className="text-red-500">*</span>
+                    {formData.billId && (
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Remaining: ₹{((bills.find(b => b._id === formData.billId)?.grandTotal || 0) - (bills.find(b => b._id === formData.billId)?.paidAmount || 0)).toLocaleString('en-IN')})
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"

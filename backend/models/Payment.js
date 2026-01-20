@@ -6,6 +6,10 @@ const paymentSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  billId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Bill'
+  },
   vendor: {
     type: String,
     required: true,

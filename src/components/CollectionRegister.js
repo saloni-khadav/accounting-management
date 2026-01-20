@@ -19,7 +19,8 @@ const CollectionRegister = () => {
     customer: '',
     invoiceNumbers: [],
     amount: '',
-    paymentMode: 'Online'
+    paymentMode: 'Online',
+    referenceNumber: ''
   });
 
   useEffect(() => {
@@ -153,7 +154,7 @@ const CollectionRegister = () => {
       
       if (response.ok) {
         setShowModal(false);
-        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online' });
+        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online', referenceNumber: '' });
         fetchCollections();
         fetchStats();
       } else {
@@ -383,6 +384,17 @@ const CollectionRegister = () => {
                     <option value="Cash">Cash</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reference/Transaction Number</label>
+                  <input
+                    type="text"
+                    value={formData.referenceNumber}
+                    onChange={(e) => setFormData({...formData, referenceNumber: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter reference or transaction number"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -416,6 +428,7 @@ const CollectionRegister = () => {
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Invoice</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Amount</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Mode</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
               </tr>
             </thead>
             <tbody>
@@ -426,6 +439,7 @@ const CollectionRegister = () => {
                   <td className="py-4 px-6 text-gray-900">{collection.invoiceNumber}</td>
                   <td className="py-4 px-6 text-gray-900">₹{collection.amount.toLocaleString('en-IN')}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.paymentMode}</td>
+                  <td className="py-4 px-6 text-gray-900">{collection.referenceNumber || '-'}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,53 +1,90 @@
 import React, { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
-import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 const DebtorsAging = () => {
-  const [debtorsData, setDebtorsData] = useState([]);
+  const [invoicesData, setInvoicesData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDebtorsAging();
+    fetchInvoicesAging();
   }, []);
 
-  const fetchDebtorsAging = async () => {
+  const fetchInvoicesAging = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/invoices/reports/debtors-aging', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setDebtorsData(response.data);
+      const response = await fetch('http://localhost:5001/api/invoices');
+      if (response.ok) {
+        const invoices = await response.json();
+        const agingData = calculateAging(invoices);
+        setInvoicesData(agingData);
+      }
     } catch (error) {
-      console.error('Error fetching debtors aging:', error);
+      console.error('Error fetching invoices:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount);
+  const calculateAging = (invoices) => {
+    const today = new Date();
+    return invoices.map(invoice => {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+      const amount = invoice.grandTotal || 0;
+      
+      return {
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoice.invoiceDate,
+        customerName: invoice.customerName,
+        totalAmount: amount,
+        daysDiff,
+        lessThan30: daysDiff < 30 ? amount : 0,
+        days30to60: daysDiff >= 30 && daysDiff < 60 ? amount : 0,
+        days60to90: daysDiff >= 60 && daysDiff < 90 ? amount : 0,
+        days90to180: daysDiff >= 90 && daysDiff < 180 ? amount : 0,
+        moreThan180: daysDiff >= 180 ? amount : 0
+      };
+    }).filter(invoice => invoice.daysDiff >= 0);
   };
 
-  const totals = debtorsData.reduce((acc, debtor) => ({
-    totalDue: acc.totalDue + debtor.totalDue,
-    days1_30: acc.days1_30 + debtor.days1_30,
-    days31_60: acc.days31_60 + debtor.days31_60,
-    days61_120: acc.days61_120 + debtor.days61_120,
-    days121_180: acc.days121_180 + debtor.days121_180,
-    days180Plus: acc.days180Plus + debtor.days180Plus
-  }), { totalDue: 0, days1_30: 0, days31_60: 0, days61_120: 0, days121_180: 0, days180Plus: 0 });
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
 
-  const agingData = [
-    { label: '1-30 Days', value: totals.days1_30 > 0 ? (totals.days1_30 / totals.totalDue) * 100 : 0, color: 'bg-green-500' },
-    { label: '31-60 Days', value: totals.days31_60 > 0 ? (totals.days31_60 / totals.totalDue) * 100 : 0, color: 'bg-yellow-500' },
-    { label: '61-120 Days', value: totals.days61_120 > 0 ? (totals.days61_120 / totals.totalDue) * 100 : 0, color: 'bg-orange-500' },
-    { label: '121-180 Days', value: totals.days121_180 > 0 ? (totals.days121_180 / totals.totalDue) * 100 : 0, color: 'bg-red-500' },
-    { label: '180+ Days', value: totals.days180Plus > 0 ? (totals.days180Plus / totals.totalDue) * 100 : 0, color: 'bg-red-700' }
-  ];
+  const formatAmount = (amount) => {
+    return amount > 0 ? amount.toFixed(2) : '-';
+  };
+
+  const handleExport = () => {
+    const exportData = invoicesData.map(invoice => ({
+      'Invoice Number': invoice.invoiceNumber,
+      'Date': formatDate(invoice.invoiceDate),
+      'Customer': invoice.customerName,
+      '< 30 Days': invoice.lessThan30 > 0 ? invoice.lessThan30.toFixed(2) : '',
+      '30 to 60 Days': invoice.days30to60 > 0 ? invoice.days30to60.toFixed(2) : '',
+      '60 to 90 Days': invoice.days60to90 > 0 ? invoice.days60to90.toFixed(2) : '',
+      '90 to 180 Days': invoice.days90to180 > 0 ? invoice.days90to180.toFixed(2) : '',
+      '> 180 Days': invoice.moreThan180 > 0 ? invoice.moreThan180.toFixed(2) : ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Debtors Aging');
+    XLSX.writeFile(wb, `Debtors_Aging_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const totals = invoicesData.reduce((acc, invoice) => ({
+    lessThan30: acc.lessThan30 + invoice.lessThan30,
+    days30to60: acc.days30to60 + invoice.days30to60,
+    days60to90: acc.days60to90 + invoice.days60to90,
+    days90to180: acc.days90to180 + invoice.days90to180,
+    moreThan180: acc.moreThan180 + invoice.moreThan180
+  }), { lessThan30: 0, days30to60: 0, days60to90: 0, days90to180: 0, moreThan180: 0 });
 
   if (loading) {
     return <div className="p-6 bg-gray-50 min-h-screen"><div className="text-center py-8">Loading...</div></div>;
@@ -56,82 +93,49 @@ const DebtorsAging = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Debtors Ageing</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Debtors Aging Report</h1>
+        <button 
+          onClick={handleExport}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <Download size={16} />
+          Export
+        </button>
       </div>
 
-      {/* Top Section */}
-      <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100 mb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left - Aging Bars */}
-          <div className="space-y-4">
-            {agingData.map((item, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <span className="text-lg font-semibold text-gray-900 w-32">{item.label}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-8">
-                  <div 
-                    className={`${item.color} h-8 rounded-full transition-all`}
-                    style={{ width: `${item.value}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Right - Total Outstanding */}
-          <div className="flex flex-col items-end justify-center">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">Total Outstanding</h3>
-            <p className="text-5xl font-bold text-gray-900 mb-6">{formatCurrency(totals.totalDue)}</p>
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
-              <Download size={20} />
-              EXPORT
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Debtors Table */}
+      {/* Aging Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Customer Name</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Total Due</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">1-30 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">31-60 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">61-120 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">121-180 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">180+ Days</th>
+              <tr className="bg-gray-100">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Invoice Number</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Date</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Customer</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-green-500 border-r border-gray-300">&lt; 30 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-yellow-500 border-r border-gray-300">30 to 60 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-orange-500 border-r border-gray-300">60 to 90 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-red-500 border-r border-gray-300">90 to 180 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-red-700">&gt; 180 Days</th>
               </tr>
             </thead>
             <tbody>
-              {debtorsData.map((debtor, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">{debtor.customerName}</td>
-                  <td className="py-4 px-6 text-gray-700 font-semibold">{formatCurrency(debtor.totalDue)}</td>
-                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days1_30)}</td>
-                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days31_60)}</td>
-                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days61_120)}</td>
-                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days121_180)}</td>
-                  <td className="py-4 px-6 text-gray-700">{formatCurrency(debtor.days180Plus)}</td>
+              {invoicesData.map((invoice, index) => (
+                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="py-3 px-4 text-blue-600 font-medium border-r border-gray-200">{invoice.invoiceNumber}</td>
+                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{formatDate(invoice.invoiceDate)}</td>
+                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{invoice.customerName}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.lessThan30)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days30to60)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days60to90)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days90to180)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700">{formatAmount(invoice.moreThan180)}</td>
                 </tr>
               ))}
-              {debtorsData.length === 0 && (
+              {invoicesData.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">No overdue invoices found</td>
-                </tr>
-              )}
-              {/* Totals Row */}
-              {debtorsData.length > 0 && (
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="py-4 px-6 text-gray-900">Total</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.totalDue)}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days1_30)}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days31_60)}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days61_120)}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days121_180)}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatCurrency(totals.days180Plus)}</td>
+                  <td colSpan="8" className="py-8 text-center text-gray-500">No invoices found</td>
                 </tr>
               )}
             </tbody>

@@ -154,6 +154,11 @@ const billSchema = new mongoose.Schema({
     trim: true,
     maxlength: 15
   },
+  vendorPAN: {
+    type: String,
+    trim: true,
+    maxlength: 10
+  },
   vendorPlace: {
     type: String,
     trim: true
@@ -256,8 +261,20 @@ const billSchema = new mongoose.Schema({
   
   status: {
     type: String,
-    enum: ['Draft', 'Pending', 'Overdue', 'Due Soon', 'Paid', 'Cancelled'],
+    enum: ['Draft', 'Not Paid', 'Due Soon', 'Overdue', 'Partially Paid', 'Fully Paid', 'Cancelled'],
     default: 'Draft'
+  },
+  
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
+  remainingAmount: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   
   approvalStatus: {
@@ -331,6 +348,43 @@ billSchema.pre('save', function(next) {
   this.totalCESS = this.items.reduce((sum, item) => sum + item.cessAmount, 0);
   this.totalTax = this.totalCGST + this.totalSGST + this.totalIGST + this.totalCESS;
   this.grandTotal = this.totalTaxableValue + this.totalTax;
+  
+  // Calculate remaining amount
+  this.remainingAmount = this.grandTotal - (this.paidAmount || 0);
+  
+  // Auto-update status based on due date and payment status (regardless of approval)
+  if (this.status !== 'Cancelled') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (this.dueDate) {
+      const dueDate = new Date(this.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+      
+      if (this.paidAmount >= this.grandTotal) {
+        this.status = 'Fully Paid';
+      } else if (this.paidAmount > 0) {
+        this.status = 'Partially Paid';
+      } else if (daysDiff < 0) {
+        this.status = 'Overdue';
+      } else if (daysDiff <= 7) {
+        this.status = 'Due Soon';
+      } else {
+        this.status = 'Not Paid';
+      }
+    } else {
+      // No due date - only check payment status
+      if (this.paidAmount >= this.grandTotal) {
+        this.status = 'Fully Paid';
+      } else if (this.paidAmount > 0) {
+        this.status = 'Partially Paid';
+      } else {
+        this.status = 'Draft'; // Keep as Draft if no due date and no payment
+      }
+    }
+  }
   
   next();
 });

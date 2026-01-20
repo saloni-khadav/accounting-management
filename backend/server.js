@@ -15,10 +15,12 @@ const ocrRoutes = require('./routes/ocr-new');
 const gstRoutes = require('./routes/gst');
 const managerRoutes = require('./routes/manager');
 const poRoutes = require('./routes/pos');
+const purchaseOrderRoutes = require('./routes/purchaseOrders');
 const creditNoteRoutes = require('./routes/creditNotes');
 const assetRoutes = require('./routes/assets');
 const paymentRoutes = require('./routes/payments');
 const collectionRoutes = require('./routes/collections');
+const tdsRoutes = require('./routes/tds');
 
 const app = express();
 
@@ -37,18 +39,25 @@ app.use('/api/ocr', ocrRoutes);
 app.use('/api/gst', gstRoutes);
 app.use('/api/manager', managerRoutes);
 app.use('/api/pos', poRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/credit-notes', creditNoteRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/collections', collectionRoutes);
+app.use('/api/tds', tdsRoutes);
 
 // test route 
-
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!', timestamp: new Date() });
 });
 
-// Serve frontend (React buil
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ message: 'Server error', error: err.message });
+});
+
+// Serve frontend (React build)
 const buildPath = path.join(__dirname, '../build');
 
 // 3. Serve the static files
@@ -57,11 +66,6 @@ app.use(express.static(buildPath));
 // 4. The "Catch-all" route for React (MUST be last)
 app.get('*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
-});
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ message: 'Server error', error: err.message });
 });
 
 // MongoDB Connection with fallback

@@ -1,12 +1,122 @@
-import React, { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter } from 'lucide-react';
 
 const PurchaseOrders = () => {
-  const [activeFilter, setActiveFilter] = useState('All (36)');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [formData, setFormData] = useState({
+    supplier: '',
+    poNumber: '',
+    poDate: new Date().toISOString().split('T')[0],
+    deliveryDate: ''
+  });
   const [items, setItems] = useState([
-    { name: 'Dell Laptop', hsn: '8471', quantity: 5, rate: 50000, discount: 10, cgstRate: 9, sgstRate: 9, igstRate: 0 }
+    { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
+
+  useEffect(() => {
+    let filtered = purchaseOrders;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(po => 
+        po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        po.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Status filter
+    if (activeFilter !== 'All') {
+      filtered = filtered.filter(po => po.status === activeFilter);
+    }
+
+    setFilteredOrders(filtered);
+  }, [purchaseOrders, searchTerm, activeFilter]);
+
+  useEffect(() => {
+    fetchPurchaseOrders();
+    fetchVendors();
+    if (showCreateForm) {
+      generatePONumber();
+    }
+  }, [showCreateForm]);
+
+  useEffect(() => {
+    fetchPurchaseOrders();
+    fetchVendors();
+  }, []);
+
+  const generatePONumber = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/purchase-orders/next-po-number');
+      if (response.ok) {
+        const data = await response.json();
+        setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
+      }
+    } catch (error) {
+      console.error('Error generating PO number:', error);
+      // Fallback to manual generation
+      const currentYear = new Date().getFullYear();
+      const nextYear = currentYear + 1;
+      const yearCode = `${currentYear.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
+      setFormData(prev => ({ ...prev, poNumber: `PO-${yearCode}-001` }));
+    }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/vendors');
+      if (response.ok) {
+        const data = await response.json();
+        setVendors(data);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/purchase-orders');
+      if (response.ok) {
+        const data = await response.json();
+        setPurchaseOrders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSupplierSearch = (e) => {
+    setSupplierSearch(e.target.value);
+    setShowSupplierDropdown(true);
+  };
+
+  const handleSupplierSelect = (vendor) => {
+    setFormData(prev => ({ ...prev, supplier: vendor.vendorName }));
+    setSupplierSearch(vendor.vendorName);
+    setShowSupplierDropdown(false);
+  };
+
+  const filteredVendors = vendors.filter(vendor =>
+    vendor.vendorName.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+    vendor.vendorCode.toLowerCase().includes(supplierSearch.toLowerCase())
+  );
 
   const addItem = () => {
     setItems([...items, { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
@@ -58,13 +168,54 @@ const PurchaseOrders = () => {
     return calculateSubTotal() - calculateDiscount() + calculateTax();
   };
 
-  const ordersData = [
-    { poNumber: 'PO-0082', vendor: 'GerernLane', orderDate: '30 April', expect: '29 Apr', status: 'Open', amount: '₹2,500' },
-    { poNumber: 'PO-0081', vendor: 'Acme.tam', orderDate: '24 May', expect: '28 Apr', status: 'Completed', amount: '₹2,300' },
-    { poNumber: 'PO-0080', vendor: 'Tarnikvoish', orderDate: '16 May', expect: '29 Apr', status: 'Completed', amount: '₹4,000' },
-    { poNumber: 'PO-0075', vendor: 'Sunetcop', orderDate: '10 Jun', expect: '11 Mar', status: 'Draft', amount: '₹3,000' },
-    { poNumber: 'PO-0074', vendor: 'Stotzbunner', orderDate: '16 Jul', expect: '28 Mar', status: 'Draft', amount: '₹9,500' },
-  ];
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const poData = {
+        ...formData,
+        items,
+        subTotal: calculateSubTotal(),
+        totalDiscount: calculateDiscount(),
+        totalTax: calculateTax(),
+        totalAmount: calculateTotal()
+      };
+
+      const response = await fetch('http://localhost:5001/api/purchase-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(poData)
+      });
+
+      if (response.ok) {
+        alert('Purchase Order created successfully!');
+        setShowCreateForm(false);
+        setFormData({
+          supplier: '',
+          poNumber: '',
+          poDate: new Date().toISOString().split('T')[0],
+          deliveryDate: ''
+        });
+        setSupplierSearch('');
+        setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+        fetchPurchaseOrders();
+      } else {
+        alert('Error creating Purchase Order');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error creating Purchase Order');
+    }
+  };
+
+  const ordersData = filteredOrders;
+
+  const stats = {
+    open: purchaseOrders.filter(po => po.status === 'Open').length,
+    completed: purchaseOrders.filter(po => po.status === 'Completed').length,
+    draft: purchaseOrders.filter(po => po.status === 'Draft').length
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -80,82 +231,82 @@ const PurchaseOrders = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Purchase Orders</h1>
-        <div className="flex gap-3">
-          <button className="px-6 py-3 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium">
-            Cancel Order
-          </button>
-          <button 
-            onClick={() => setShowCreateForm(true)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Create New
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowCreateForm(true)}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
+          Create New
+        </button>
       </div>
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-slate-800 text-white rounded-xl p-6">
           <div className="text-lg mb-2">Open</div>
-          <div className="text-5xl font-bold">5</div>
+          <div className="text-5xl font-bold">{stats.open}</div>
         </div>
         <div className="bg-blue-400 text-white rounded-xl p-6">
           <div className="text-lg mb-2">Completed</div>
-          <div className="text-5xl font-bold">24</div>
+          <div className="text-5xl font-bold">{stats.completed}</div>
         </div>
         <div className="bg-gray-200 text-gray-700 rounded-xl p-6">
           <div className="text-lg mb-2">Draft</div>
-          <div className="text-5xl font-bold">2</div>
+          <div className="text-5xl font-bold">{stats.draft}</div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search and Filters */}
       <div className="bg-white rounded-lg p-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-4 flex-wrap">
-          <button className="px-4 py-2 rounded-lg font-medium text-gray-600">
-            Status
-          </button>
-          <button 
-            onClick={() => setActiveFilter('All (36)')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'All (36)' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            All (36)
-          </button>
-          <button 
-            onClick={() => setActiveFilter('Open')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'Open' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            Open
-          </button>
-          <button 
-            onClick={() => setActiveFilter('Completed')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'Completed' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            Completed
-          </button>
-          <button 
-            onClick={() => setActiveFilter('In Progress')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'In Progress' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            In Progress
-          </button>
-          <button 
-            onClick={() => setActiveFilter('Draft')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'Draft' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            Draft
-          </button>
-          <button 
-            onClick={() => setActiveFilter('On Hold')}
-            className={`px-4 py-2 rounded-lg ${activeFilter === 'On Hold' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}
-          >
-            On Hold
-          </button>
-          <button className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50">
-            Sendor
-          </button>
-          <div className="ml-auto">
-            <Search size={20} className="text-gray-400" />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search by PO number or supplier..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <Filter size={16} />
+              <span>Filter</span>
+              <ChevronDown size={16} />
+            </button>
+            {showFilterDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <div className="p-2">
+                  <button
+                    onClick={() => { setActiveFilter('All'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'All' ? 'bg-blue-50 text-blue-700' : ''}`}
+                  >
+                    All ({purchaseOrders.length})
+                  </button>
+                  <button
+                    onClick={() => { setActiveFilter('Open'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Open' ? 'bg-green-50 text-green-700' : ''}`}
+                  >
+                    Open ({stats.open})
+                  </button>
+                  <button
+                    onClick={() => { setActiveFilter('Completed'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Completed' ? 'bg-gray-50 text-gray-700' : ''}`}
+                  >
+                    Completed ({stats.completed})
+                  </button>
+                  <button
+                    onClick={() => { setActiveFilter('Draft'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Draft' ? 'bg-yellow-50 text-yellow-700' : ''}`}
+                  >
+                    Draft ({stats.draft})
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -168,28 +319,40 @@ const PurchaseOrders = () => {
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">PO Number</th>
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Vendor</th>
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Order Date</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Expect</th>
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Status</th>
               <th className="text-right py-4 px-6 font-semibold text-gray-900 text-base">Amount</th>
             </tr>
           </thead>
           <tbody>
-            {ordersData.map((order, index) => (
-              <tr key={order.poNumber} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                <td className="py-5 px-6">
-                  <span className="text-blue-600 font-medium">{order.poNumber}</span>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  Loading purchase orders...
                 </td>
-                <td className="py-5 px-6 text-gray-900">{order.vendor}</td>
-                <td className="py-5 px-6 text-gray-900">{order.orderDate}</td>
-                <td className="py-5 px-6 text-gray-900">{order.expect}</td>
-                <td className="py-5 px-6">
-                  <span className={`px-4 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="py-5 px-6 text-right font-semibold text-gray-900">{order.amount}</td>
               </tr>
-            ))}
+            ) : ordersData.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-gray-500">
+                  No purchase orders found
+                </td>
+              </tr>
+            ) : (
+              ordersData.map((order, index) => (
+                <tr key={order._id || index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                  <td className="py-5 px-6">
+                    <span className="text-blue-600 font-medium">{order.poNumber}</span>
+                  </td>
+                  <td className="py-5 px-6 text-gray-900">{order.supplier}</td>
+                  <td className="py-5 px-6 text-gray-900">{new Date(order.poDate).toLocaleDateString()}</td>
+                  <td className="py-5 px-6">
+                    <span className={`px-4 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(order.status || 'Draft')}`}>
+                      {order.status || 'Draft'}
+                    </span>
+                  </td>
+                  <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -225,24 +388,76 @@ const PurchaseOrders = () => {
                 </button>
               </div>
 
-              {/* Supplier and Dates */}
-              <div className="grid grid-cols-3 gap-6 mb-8">
+              <form onSubmit={handleSubmit}>
+              {/* Supplier, PO Number and Dates */}
+              <div className="grid grid-cols-4 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium mb-2">Supplier</label>
-                  <select className="w-full p-3 border border-gray-300 rounded-lg">
-                    <option>ABC Enterprises</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">PO Date</label>
                   <div className="relative">
-                    <input type="text" value="2024-04-16" className="w-full p-3 border border-gray-300 rounded-lg" />
-                    <Calendar className="absolute right-3 top-3 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      value={supplierSearch}
+                      onChange={handleSupplierSearch}
+                      onFocus={() => setShowSupplierDropdown(true)}
+                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg"
+                      placeholder="Search or select supplier"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSupplierDropdown(!showSupplierDropdown)}
+                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronDown size={20} />
+                    </button>
+                    {showSupplierDropdown && filteredVendors.length > 0 && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                        {filteredVendors.map(vendor => (
+                          <div
+                            key={vendor._id}
+                            onClick={() => handleSupplierSelect(vendor)}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium">{vendor.vendorName}</div>
+                            <div className="text-sm text-gray-500">{vendor.vendorCode}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-2">PO Number</label>
+                  <input 
+                    type="text"
+                    name="poNumber"
+                    value={formData.poNumber}
+                    onChange={handleInputChange}
+                    placeholder="PO-2627-001" 
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">PO Date</label>
+                  <input
+                    type="date"
+                    name="poDate"
+                    value={formData.poDate}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-2">Delivery Date</label>
-                  <input type="text" value="2024-04-25" className="w-full p-3 border border-gray-300 rounded-lg" />
+                  <input
+                    type="date"
+                    name="deliveryDate"
+                    value={formData.deliveryDate}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                  />
                 </div>
               </div>
 
@@ -459,10 +674,14 @@ const PurchaseOrders = () => {
                 >
                   Cancel
                 </button>
-                <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button 
+                  type="submit"
+                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
                   Create
                 </button>
               </div>
+              </form>
             </div>
           </div>
         </div>

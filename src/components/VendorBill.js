@@ -42,6 +42,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     vendorName: '',
     vendorAddress: '',
     vendorGSTIN: '',
+    vendorPAN: '',
     vendorPlace: '',
     contactPerson: '',
     contactDetails: '',
@@ -90,8 +91,12 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   useEffect(() => {
     if (editingBill) {
+      console.log('Loading bill for editing:', editingBill);
+      console.log('Bill vendorPAN:', editingBill.vendorPAN);
+      
       setBillData({
         ...editingBill,
+        vendorPAN: editingBill.vendorPAN || '', 
         billDate: editingBill.billDate ? new Date(editingBill.billDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         dueDate: editingBill.dueDate ? new Date(editingBill.dueDate).toISOString().split('T')[0] : '',
         items: editingBill.items || [{
@@ -115,7 +120,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         }]
       });
       setAttachments(editingBill.attachments || []);
+      setVendorSearchTerm(editingBill.vendorName);
     } else {
+      // Reset form for new bill
       setBillData({
         billNumber: generateInvoiceNumber(),
         billDate: new Date().toISOString().split('T')[0],
@@ -131,12 +138,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         vendorName: '',
         vendorAddress: '',
         vendorGSTIN: '',
+        vendorPAN: '',
         vendorPlace: '',
         contactPerson: '',
         contactDetails: '',
         
         paymentTerms: '30 Days',
         dueDate: '',
+        
+        tdsSection: '',
+        tdsPercentage: 0,
+        tdsAmount: 0,
         
         items: [{
           product: '',
@@ -173,8 +185,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         currency: 'INR'
       });
       setAttachments([]);
+      setVendorSearchTerm('');
     }
-  }, [editingBill]);
+  }, [editingBill, isOpen]);
 
   useEffect(() => {
     calculateTotals();
@@ -187,6 +200,14 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         if (response.ok) {
           const vendorsData = await response.json();
           setVendors(vendorsData);
+          
+          // Auto-populate PAN if editing bill and PAN is missing
+          if (editingBill && !billData.vendorPAN && editingBill.vendorName) {
+            const vendor = vendorsData.find(v => v.vendorName === editingBill.vendorName);
+            if (vendor && vendor.panNumber) {
+              setBillData(prev => ({ ...prev, vendorPAN: vendor.panNumber }));
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching vendors:', error);
@@ -196,7 +217,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     if (isOpen) {
       fetchVendors();
     }
-  }, [isOpen]);
+  }, [isOpen, editingBill, billData.vendorPAN]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -361,11 +382,14 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   };
 
   const handleVendorSelect = (vendor) => {
+    console.log('Selected vendor:', vendor); // Debug log
+    console.log('Vendor PAN:', vendor.panNumber); // Debug PAN
     setBillData(prev => ({
       ...prev,
       vendorName: vendor.vendorName,
       vendorAddress: vendor.billingAddress || '',
       vendorGSTIN: vendor.gstNumber || '',
+      vendorPAN: vendor.panNumber || '', // Map panNumber to vendorPAN
       contactPerson: vendor.contactPerson || '',
       contactDetails: vendor.contactDetails || '',
       paymentTerms: vendor.paymentTerms || '30 Days'
@@ -494,6 +518,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
       const cleanedData = {
         ...billData,
+        vendorPAN: billData.vendorPAN || '', // Ensure vendorPAN is included
         status: userRole === 'manager' ? 'Draft' : 'Draft',
         approvalStatus: userRole === 'manager' ? 'approved' : 'pending',
         createdBy: userData.user._id,
@@ -512,6 +537,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           _id: undefined
         }))
       };
+
+      console.log('Saving bill with vendorPAN:', cleanedData.vendorPAN); // Debug log
+      console.log('Full cleanedData:', cleanedData); // Debug full data
 
       const isEditing = editingBill && editingBill._id;
       const url = isEditing 
@@ -730,6 +758,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                         >
                           <div className="font-medium text-gray-900">{vendor.vendorName}</div>
                           <div className="text-sm text-gray-500">{vendor.vendorCode}</div>
+                          {vendor.panNumber && (
+                            <div className="text-xs text-blue-600">PAN: {vendor.panNumber}</div>
+                          )}
                           {vendor.contactPerson && (
                             <div className="text-xs text-gray-400">{vendor.contactPerson}</div>
                           )}
@@ -747,6 +778,20 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   onChange={(e) => handleInputChange('vendorGSTIN', e.target.value)}
                   maxLength="15"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor PAN *</label>
+                <input
+                  type="text"
+                  value={billData.vendorPAN}
+                  onChange={(e) => {
+                    console.log('PAN field changed:', e.target.value); // Debug log
+                    handleInputChange('vendorPAN', e.target.value);
+                  }}
+                  maxLength="10"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="ABCDE1234F"
                 />
               </div>
               <div>
