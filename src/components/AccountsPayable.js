@@ -149,21 +149,33 @@ const AccountsPayable = () => {
 
   // Get aging data
   const getAgingData = () => {
-    const over80Days = [];
     const days1to30 = [];
+    const days31to90 = [];
+    const days91to180 = [];
+    const over180Days = [];
     
     bills.forEach(bill => {
       if (bill.status === 'Overdue' && bill.dueDate) {
         const daysPastDue = Math.floor((new Date() - new Date(bill.dueDate)) / (1000 * 60 * 60 * 24));
         const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
         
-        if (daysPastDue > 80) {
-          over80Days.push({
+        if (daysPastDue >= 1 && daysPastDue <= 30) {
+          days1to30.push({
             vendor: bill.vendorName,
             amount: `₹${netPayable.toLocaleString('en-IN')}`
           });
-        } else if (daysPastDue <= 30) {
-          days1to30.push({
+        } else if (daysPastDue >= 31 && daysPastDue <= 90) {
+          days31to90.push({
+            vendor: bill.vendorName,
+            amount: `₹${netPayable.toLocaleString('en-IN')}`
+          });
+        } else if (daysPastDue >= 91 && daysPastDue <= 180) {
+          days91to180.push({
+            vendor: bill.vendorName,
+            amount: `₹${netPayable.toLocaleString('en-IN')}`
+          });
+        } else if (daysPastDue > 180) {
+          over180Days.push({
             vendor: bill.vendorName,
             amount: `₹${netPayable.toLocaleString('en-IN')}`
           });
@@ -171,7 +183,12 @@ const AccountsPayable = () => {
       }
     });
     
-    return { over80Days: over80Days.slice(0, 2), days1to30: days1to30.slice(0, 2) };
+    return { 
+      days1to30: days1to30.slice(0, 2), 
+      days31to90: days31to90.slice(0, 2),
+      days91to180: days91to180.slice(0, 2),
+      over180Days: over180Days.slice(0, 2)
+    };
   };
 
   const agingData = getAgingData();
@@ -235,20 +252,7 @@ const AccountsPayable = () => {
         {/* Payable Aging */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Payable Aging</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-3">Over 80 Days</h4>
-              <div className="space-y-3">
-                {agingData.over80Days.length > 0 ? agingData.over80Days.map((item, index) => (
-                  <div key={index} className="text-sm">
-                    <div className="font-medium text-gray-900">{item.vendor}</div>
-                    <div className="text-gray-600">{item.amount}</div>
-                  </div>
-                )) : (
-                  <div className="text-sm text-gray-500">No overdue bills</div>
-                )}
-              </div>
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-3">1–30 Days</h4>
               <div className="space-y-3">
@@ -258,7 +262,46 @@ const AccountsPayable = () => {
                     <div className="text-gray-600">{item.amount}</div>
                   </div>
                 )) : (
-                  <div className="text-sm text-gray-500">No recent overdue bills</div>
+                  <div className="text-sm text-gray-500">No bills</div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-600 mb-3">31–90 Days</h4>
+              <div className="space-y-3">
+                {agingData.days31to90.length > 0 ? agingData.days31to90.map((item, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="font-medium text-gray-900">{item.vendor}</div>
+                    <div className="text-gray-600">{item.amount}</div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500">No bills</div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-600 mb-3">91–180 Days</h4>
+              <div className="space-y-3">
+                {agingData.days91to180.length > 0 ? agingData.days91to180.map((item, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="font-medium text-gray-900">{item.vendor}</div>
+                    <div className="text-gray-600">{item.amount}</div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500">No bills</div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-600 mb-3">180+ Days</h4>
+              <div className="space-y-3">
+                {agingData.over180Days.length > 0 ? agingData.over180Days.map((item, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="font-medium text-gray-900">{item.vendor}</div>
+                    <div className="text-gray-600">{item.amount}</div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500">No bills</div>
                 )}
               </div>
             </div>
