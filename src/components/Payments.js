@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronLeft, X } from 'lucide-react';
+import { Plus, ChevronLeft, X, Upload, Paperclip, Download } from 'lucide-react';
 
 const Payments = () => {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
@@ -10,7 +10,10 @@ const Payments = () => {
   const [bills, setBills] = useState([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showBillDropdown, setShowBillDropdown] = useState(false);
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  const [bankSearchTerm, setBankSearchTerm] = useState('');
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [formData, setFormData] = useState({
     vendor: '',
     invoiceNumber: '',
@@ -21,10 +24,23 @@ const Payments = () => {
     tdsPercentage: '',
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Bank Transfer',
+    bankAccount: '',
     referenceNumber: '',
     description: '',
-    billId: '' // Add billId to track which bill this payment is for
+    billId: '', // Add billId to track which bill this payment is for
+    attachments: []
   });
+
+  const bankAccounts = [
+    { name: 'HDFC Bank - Current Account', code: 'HDFC001', accountNumber: '****1234' },
+    { name: 'Axis Bank - Savings Account', code: 'AXIS002', accountNumber: '****5678' },
+    { name: 'ICICI Bank - Current Account', code: 'ICICI003', accountNumber: '****9012' },
+    { name: 'SBI - Current Account', code: 'SBI004', accountNumber: '****3456' },
+    { name: 'Kotak Mahindra Bank', code: 'KOTAK005', accountNumber: '****7890' },
+    { name: 'Punjab National Bank', code: 'PNB006', accountNumber: '****2345' },
+    { name: 'Bank of Baroda', code: 'BOB007', accountNumber: '****6789' },
+    { name: 'Canara Bank', code: 'CANARA008', accountNumber: '****0123' }
+  ];
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
@@ -41,7 +57,23 @@ const Payments = () => {
     fetchPayments();
     fetchStats();
     fetchVendors();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token); // Debug log
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const userData = await response.json();
+      console.log('User data:', userData); // Debug log
+      setUserRole(userData.user?.role || userData.role);
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -108,6 +140,11 @@ const Payments = () => {
       setShowVendorDropdown(true);
     }
     
+    if (name === 'bankAccount') {
+      setBankSearchTerm(value);
+      setShowBankDropdown(true);
+    }
+    
     if (name === 'tdsSection') {
       const selectedSection = tdsSection.find(s => s.code === value);
       if (selectedSection && formData.amount) {
@@ -167,6 +204,43 @@ const Payments = () => {
     setShowBillDropdown(false);
   };
 
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setFormData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...files]
+    }));
+  };
+
+  const downloadFile = (file) => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const removeAttachment = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleBankSelect = (bankName) => {
+    setFormData(prev => ({ ...prev, bankAccount: bankName }));
+    setBankSearchTerm(bankName);
+    setShowBankDropdown(false);
+  };
+
+  const filteredBanks = bankAccounts.filter(bank =>
+    bank.name.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
+    bank.code.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase())
+  );
+
   const filteredVendors = vendors.filter(vendor =>
     vendor.vendorName.toLowerCase().includes((vendorSearchTerm || formData.vendor || '').toLowerCase()) ||
     vendor.vendorCode.toLowerCase().includes((vendorSearchTerm || formData.vendor || '').toLowerCase())
@@ -195,11 +269,14 @@ const Payments = () => {
       const payload = {
         ...formData,
         netAmount,
-        status,
+        status: 'Pending',
+        approvalStatus: 'pending', // Ensure this is always set
         amount: parseFloat(formData.amount),
         tdsAmount: parseFloat(formData.tdsAmount) || 0,
         tdsPercentage: parseFloat(formData.tdsPercentage) || 0
       };
+      
+      console.log('Payment payload:', payload); // Debug log
       
       const response = await fetch('http://localhost:5001/api/payments', {
         method: 'POST',
@@ -209,8 +286,12 @@ const Payments = () => {
         body: JSON.stringify(payload),
       });
       
+      console.log('Payment creation response status:', response.status);
+      
       if (response.ok) {
-        alert('Payment recorded successfully!');
+        const createdPayment = await response.json();
+        console.log('Created payment response:', createdPayment);
+        alert('Payment submitted for approval!');
         setIsPaymentFormOpen(false);
         setFormData({
           vendor: '',
@@ -222,11 +303,14 @@ const Payments = () => {
           tdsPercentage: '',
           paymentDate: new Date().toISOString().split('T')[0],
           paymentMethod: 'Bank Transfer',
+          bankAccount: '',
           referenceNumber: '',
           description: '',
-          billId: ''
+          billId: '',
+          attachments: []
         });
         setVendorSearchTerm('');
+        setBankSearchTerm('');
         fetchPayments();
         fetchStats();
       } else {
@@ -240,13 +324,68 @@ const Payments = () => {
     }
   };
   
-  const paymentsData = payments.map(payment => ({
-    paymentNo: payment.paymentNumber,
-    date: new Date(payment.paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    vendor: payment.vendor,
-    amount: `₹${payment.netAmount.toLocaleString('en-IN')}`,
-    color: payment.status === 'Completed' ? 'bg-green-100' : 'bg-red-100'
-  }));
+  const handlePaymentApproval = async (paymentId, action) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/payments/${paymentId}/approval`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action }),
+      });
+      
+      if (response.ok) {
+        alert(`Payment ${action === 'approve' ? 'approved and processed' : 'rejected'} successfully!`);
+        fetchPayments();
+        fetchStats();
+      }
+    } catch (error) {
+      alert('Error updating approval status');
+    }
+  };
+
+  const getPaymentStatusColor = (status) => {
+    switch(status) {
+      case 'Completed': return 'bg-green-500 text-white';
+      case 'Pending Approval': return 'bg-yellow-500 text-white';
+      case 'Rejected': return 'bg-red-500 text-white';
+      case 'Pending': return 'bg-blue-500 text-white';
+      case 'Failed': return 'bg-red-600 text-white';
+      case 'Upcoming': return 'bg-purple-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const paymentsData = payments.map(payment => {
+    console.log('Payment data:', payment); // Debug log
+    
+    // Determine display status based on approvalStatus and status
+    let displayStatus;
+    if (payment.approvalStatus === 'pending') {
+      displayStatus = 'Pending Approval';
+    } else if (payment.approvalStatus === 'rejected') {
+      displayStatus = 'Rejected';
+    } else if (payment.approvalStatus === 'approved') {
+      displayStatus = payment.status || 'Completed';
+    } else {
+      // For old payments without approvalStatus
+      displayStatus = payment.status || 'Completed';
+    }
+    
+    return {
+      paymentNo: payment.paymentNumber,
+      date: new Date(payment.paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      vendor: payment.vendor,
+      referenceNumber: payment.referenceNumber || '-',
+      status: displayStatus,
+      amount: `₹${payment.netAmount.toLocaleString('en-IN')}`,
+      color: displayStatus === 'Completed' ? 'bg-green-100' : 
+             displayStatus === 'Rejected' ? 'bg-red-100' : 'bg-yellow-100',
+      originalPayment: payment
+    };
+  });
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -293,19 +432,22 @@ const Payments = () => {
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Payment #</th>
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Payment Date</th>
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Vendor</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Reference #</th>
+                <th className="text-center py-4 px-4 font-semibold text-gray-900 text-base">Status</th>
                 <th className="text-right py-4 px-4 font-semibold text-gray-900 text-base">Amount</th>
+                <th className="text-center py-4 px-4 font-semibold text-gray-900 text-base">Approval</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="4" className="py-8 text-center text-gray-500">
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
                     Loading payments...
                   </td>
                 </tr>
               ) : paymentsData.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-8 text-center text-gray-500">
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
                     No payments found
                   </td>
                 </tr>
@@ -315,10 +457,48 @@ const Payments = () => {
                   <td className="py-5 px-4 text-gray-900 font-medium">{payment.paymentNo}</td>
                   <td className="py-5 px-4 text-gray-900">{payment.date}</td>
                   <td className="py-5 px-4 text-gray-900">{payment.vendor}</td>
+                  <td className="py-5 px-4 text-gray-600">{payment.referenceNumber}</td>
+                  <td className="py-5 px-4 text-center">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(payment.status)}`}>
+                      {payment.status}
+                    </span>
+                  </td>
                   <td className="py-5 px-4 text-right">
                     <span className={`px-4 py-2 rounded-lg font-semibold ${payment.color}`}>
                       {payment.amount}
                     </span>
+                  </td>
+                  <td className="py-5 px-4 text-center">
+                    {console.log('User role:', userRole, 'Payment approval status:', payment.originalPayment.approvalStatus)}
+                    {userRole === 'manager' && payment.originalPayment.approvalStatus === 'pending' ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handlePaymentApproval(payment.originalPayment._id, 'approve')}
+                          className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handlePaymentApproval(payment.originalPayment._id, 'reject')}
+                          className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          payment.originalPayment.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' : 
+                          payment.originalPayment.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                          payment.originalPayment.approvalStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {payment.originalPayment.approvalStatus === 'approved' ? 'Approved' : 
+                           payment.originalPayment.approvalStatus === 'rejected' ? 'Rejected' : 
+                           payment.originalPayment.approvalStatus === 'pending' ? 'Pending' : 'N/A'}
+                        </span>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )))
@@ -559,12 +739,48 @@ const Payments = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Check">Check</option>
+                    <option value="Check">Cheque</option>
                     <option value="Cash">Cash</option>
                     <option value="Credit Card">Credit Card</option>
                     <option value="UPI">UPI</option>
                     <option value="NEFT/RTGS">NEFT/RTGS</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bank Account <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="bankAccount"
+                      value={bankSearchTerm || formData.bankAccount}
+                      onChange={handleInputChange}
+                      onFocus={() => setShowBankDropdown(true)}
+                      required
+                      placeholder="Search or select bank account"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoComplete="off"
+                    />
+                    {showBankDropdown && filteredBanks.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredBanks.map((bank) => (
+                          <div
+                            key={bank.code}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleBankSelect(bank.name);
+                            }}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{bank.name}</div>
+                            <div className="text-sm text-gray-500">{bank.code} | {bank.accountNumber}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -593,6 +809,65 @@ const Payments = () => {
                     placeholder="Add any additional notes..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Attachments
+                  </label>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500">PDF, PNG, JPG, DOC (MAX. 10MB)</p>
+                        </div>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileUpload}
+                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    
+                    {formData.attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Uploaded Files:</p>
+                        {formData.attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                              <span className="text-xs text-gray-500">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => downloadFile(file)}
+                                className="text-blue-500 hover:text-blue-700"
+                                title="Download file"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeAttachment(index)}
+                                className="text-red-500 hover:text-red-700"
+                                title="Remove file"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

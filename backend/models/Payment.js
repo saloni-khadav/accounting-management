@@ -64,8 +64,25 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Completed', 'Pending', 'Failed', 'Upcoming'],
-    default: 'Completed'
+    enum: ['Completed', 'Pending', 'Failed', 'Upcoming', 'Rejected'],
+    default: 'Pending'
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  rejectionReason: {
+    type: String,
+    trim: true
+  },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true

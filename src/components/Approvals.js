@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Clock, User, Calendar, DollarSign, Bell } from 'l
 
 const Approvals = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [pendingPayments, setPendingPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -11,11 +12,87 @@ const Approvals = () => {
 
   useEffect(() => {
     fetchPendingApprovals();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      fetchPendingApprovals();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchPendingPayments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching payments directly from payments API');
+      
+      // Try direct payments API with proper authentication
+      const response = await fetch('http://localhost:5001/api/payments', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('Direct payments API response status:', response.status);
+      console.log('Response headers:', response.headers.get('content-type'));
+      
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          console.log('Payments data from direct API:', data);
+          
+          const pendingPaymentApprovals = data
+            .filter(payment => {
+              const approvalStatus = payment.approvalStatus;
+              console.log(`Payment ${payment._id}: approvalStatus = ${approvalStatus}`);
+              // Show payments with pending approval status OR latest payment if no approvalStatus
+              if (approvalStatus === 'pending') return true;
+              // Show latest payment as pending if it has no approvalStatus (new payment)
+              if (!approvalStatus) {
+                const paymentDate = new Date(payment.createdAt || payment.paymentDate);
+                const now = new Date();
+                const timeDiff = now - paymentDate;
+                // Show if created within last 5 minutes
+                if (timeDiff < 5 * 60 * 1000) {
+                  console.log('Showing recent payment as pending:', payment._id);
+                  return true;
+                }
+              }
+              return false;
+            })
+            .map(payment => ({
+              id: payment._id,
+              type: 'Payment',
+              amount: `₹${payment.netAmount?.toLocaleString('en-IN') || '0'}`,
+              description: `Payment to ${payment.vendor} - ${payment.referenceNumber || 'No Reference'}`,
+              requestedBy: payment.createdBy || 'User',
+              requestDate: new Date(payment.createdAt || payment.paymentDate).toLocaleDateString(),
+              status: 'pending',
+              reminderSent: false
+            }));
+          
+          console.log('Filtered pending payments:', pendingPaymentApprovals);
+          setPendingPayments(pendingPaymentApprovals);
+        } else {
+          console.error('Response is not JSON:', await response.text());
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to fetch payments:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching pending payments:', error);
+    }
+  };
 
   const fetchPendingApprovals = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('Fetching approvals with token:', token);
       const response = await fetch('http://localhost:5001/api/manager/pending', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -23,13 +100,26 @@ const Approvals = () => {
         }
       });
       
+      console.log('Approvals response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        setPendingApprovals(data.approvals);
+        console.log('Approvals data received:', data);
+        
+        // Separate bills and payments from the response
+        const allApprovals = data.approvals || [];
+        const bills = allApprovals.filter(item => item.type !== 'Payment');
+        const payments = allApprovals.filter(item => item.type === 'Payment');
+        
+        setPendingApprovals(bills);
+        setPendingPayments(payments);
       } else {
+        const errorData = await response.json();
+        console.error('Approvals fetch error:', errorData);
         setError('Failed to fetch approvals');
       }
     } catch (error) {
+      console.error('Network error fetching approvals:', error);
       setError('Network error');
     } finally {
       setLoading(false);
@@ -39,6 +129,30 @@ const Approvals = () => {
   const handleApprove = async (id, type) => {
     try {
       const token = localStorage.getItem('token');
+      
+      if (type === 'Payment') {
+        // Use same manager action endpoint as bills
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Payment' })
+        });
+        
+        if (response.ok) {
+          alert('Payment approved successfully!');
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error approving payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      // Handle other approvals (bills, etc.)
       const response = await fetch('http://localhost:5001/api/manager/action', {
         method: 'POST',
         headers: {
@@ -52,7 +166,7 @@ const Approvals = () => {
       
       if (response.ok) {
         alert(`${type} approved successfully!`);
-        fetchPendingApprovals(); // Refresh data
+        fetchPendingApprovals();
       } else {
         alert(data.message || 'Failed to approve item');
       }
@@ -74,6 +188,38 @@ const Approvals = () => {
 
     try {
       const token = localStorage.getItem('token');
+      
+      if (rejectItem.type === 'Payment') {
+        // Use same manager action endpoint as bills
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            itemId: rejectItem.id, 
+            action: 'reject', 
+            type: 'Payment',
+            rejectionReason: rejectionReason.trim()
+          })
+        });
+        
+        if (response.ok) {
+          alert('Payment rejected successfully!');
+          setShowRejectModal(false);
+          setRejectionReason('');
+          setRejectItem(null);
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error rejecting payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      // Handle other rejections
       const response = await fetch('http://localhost:5001/api/manager/action', {
         method: 'POST',
         headers: {
@@ -134,20 +280,32 @@ const Approvals = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Manager Approvals</h1>
-        <p className="text-gray-600">Review and approve pending requests</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Manager Approvals</h1>
+            <p className="text-gray-600">Review and approve pending requests</p>
+          </div>
+          <button
+            onClick={() => {
+              fetchPendingApprovals();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
           <p className="text-sm text-gray-600 mt-1">
-            {pendingApprovals.filter(item => item.status === 'pending').length} items awaiting your approval
+            {[...pendingApprovals, ...pendingPayments].filter(item => item.status === 'pending').length} items awaiting your approval
           </p>
         </div>
 
         <div className="divide-y divide-gray-200">
-          {pendingApprovals.map((item) => (
+          {[...pendingApprovals, ...pendingPayments].map((item) => (
             <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -219,7 +377,7 @@ const Approvals = () => {
           ))}
         </div>
 
-        {pendingApprovals.length === 0 && (
+        {[...pendingApprovals, ...pendingPayments].length === 0 && (
           <div className="p-12 text-center">
             <CheckCircle size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No pending approvals</h3>

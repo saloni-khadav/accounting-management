@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Invoice = require('../models/Invoice');
 const PO = require('../models/PO');
 const Bill = require('../models/Bill');
+const Payment = require('../models/Payment');
 const Client = require('../models/Client');
 
 const router = express.Router();
@@ -94,6 +95,27 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       });
     });
     
+    // Get pending Payments
+    const pendingPayments = await Payment.find({ approvalStatus: 'pending' })
+      .select('paymentNumber vendor netAmount createdAt approvalStatus reminderSent createdBy')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    console.log('Pending Payments:', pendingPayments.length);
+    
+    pendingPayments.forEach(payment => {
+      pendingApprovals.push({
+        id: payment._id,
+        type: 'Payment',
+        description: `Payment ${payment.paymentNumber} - ${payment.vendor}`,
+        amount: `₹${payment.netAmount.toLocaleString()}`,
+        requestedBy: payment.createdBy || 'User',
+        requestDate: payment.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: payment.reminderSent || false
+      });
+    });
+    
     console.log('Total Pending Approvals:', pendingApprovals.length);
     
     // Sort by request date (newest first)
@@ -180,6 +202,17 @@ router.post('/action', auth, requireManager, async (req, res) => {
         updateData.rejectionReason = rejectionReason;
       }
       updateResult = await Bill.findByIdAndUpdate(itemId, updateData, { new: true });
+    } else if (type === 'Payment') {
+      const updateData = {
+        approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+        status: action === 'approve' ? 'Completed' : 'Rejected',
+        updatedAt: new Date(),
+        reminderSent: false
+      };
+      if (action === 'reject' && rejectionReason) {
+        updateData.rejectionReason = rejectionReason;
+      }
+      updateResult = await Payment.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Client Approval') {
       const updateData = {
         approvalStatus: newStatus,

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Plus, X } from 'lucide-react';
 
 const AccountsPayable = () => {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [bills, setBills] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     vendor: '',
     invoiceNumber: '',
@@ -14,39 +17,164 @@ const AccountsPayable = () => {
     description: ''
   });
 
+  useEffect(() => {
+    fetchBills();
+    fetchPayments();
+  }, []);
+
+  const fetchBills = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/bills');
+      if (response.ok) {
+        const data = await response.json();
+        setBills(data);
+      }
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchPayments = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/payments');
+      if (response.ok) {
+        const data = await response.json();
+        setPayments(data);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Payment Data:', formData);
-    alert('Payment recorded successfully!');
-    setIsPaymentFormOpen(false);
-    setFormData({
-      vendor: '',
-      invoiceNumber: '',
-      amount: '',
-      paymentDate: '',
-      paymentMethod: 'Bank Transfer',
-      referenceNumber: '',
-      description: ''
-    });
+    try {
+      const paymentData = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        status: 'Completed'
+      };
+      
+      const response = await fetch('http://localhost:5001/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(paymentData)
+      });
+      
+      if (response.ok) {
+        alert('Payment recorded successfully!');
+        fetchPayments();
+        fetchBills();
+        setIsPaymentFormOpen(false);
+        setFormData({
+          vendor: '',
+          invoiceNumber: '',
+          amount: '',
+          paymentDate: '',
+          paymentMethod: 'Bank Transfer',
+          referenceNumber: '',
+          description: ''
+        });
+      } else {
+        const errorData = await response.json();
+        alert(`Error recording payment: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error recording payment');
+    }
   };
-  const purchaseData = [
-    { month: 'Jan', purchases: 35000, payments: 28000 },
-    { month: 'May', purchases: 42000, payments: 38000 },
-    { month: 'Jun', purchases: 48000, payments: 45000 }
-  ];
+  // Calculate metrics from real data
+  const totalPayable = bills.reduce((sum, bill) => {
+    const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+    return sum + (bill.status !== 'Fully Paid' ? netPayable : 0);
+  }, 0);
 
-  const overduePayables = [
-    { vendor: 'Bright Solutions', dueDate: '15-Jan-2024', amount: '$13,040', status: 'Overdue' },
-    { vendor: 'Anderson Supplies', dueDate: '20-Jan-2024', amount: '$30,840', status: 'Overdue' },
-    { vendor: 'Northwest Traders', dueDate: '25-Jan-2024', amount: '$8,750', status: 'Overdue' },
-    { vendor: 'Metro Manufacturing', dueDate: '28-Jan-2024', amount: '$18,640', status: 'Overdue' },
-    { vendor: 'Summit Enterprises', dueDate: '30-Jan-2024', amount: '$12,500', status: 'Overdue' }
-  ];
+  const overduePayable = bills.reduce((sum, bill) => {
+    const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+    return sum + (bill.status === 'Overdue' ? netPayable : 0);
+  }, 0);
+
+  const dueSoonPayable = bills.reduce((sum, bill) => {
+    const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+    return sum + (bill.status === 'Due Soon' ? netPayable : 0);
+  }, 0);
+
+  // Get overdue bills for table
+  const overduePayables = bills
+    .filter(bill => bill.status === 'Overdue')
+    .map(bill => ({
+      vendor: bill.vendorName,
+      dueDate: bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
+      amount: `₹${(bill.grandTotal - (bill.tdsAmount || 0)).toLocaleString('en-IN')}`,
+      status: 'Overdue'
+    }));
+
+  // Generate chart data from bills and payments
+  const getMonthlyData = () => {
+    const monthlyData = {};
+    
+    // Process bills (purchases)
+    bills.forEach(bill => {
+      const month = new Date(bill.billDate).toLocaleDateString('en-US', { month: 'short' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { month, purchases: 0, payments: 0 };
+      }
+      monthlyData[month].purchases += bill.grandTotal || 0;
+    });
+    
+    // Process payments
+    payments.forEach(payment => {
+      const month = new Date(payment.paymentDate).toLocaleDateString('en-US', { month: 'short' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { month, purchases: 0, payments: 0 };
+      }
+      monthlyData[month].payments += parseFloat(payment.amount) || 0;
+    });
+    
+    return Object.values(monthlyData).slice(0, 6); // Last 6 months
+  };
+
+  const purchaseData = getMonthlyData();
+
+  // Get aging data
+  const getAgingData = () => {
+    const over80Days = [];
+    const days1to30 = [];
+    
+    bills.forEach(bill => {
+      if (bill.status === 'Overdue' && bill.dueDate) {
+        const daysPastDue = Math.floor((new Date() - new Date(bill.dueDate)) / (1000 * 60 * 60 * 24));
+        const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+        
+        if (daysPastDue > 80) {
+          over80Days.push({
+            vendor: bill.vendorName,
+            amount: `₹${netPayable.toLocaleString('en-IN')}`
+          });
+        } else if (daysPastDue <= 30) {
+          days1to30.push({
+            vendor: bill.vendorName,
+            amount: `₹${netPayable.toLocaleString('en-IN')}`
+          });
+        }
+      }
+    });
+    
+    return { over80Days: over80Days.slice(0, 2), days1to30: days1to30.slice(0, 2) };
+  };
+
+  const agingData = getAgingData();
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -69,15 +197,15 @@ const AccountsPayable = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Total Payable</h3>
-          <p className="text-2xl font-bold text-gray-900">$45,200</p>
+          <p className="text-2xl font-bold text-gray-900">₹{totalPayable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Overdue Payable</h3>
-          <p className="text-2xl font-bold text-red-600">$12,800</p>
+          <p className="text-2xl font-bold text-red-600">₹{overduePayable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Due in 30 Days</h3>
-          <p className="text-2xl font-bold text-yellow-600">$24,600</p>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Due Soon</h3>
+          <p className="text-2xl font-bold text-yellow-600">₹{dueSoonPayable.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
@@ -91,9 +219,9 @@ const AccountsPayable = () => {
               <BarChart data={purchaseData} barCategoryGap="20%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
+                <YAxis stroke="#64748b" fontSize={12} tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  formatter={(value, name) => [`$${value.toLocaleString()}`, name === 'purchases' ? 'Purchases' : 'Payments']}
+                  formatter={(value, name) => [`₹${value.toLocaleString('en-IN')}`, name === 'purchases' ? 'Purchases' : 'Payments']}
                   contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                 />
                 <Legend />
@@ -111,27 +239,27 @@ const AccountsPayable = () => {
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-3">Over 80 Days</h4>
               <div className="space-y-3">
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">Anderson Supplies</div>
-                  <div className="text-gray-600">$30,840</div>
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">Metro Manufacturing</div>
-                  <div className="text-gray-600">$18,640</div>
-                </div>
+                {agingData.over80Days.length > 0 ? agingData.over80Days.map((item, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="font-medium text-gray-900">{item.vendor}</div>
+                    <div className="text-gray-600">{item.amount}</div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500">No overdue bills</div>
+                )}
               </div>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-3">1–30 Days</h4>
               <div className="space-y-3">
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">Bright Solutions</div>
-                  <div className="text-gray-600">$13,040</div>
-                </div>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">Global Distributors</div>
-                  <div className="text-gray-600">$21,600</div>
-                </div>
+                {agingData.days1to30.length > 0 ? agingData.days1to30.map((item, index) => (
+                  <div key={index} className="text-sm">
+                    <div className="font-medium text-gray-900">{item.vendor}</div>
+                    <div className="text-gray-600">{item.amount}</div>
+                  </div>
+                )) : (
+                  <div className="text-sm text-gray-500">No recent overdue bills</div>
+                )}
               </div>
             </div>
           </div>
@@ -152,18 +280,28 @@ const AccountsPayable = () => {
               </tr>
             </thead>
             <tbody>
-              {overduePayables.map((payable, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{payable.vendor}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{payable.dueDate}</td>
-                  <td className="py-3 px-4 text-sm font-semibold text-gray-900">{payable.amount}</td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      {payable.status}
-                    </span>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="py-8 text-center text-gray-500">Loading...</td>
                 </tr>
-              ))}
+              ) : overduePayables.length > 0 ? (
+                overduePayables.map((payable, index) => (
+                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{payable.vendor}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600">{payable.dueDate}</td>
+                    <td className="py-3 px-4 text-sm font-semibold text-gray-900">{payable.amount}</td>
+                    <td className="py-3 px-4 text-sm">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {payable.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="py-8 text-center text-gray-500">No overdue payables</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -173,26 +311,19 @@ const AccountsPayable = () => {
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Overdue Payables</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">Bright Solutions</div>
-            <div className="text-gray-600">Due: 15-Jan-2024</div>
-            <div className="font-semibold text-red-600">$13,040</div>
-          </div>
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">Anderson Supplies</div>
-            <div className="text-gray-600">Due: 20-Jan-2024</div>
-            <div className="font-semibold text-red-600">$30,840</div>
-          </div>
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">Northwest Traders</div>
-            <div className="text-gray-600">Due: 25-Jan-2024</div>
-            <div className="font-semibold text-red-600">$8,750</div>
-          </div>
-          <div className="text-sm">
-            <div className="font-medium text-gray-900">Metro Manufacturing</div>
-            <div className="text-gray-600">Due: 28-Jan-2024</div>
-            <div className="font-semibold text-red-600">$18,640</div>
-          </div>
+          {overduePayables.length > 0 ? (
+            overduePayables.slice(0, 4).map((payable, index) => (
+              <div key={index} className="text-sm">
+                <div className="font-medium text-gray-900">{payable.vendor}</div>
+                <div className="text-gray-600">Due: {payable.dueDate}</div>
+                <div className="font-semibold text-red-600">{payable.amount}</div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 py-8">
+              No overdue payables
+            </div>
+          )}
         </div>
       </div>
 
@@ -225,12 +356,9 @@ const AccountsPayable = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Vendor</option>
-                    <option value="Bright Solutions">Bright Solutions</option>
-                    <option value="Anderson Supplies">Anderson Supplies</option>
-                    <option value="Northwest Traders">Northwest Traders</option>
-                    <option value="Metro Manufacturing">Metro Manufacturing</option>
-                    <option value="Summit Enterprises">Summit Enterprises</option>
-                    <option value="Global Distributors">Global Distributors</option>
+                    {[...new Set(bills.map(bill => bill.vendorName))].map((vendorName, index) => (
+                      <option key={index} value={vendorName}>{vendorName}</option>
+                    ))}
                   </select>
                 </div>
 

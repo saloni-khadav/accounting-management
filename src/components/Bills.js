@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Edit, Trash2, Download } from 'lucide-react';
 import VendorBill from './VendorBill';
 
 const Bills = () => {
@@ -180,17 +180,62 @@ const Bills = () => {
     }
   };
 
+  const exportToExcel = () => {
+    const csvData = bills.map(bill => {
+      const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+      return {
+        'Bill Number': bill.billNumber,
+        'Vendor Name': bill.vendorName,
+        'Bill Date': new Date(bill.billDate).toLocaleDateString('en-GB'),
+        'Due Date': bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB') : '',
+        'Status': bill.status,
+        'Gross Amount': bill.grossAmount || 0,
+        'Tax Amount': bill.taxAmount || 0,
+        'TDS Amount': bill.tdsAmount || 0,
+        'Grand Total': bill.grandTotal || 0,
+        'Net Payable': netPayable,
+        'Approval Status': bill.approvalStatus || 'pending',
+        'Created Date': new Date(bill.createdAt).toLocaleDateString('en-GB')
+      };
+    });
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(header => `"${row[header]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bills_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Bills</h1>
-        <button 
-          onClick={handleCreateNew}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-        >
-          Create New
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={exportToExcel}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
+          >
+            <Download size={18} />
+            Export to Excel
+          </button>
+          <button 
+            onClick={handleCreateNew}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          >
+            Create New
+          </button>
+        </div>
       </div>
 
       {/* Status Cards */}
