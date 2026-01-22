@@ -21,10 +21,17 @@ const Bills = () => {
       fetchBills();
     };
     
+    // Add event listener for bills updates from payments
+    const handleBillsUpdate = () => {
+      fetchBills();
+    };
+    
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('billsUpdated', handleBillsUpdate);
     
     return () => {
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('billsUpdated', handleBillsUpdate);
     };
   }, []);
 
@@ -47,7 +54,29 @@ const Bills = () => {
       const response = await fetch('http://localhost:5001/api/bills');
       if (response.ok) {
         const data = await response.json();
-        setBills(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        
+        // Fetch payments to calculate actual paid amounts
+        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        let payments = [];
+        if (paymentsResponse.ok) {
+          payments = await paymentsResponse.json();
+        }
+        
+        // Calculate paid amounts for each bill
+        const billsWithPaidAmounts = data.map(bill => {
+          const billPayments = payments.filter(payment => 
+            payment.billId === bill._id && 
+            payment.approvalStatus === 'approved'
+          );
+          const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+          return {
+            ...bill,
+            paidAmount: totalPaid
+          };
+        });
+        
+        setBills(billsWithPaidAmounts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       }
     } catch (error) {
       console.error('Error fetching bills:', error);
@@ -56,6 +85,7 @@ const Bills = () => {
   };
 
   const handleSaveBill = async (billData) => {
+    // Refresh bills data after save
     await fetchBills();
     setIsFormOpen(false);
     setEditingBill(null);
@@ -130,42 +160,73 @@ const Bills = () => {
     }
   };
 
+  // Function to calculate bill status based on payment and due date
+  const calculateBillStatus = (bill) => {
+    const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const paidAmount = bill.paidAmount || 0;
+    const currentDate = new Date();
+    const dueDate = bill.dueDate ? new Date(bill.dueDate) : null;
+    
+    // Payment status takes priority
+    if (paidAmount >= netPayable) {
+      return 'Fully Paid';
+    }
+    
+    if (paidAmount > 0 && paidAmount < netPayable) {
+      return 'Partially Paid';
+    }
+    
+    // Due date status only when no payment is made (paidAmount === 0)
+    if (paidAmount === 0 && dueDate) {
+      const timeDiff = dueDate.getTime() - currentDate.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      if (daysDiff < 0) {
+        return 'Overdue';
+      } else if (daysDiff <= 7) {
+        return 'Due Soon';
+      } else {
+        return 'Not Paid';
+      }
+    }
+    
+    // Default status when no due date is set
+    return 'Not Paid';
+  };
+
   const billsData = bills
     .filter(bill => {
       const matchesSearch = searchTerm === '' || 
         bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         bill.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Convert status for filtering
-      let filterStatus = bill.status;
-      if (bill.status === 'Draft' || bill.status === 'Cancelled') {
-        filterStatus = 'Not Paid';
-      }
+      // Calculate dynamic status for filtering
+      const calculatedStatus = calculateBillStatus(bill);
       
-      const matchesStatus = statusFilter === '' || filterStatus === statusFilter;
+      const matchesStatus = statusFilter === '' || calculatedStatus === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .map(bill => {
-      const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
-      // Convert Draft and Cancelled to Not Paid for display
-      let displayStatus = bill.status;
-      if (bill.status === 'Draft' || bill.status === 'Cancelled') {
-        displayStatus = 'Not Paid';
-      }
+      // Calculate net payable (Grand Total - TDS Amount)
+      const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+      // Calculate dynamic status
+      const calculatedStatus = calculateBillStatus(bill);
+      
       return {
         id: bill.billNumber,
         vendor: bill.vendorName,
         billDate: new Date(bill.billDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
         dueDate: bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-',
-        status: displayStatus,
+        status: calculatedStatus,
         amount: `₹${netPayable.toLocaleString('en-IN')}`
       };
     });
 
-  const overdueCount = bills.filter(bill => bill.status === 'Overdue').length;
-  const dueSoonCount = bills.filter(bill => bill.status === 'Due Soon').length;
-  const notPaidCount = bills.filter(bill => bill.status === 'Not Paid' || bill.status === 'Draft' || bill.status === 'Cancelled').length;
-  const partiallyPaidCount = bills.filter(bill => bill.status === 'Partially Paid').length;
+  const overdueCount = bills.filter(bill => calculateBillStatus(bill) === 'Overdue').length;
+  const dueSoonCount = bills.filter(bill => calculateBillStatus(bill) === 'Due Soon').length;
+  const notPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Not Paid').length;
+  const partiallyPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Partially Paid').length;
+  const fullyPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Fully Paid').length;
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -174,26 +235,26 @@ const Bills = () => {
       case 'Not Paid': return 'bg-blue-400 text-white';
       case 'Partially Paid': return 'bg-yellow-500 text-white';
       case 'Fully Paid': return 'bg-green-500 text-white';
-      case 'Draft': return 'bg-gray-400 text-white';
-      case 'Cancelled': return 'bg-red-300 text-white';
       default: return 'bg-blue-400 text-white';
     }
   };
 
   const exportToExcel = () => {
     const csvData = bills.map(bill => {
-      const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
+      const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+      const calculatedStatus = calculateBillStatus(bill);
       return {
         'Bill Number': bill.billNumber,
         'Vendor Name': bill.vendorName,
         'Bill Date': new Date(bill.billDate).toLocaleDateString('en-GB'),
         'Due Date': bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB') : '',
-        'Status': bill.status,
+        'Status': calculatedStatus,
         'Gross Amount': bill.grossAmount || 0,
         'Tax Amount': bill.taxAmount || 0,
         'TDS Amount': bill.tdsAmount || 0,
         'Grand Total': bill.grandTotal || 0,
         'Net Payable': netPayable,
+        'Paid Amount': bill.paidAmount || 0,
         'Approval Status': bill.approvalStatus || 'pending',
         'Created Date': new Date(bill.createdAt).toLocaleDateString('en-GB')
       };
@@ -239,7 +300,7 @@ const Bills = () => {
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-red-500 text-white rounded-xl p-6">
           <div className="text-sm mb-2">Overdue</div>
           <div className="text-5xl font-bold">{overdueCount}</div>
@@ -255,6 +316,10 @@ const Bills = () => {
         <div className="bg-yellow-500 text-white rounded-xl p-6">
           <div className="text-sm mb-2">Partially Paid</div>
           <div className="text-5xl font-bold">{partiallyPaidCount}</div>
+        </div>
+        <div className="bg-green-500 text-white rounded-xl p-6">
+          <div className="text-sm mb-2">Fully Paid</div>
+          <div className="text-5xl font-bold">{fullyPaidCount}</div>
         </div>
       </div>
 

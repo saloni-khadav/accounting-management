@@ -76,18 +76,19 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     // Get pending Bills
     const pendingBills = await Bill.find({ approvalStatus: 'pending' })
-      .select('billNumber vendorName grandTotal createdAt approvalStatus reminderSent')
+      .select('billNumber vendorName grandTotal tdsAmount createdAt approvalStatus reminderSent')
       .limit(10)
       .sort({ createdAt: -1 });
     
     console.log('Pending Bills:', pendingBills.length);
     
     pendingBills.forEach(bill => {
+      const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
       pendingApprovals.push({
         id: bill._id,
         type: 'Bill',
         description: `Bill ${bill.billNumber} - ${bill.vendorName}`,
-        amount: `₹${bill.grandTotal.toLocaleString()}`,
+        amount: `₹${netPayable.toLocaleString()}`,
         requestedBy: 'Accounts Team',
         requestDate: bill.createdAt.toISOString().split('T')[0],
         status: 'pending',
@@ -290,15 +291,16 @@ router.get('/my-requests', auth, async (req, res) => {
     
     // Get ALL Bills from database
     const allBills = await Bill.find({})
-      .select('billNumber vendorName grandTotal createdAt approvalStatus rejectionReason reminderSent')
+      .select('billNumber vendorName grandTotal tdsAmount createdAt approvalStatus rejectionReason reminderSent')
       .sort({ createdAt: -1 });
     
     allBills.forEach(bill => {
+      const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
       userRequests.push({
         id: bill._id,
         type: 'Bill',
         description: `Bill ${bill.billNumber} - ${bill.vendorName}`,
-        amount: `₹${bill.grandTotal.toLocaleString()}`,
+        amount: `₹${netPayable.toLocaleString()}`,
         requestDate: bill.createdAt.toISOString().split('T')[0],
         status: bill.approvalStatus === 'pending' ? 'Pending' : 
                 bill.approvalStatus === 'approved' ? 'Approved' : 'Rejected',

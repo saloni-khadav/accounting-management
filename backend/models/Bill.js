@@ -330,30 +330,33 @@ billSchema.index({ billDate: -1 });
 billSchema.index({ status: 1 });
 
 billSchema.pre('save', function(next) {
-  this.items.forEach(item => {
-    item.taxableValue = (item.quantity * item.unitPrice) - item.discount;
-    item.cgstAmount = (item.taxableValue * item.cgstRate) / 100;
-    item.sgstAmount = (item.taxableValue * item.sgstRate) / 100;
-    item.igstAmount = (item.taxableValue * item.igstRate) / 100;
-    item.cessAmount = (item.taxableValue * item.cessRate) / 100;
-    item.totalAmount = item.taxableValue + item.cgstAmount + item.sgstAmount + item.igstAmount + item.cessAmount;
-  });
+  // Only recalculate if items have changed AND calculations are not already done from frontend
+  if ((this.isNew || this.isModified('items')) && (!this.grandTotal || this.grandTotal === 0)) {
+    this.items.forEach(item => {
+      item.taxableValue = (item.quantity * item.unitPrice) - item.discount;
+      item.cgstAmount = (item.taxableValue * item.cgstRate) / 100;
+      item.sgstAmount = (item.taxableValue * item.sgstRate) / 100;
+      item.igstAmount = (item.taxableValue * item.igstRate) / 100;
+      item.cessAmount = (item.taxableValue * item.cessRate) / 100;
+      item.totalAmount = item.taxableValue + item.cgstAmount + item.sgstAmount + item.igstAmount + item.cessAmount;
+    });
+    
+    this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    this.totalDiscount = this.items.reduce((sum, item) => sum + item.discount, 0);
+    this.totalTaxableValue = this.items.reduce((sum, item) => sum + item.taxableValue, 0);
+    this.totalCGST = this.items.reduce((sum, item) => sum + item.cgstAmount, 0);
+    this.totalSGST = this.items.reduce((sum, item) => sum + item.sgstAmount, 0);
+    this.totalIGST = this.items.reduce((sum, item) => sum + item.igstAmount, 0);
+    this.totalCESS = this.items.reduce((sum, item) => sum + item.cessAmount, 0);
+    this.totalTax = this.totalCGST + this.totalSGST + this.totalIGST + this.totalCESS;
+    this.grandTotal = this.totalTaxableValue + this.totalTax;
+  }
   
-  this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  this.totalDiscount = this.items.reduce((sum, item) => sum + item.discount, 0);
-  this.totalTaxableValue = this.items.reduce((sum, item) => sum + item.taxableValue, 0);
-  this.totalCGST = this.items.reduce((sum, item) => sum + item.cgstAmount, 0);
-  this.totalSGST = this.items.reduce((sum, item) => sum + item.sgstAmount, 0);
-  this.totalIGST = this.items.reduce((sum, item) => sum + item.igstAmount, 0);
-  this.totalCESS = this.items.reduce((sum, item) => sum + item.cessAmount, 0);
-  this.totalTax = this.totalCGST + this.totalSGST + this.totalIGST + this.totalCESS;
-  this.grandTotal = this.totalTaxableValue + this.totalTax;
+  // Calculate remaining amount (after TDS deduction)
+  this.remainingAmount = (this.grandTotal || 0) - (this.paidAmount || 0);
   
-  // Calculate remaining amount
-  this.remainingAmount = this.grandTotal - (this.paidAmount || 0);
-  
-  // Auto-update status based on due date and payment status (regardless of approval)
-  if (this.status !== 'Cancelled') {
+  // Only update status if it's not explicitly set or if it's a payment update
+  if (this.isModified('paidAmount') || (!this.isModified('status') && this.status !== 'Cancelled')) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -363,7 +366,10 @@ billSchema.pre('save', function(next) {
       
       const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
       
-      if (this.paidAmount >= this.grandTotal) {
+      // Use net payable amount (grandTotal - TDS) for payment comparison
+      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0);
+      
+      if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';
       } else if (this.paidAmount > 0) {
         this.status = 'Partially Paid';
@@ -376,12 +382,14 @@ billSchema.pre('save', function(next) {
       }
     } else {
       // No due date - only check payment status
-      if (this.paidAmount >= this.grandTotal) {
+      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0);
+      
+      if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';
       } else if (this.paidAmount > 0) {
         this.status = 'Partially Paid';
-      } else {
-        this.status = 'Draft'; // Keep as Draft if no due date and no payment
+      } else if (this.isNew) {
+        this.status = 'Draft'; // Only set Draft for new bills
       }
     }
   }

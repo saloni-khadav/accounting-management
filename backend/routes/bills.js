@@ -86,10 +86,24 @@ router.get('/:id', async (req, res) => {
 // Create bill
 router.post('/', async (req, res) => {
   try {
+    console.log('Creating bill with data:', {
+      grandTotal: req.body.grandTotal,
+      tdsAmount: req.body.tdsAmount,
+      tdsSection: req.body.tdsSection
+    });
+    
     const bill = new Bill(req.body);
     const savedBill = await bill.save();
+    
+    console.log('Saved bill:', {
+      grandTotal: savedBill.grandTotal,
+      tdsAmount: savedBill.tdsAmount,
+      tdsSection: savedBill.tdsSection
+    });
+    
     res.status(201).json(savedBill);
   } catch (error) {
+    console.error('Error creating bill:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -97,14 +111,26 @@ router.post('/', async (req, res) => {
 // Update bill
 router.put('/:id', async (req, res) => {
   try {
-    const bill = await Bill.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!bill) {
+    const existingBill = await Bill.findById(req.params.id);
+    if (!existingBill) {
       return res.status(404).json({ message: 'Bill not found' });
     }
+    
+    // Preserve certain fields during update
+    const updateData = {
+      ...req.body,
+      // Preserve status and approval status if not explicitly changed
+      status: req.body.status || existingBill.status,
+      approvalStatus: req.body.approvalStatus || existingBill.approvalStatus,
+      paidAmount: existingBill.paidAmount // Preserve paid amount
+    };
+    
+    const bill = await Bill.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
     res.json(bill);
   } catch (error) {
     res.status(400).json({ message: error.message });

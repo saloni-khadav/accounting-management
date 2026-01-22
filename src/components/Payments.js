@@ -93,8 +93,30 @@ const Payments = () => {
       const response = await fetch(`http://localhost:5001/api/bills?vendorName=${encodeURIComponent(vendorName)}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Fetched bills:', data);
-        setBills(data);
+        
+        // Fetch payments to calculate actual paid amounts
+        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        let payments = [];
+        if (paymentsResponse.ok) {
+          payments = await paymentsResponse.json();
+        }
+        
+        // Calculate paid amounts for each bill
+        const billsWithPaidAmounts = data.map(bill => {
+          const billPayments = payments.filter(payment => 
+            payment.billId === bill._id && 
+            payment.approvalStatus === 'approved'
+          );
+          const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+          return {
+            ...bill,
+            paidAmount: totalPaid
+          };
+        });
+        
+        console.log('Fetched bills with paid amounts:', billsWithPaidAmounts);
+        setBills(billsWithPaidAmounts);
       }
     } catch (error) {
       console.error('Error fetching bills:', error);
@@ -193,13 +215,14 @@ const Payments = () => {
 
   const handleBillSelect = (bill) => {
     console.log('Selected bill:', bill); // Debug log
-    const remainingAmount = (bill.grandTotal || 0) - (bill.paidAmount || 0);
+    const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
     setFormData(prev => ({
       ...prev,
       billId: bill._id, // Store the bill ID
       invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: remainingAmount // Set to remaining amount, user can modify for partial payment
+      amount: remainingAmount // Set to net payable remaining amount
     }));
     setShowBillDropdown(false);
   };
@@ -340,6 +363,12 @@ const Payments = () => {
         alert(`Payment ${action === 'approve' ? 'approved and processed' : 'rejected'} successfully!`);
         fetchPayments();
         fetchStats();
+        
+        // Refresh bills data if payment was approved to update status
+        if (action === 'approve') {
+          // Trigger a refresh of bills data in parent components
+          window.dispatchEvent(new CustomEvent('billsUpdated'));
+        }
       }
     } catch (error) {
       alert('Error updating approval status');
@@ -592,7 +621,8 @@ const Payments = () => {
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                         {bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').length > 0 ? (
                           bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').map((bill) => {
-                            const remainingAmount = (bill.grandTotal || 0) - (bill.paidAmount || 0);
+                            const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+                            const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
                             return (
                             <div
                               key={bill._id}
@@ -605,7 +635,7 @@ const Payments = () => {
                             >
                               <div className="font-medium text-gray-900">{bill.billNumber || 'No Bill Number'}</div>
                               <div className="text-sm text-gray-500">
-                                {new Date(bill.billDate).toLocaleDateString()} | Total: ₹{(bill.grandTotal || 0).toLocaleString('en-IN')}
+                                {new Date(bill.billDate).toLocaleDateString()} | Net Payable: ₹{netPayableAmount.toLocaleString('en-IN')}
                               </div>
                               <div className="text-xs text-gray-600">
                                 Status: <span className={`font-medium ${
@@ -648,7 +678,7 @@ const Payments = () => {
                     Payment Amount <span className="text-red-500">*</span>
                     {formData.billId && (
                       <span className="text-xs text-gray-500 ml-2">
-                        (Remaining: ₹{((bills.find(b => b._id === formData.billId)?.grandTotal || 0) - (bills.find(b => b._id === formData.billId)?.paidAmount || 0)).toLocaleString('en-IN')})
+                        (Remaining: ₹{(((bills.find(b => b._id === formData.billId)?.grandTotal || 0) - (bills.find(b => b._id === formData.billId)?.tdsAmount || 0) - (bills.find(b => b._id === formData.billId)?.paidAmount || 0))).toLocaleString('en-IN')})
                       </span>
                     )}
                   </label>

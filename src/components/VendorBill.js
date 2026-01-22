@@ -328,26 +328,38 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST + totalCESS);
     const grandTotal = Math.max(0, totalTaxableValue + totalTax);
 
-    setBillData(prev => ({
-      ...prev,
-      items: updatedItems,
-      subtotal,
-      totalDiscount,
-      totalTaxableValue,
-      totalCGST,
-      totalSGST,
-      totalIGST,
-      totalCESS,
-      totalTax,
-      grandTotal
-    }));
+    setBillData(prev => {
+      const newData = {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalDiscount,
+        totalTaxableValue,
+        totalCGST,
+        totalSGST,
+        totalIGST,
+        totalCESS,
+        totalTax,
+        grandTotal
+      };
+      
+      // Recalculate TDS if section is selected
+      if (prev.tdsSection && prev.tdsPercentage > 0) {
+        newData.tdsAmount = (totalTaxableValue * prev.tdsPercentage) / 100;
+      }
+      
+      return newData;
+    });
   };
 
   const handleInputChange = (field, value) => {
     if (field === 'tdsSection') {
       const selectedSection = tdsSection.find(s => s.code === value);
-      if (selectedSection && billData.totalTaxableValue) {
-        const calculatedTds = ((billData.totalTaxableValue * selectedSection.rate) / 100).toFixed(2);
+      if (selectedSection) {
+        // Use totalTaxableValue for TDS calculation
+        const currentTaxableValue = billData.totalTaxableValue || 0;
+        const calculatedTds = currentTaxableValue > 0 ? 
+          (currentTaxableValue * selectedSection.rate) / 100 : 0;
         setBillData(prev => ({
           ...prev,
           tdsSection: value,
@@ -519,8 +531,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       const cleanedData = {
         ...billData,
         vendorPAN: billData.vendorPAN || '', // Ensure vendorPAN is included
-        status: userRole === 'manager' ? 'Draft' : 'Draft',
-        approvalStatus: userRole === 'manager' ? 'approved' : 'pending',
+        status: editingBill ? editingBill.status : (userRole === 'manager' ? 'Draft' : 'Draft'), // Preserve existing status when editing
+        approvalStatus: editingBill ? editingBill.approvalStatus : (userRole === 'manager' ? 'approved' : 'pending'), // Preserve existing approval status when editing
         createdBy: userData.user._id,
         attachments: attachments.map(att => ({
           fileName: att.fileName,
@@ -538,8 +550,12 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         }))
       };
 
-      console.log('Saving bill with vendorPAN:', cleanedData.vendorPAN); // Debug log
-      console.log('Full cleanedData:', cleanedData); // Debug full data
+      console.log('Saving bill with data:', {
+        grandTotal: cleanedData.grandTotal,
+        tdsAmount: cleanedData.tdsAmount,
+        tdsSection: cleanedData.tdsSection,
+        tdsPercentage: cleanedData.tdsPercentage
+      });
 
       const isEditing = editingBill && editingBill._id;
       const url = isEditing 
@@ -558,6 +574,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       
       if (response.ok) {
         const savedBill = await response.json();
+        console.log('Bill saved successfully:', {
+          grandTotal: savedBill.grandTotal,
+          tdsAmount: savedBill.tdsAmount,
+          tdsSection: savedBill.tdsSection
+        });
         if (userRole === 'manager') {
           alert(isEditing ? 'Bill updated successfully!' : 'Bill created successfully!');
         } else {
