@@ -177,7 +177,11 @@ const PurchaseOrders = () => {
         subTotal: calculateSubTotal(),
         totalDiscount: calculateDiscount(),
         totalTax: calculateTax(),
-        totalAmount: calculateTotal()
+        totalAmount: calculateTotal(),
+        status: 'Pending Approval',
+        approvalStatus: 'pending',
+        createdBy: 'Current User',
+        createdAt: new Date().toISOString()
       };
 
       const response = await fetch('http://localhost:5001/api/purchase-orders', {
@@ -189,7 +193,7 @@ const PurchaseOrders = () => {
       });
 
       if (response.ok) {
-        alert('Purchase Order created successfully!');
+        alert('Purchase Order created and sent for manager approval!');
         setShowCreateForm(false);
         setFormData({
           supplier: '',
@@ -212,18 +216,22 @@ const PurchaseOrders = () => {
   const ordersData = filteredOrders;
 
   const stats = {
-    open: purchaseOrders.filter(po => po.status === 'Open').length,
-    completed: purchaseOrders.filter(po => po.status === 'Completed').length,
-    draft: purchaseOrders.filter(po => po.status === 'Draft').length
+    pending: purchaseOrders.filter(po => po.status === 'Pending Approval' || po.approvalStatus === 'pending').length,
+    approved: purchaseOrders.filter(po => po.status === 'Approved' || po.approvalStatus === 'approved').length,
+    rejected: purchaseOrders.filter(po => po.status === 'Rejected' || po.approvalStatus === 'rejected').length
   };
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Open': return 'bg-green-400 text-white';
-      case 'Completed': return 'bg-gray-400 text-white';
-      case 'Draft': return 'bg-gray-300 text-gray-800';
-      default: return 'bg-gray-200 text-gray-700';
+  const getStatusColor = (status, approvalStatus) => {
+    if (approvalStatus === 'pending' || status === 'Pending Approval') {
+      return 'bg-yellow-100 text-yellow-800';
     }
+    if (approvalStatus === 'approved' || status === 'Approved') {
+      return 'bg-green-100 text-green-800';
+    }
+    if (approvalStatus === 'rejected' || status === 'Rejected') {
+      return 'bg-red-100 text-red-800';
+    }
+    return 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -241,17 +249,17 @@ const PurchaseOrders = () => {
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-800 text-white rounded-xl p-6">
-          <div className="text-lg mb-2">Open</div>
-          <div className="text-5xl font-bold">{stats.open}</div>
+        <div className="bg-yellow-500 text-white rounded-xl p-6">
+          <div className="text-lg mb-2">Pending Approval</div>
+          <div className="text-5xl font-bold">{stats.pending}</div>
         </div>
-        <div className="bg-blue-400 text-white rounded-xl p-6">
-          <div className="text-lg mb-2">Completed</div>
-          <div className="text-5xl font-bold">{stats.completed}</div>
+        <div className="bg-green-500 text-white rounded-xl p-6">
+          <div className="text-lg mb-2">Approved</div>
+          <div className="text-5xl font-bold">{stats.approved}</div>
         </div>
-        <div className="bg-gray-200 text-gray-700 rounded-xl p-6">
-          <div className="text-lg mb-2">Draft</div>
-          <div className="text-5xl font-bold">{stats.draft}</div>
+        <div className="bg-red-500 text-white rounded-xl p-6">
+          <div className="text-lg mb-2">Rejected</div>
+          <div className="text-5xl font-bold">{stats.rejected}</div>
         </div>
       </div>
 
@@ -287,22 +295,22 @@ const PurchaseOrders = () => {
                     All ({purchaseOrders.length})
                   </button>
                   <button
-                    onClick={() => { setActiveFilter('Open'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Open' ? 'bg-green-50 text-green-700' : ''}`}
+                    onClick={() => { setActiveFilter('Pending Approval'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Pending Approval' ? 'bg-yellow-50 text-yellow-700' : ''}`}
                   >
-                    Open ({stats.open})
+                    Pending Approval ({stats.pending})
                   </button>
                   <button
-                    onClick={() => { setActiveFilter('Completed'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Completed' ? 'bg-gray-50 text-gray-700' : ''}`}
+                    onClick={() => { setActiveFilter('Approved'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Approved' ? 'bg-green-50 text-green-700' : ''}`}
                   >
-                    Completed ({stats.completed})
+                    Approved ({stats.approved})
                   </button>
                   <button
-                    onClick={() => { setActiveFilter('Draft'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Draft' ? 'bg-yellow-50 text-yellow-700' : ''}`}
+                    onClick={() => { setActiveFilter('Rejected'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Rejected' ? 'bg-red-50 text-red-700' : ''}`}
                   >
-                    Draft ({stats.draft})
+                    Rejected ({stats.rejected})
                   </button>
                 </div>
               </div>
@@ -345,8 +353,11 @@ const PurchaseOrders = () => {
                   <td className="py-5 px-6 text-gray-900">{order.supplier}</td>
                   <td className="py-5 px-6 text-gray-900">{new Date(order.poDate).toLocaleDateString()}</td>
                   <td className="py-5 px-6">
-                    <span className={`px-4 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(order.status || 'Draft')}`}>
-                      {order.status || 'Draft'}
+                    <span className={`px-4 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(order.status, order.approvalStatus)}`}>
+                      {order.approvalStatus === 'pending' ? 'Pending Approval' : 
+                       order.approvalStatus === 'approved' ? 'Approved' :
+                       order.approvalStatus === 'rejected' ? 'Rejected' :
+                       order.status || 'Draft'}
                     </span>
                   </td>
                   <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>

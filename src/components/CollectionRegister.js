@@ -20,8 +20,23 @@ const CollectionRegister = () => {
     invoiceNumbers: [],
     amount: '',
     paymentMode: 'Online',
-    referenceNumber: ''
+    referenceNumber: '',
+    tdsSection: '',
+    tdsPercentage: '',
+    tdsAmount: '',
+    netAmount: ''
   });
+
+  const tdsSection = [
+    { code: '194H', rate: 5, description: 'Commission or Brokerage' },
+    { code: '194C', rate: 1, description: 'Individual/HUF' },
+    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194J(a)', rate: 2, description: 'Technical Services' },
+    { code: '194J(b)', rate: 10, description: 'Professional' },
+    { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
+    { code: '194I(b)', rate: 10, description: 'Rent - Land & Building' },
+    { code: '194A', rate: 10, description: 'Interest other than on Securities' }
+  ];
 
   useEffect(() => {
     fetchCollections();
@@ -104,7 +119,7 @@ const CollectionRegister = () => {
   };
 
   const handleClientSelect = (clientName) => {
-    setFormData({...formData, customer: clientName, invoiceNumbers: [], amount: ''});
+    setFormData({...formData, customer: clientName, invoiceNumbers: [], amount: '', tdsSection: '', tdsPercentage: '', tdsAmount: '', netAmount: ''});
     setShowClientDropdown(false);
     fetchInvoices(clientName);
   };
@@ -127,10 +142,22 @@ const CollectionRegister = () => {
     // Calculate total amount
     const totalAmount = updatedInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
     
+    // Recalculate TDS and net amount if TDS section exists
+    let tdsAmount = 0;
+    if (formData.tdsSection) {
+      const selectedSection = tdsSection.find(s => s.code === formData.tdsSection);
+      if (selectedSection) {
+        tdsAmount = (totalAmount * selectedSection.rate) / 100;
+      }
+    }
+    const netAmount = totalAmount - tdsAmount;
+    
     setFormData({
       ...formData, 
       invoiceNumbers: updatedInvoices,
-      amount: totalAmount.toString()
+      amount: totalAmount.toString(),
+      tdsAmount: tdsAmount.toString(),
+      netAmount: netAmount.toString()
     });
   };
 
@@ -141,7 +168,11 @@ const CollectionRegister = () => {
       const submitData = {
         ...formData,
         invoiceNumber: formData.invoiceNumbers.map(inv => inv.invoiceNumber).join(', '),
-        invoiceNumbers: undefined // Remove this field as API doesn't expect it
+        invoiceNumbers: undefined, // Remove this field as API doesn't expect it
+        tdsAmount: parseFloat(formData.tdsAmount) || 0,
+        tdsPercentage: parseFloat(formData.tdsPercentage) || 0,
+        netAmount: parseFloat(formData.netAmount) || parseFloat(formData.amount) || 0,
+        tdsSection: formData.tdsSection || ''
       };
       
       console.log('Submitting data:', submitData);
@@ -154,7 +185,7 @@ const CollectionRegister = () => {
       
       if (response.ok) {
         setShowModal(false);
-        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online', referenceNumber: '' });
+        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online', referenceNumber: '', tdsSection: '', tdsPercentage: '', tdsAmount: '', netAmount: '' });
         fetchCollections();
         fetchStats();
       } else {
@@ -371,6 +402,68 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS Section</label>
+                  <select
+                    value={formData.tdsSection}
+                    onChange={(e) => {
+                      const selectedSection = tdsSection.find(s => s.code === e.target.value);
+                      const totalAmount = parseFloat(formData.amount) || 0;
+                      const tdsAmount = selectedSection ? (totalAmount * selectedSection.rate) / 100 : 0;
+                      const netAmount = totalAmount - tdsAmount;
+                      
+                      setFormData({
+                        ...formData,
+                        tdsSection: e.target.value,
+                        tdsPercentage: selectedSection ? selectedSection.rate.toString() : '',
+                        tdsAmount: tdsAmount.toString(),
+                        netAmount: netAmount.toString()
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select TDS Section</option>
+                    {tdsSection.map((section, idx) => (
+                      <option key={idx} value={section.code}>
+                        {section.code} - {section.rate}% ({section.description})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS Percentage (%)</label>
+                  <input
+                    type="number"
+                    value={formData.tdsPercentage}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    placeholder="Auto-filled from TDS section"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS Amount</label>
+                  <input
+                    type="number"
+                    value={formData.tdsAmount}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                    placeholder="Auto-calculated based on TDS percentage"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Net Amount (After TDS)</label>
+                  <input
+                    type="number"
+                    value={formData.netAmount}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold"
+                    placeholder="Net amount after TDS deduction"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode</label>
                   <select
                     value={formData.paymentMode}
@@ -426,7 +519,9 @@ const CollectionRegister = () => {
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Customer Name</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Invoice</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">Total Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">TDS Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">Net Amount</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Mode</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
               </tr>
@@ -438,6 +533,15 @@ const CollectionRegister = () => {
                   <td className="py-4 px-6 text-gray-900">{collection.customer}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.invoiceNumber}</td>
                   <td className="py-4 px-6 text-gray-900">₹{collection.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-4 px-6 text-gray-900">
+                    {collection.tdsAmount && parseFloat(collection.tdsAmount) > 0 ? 
+                      `₹${parseFloat(collection.tdsAmount).toLocaleString('en-IN')}` : '-'}
+                  </td>
+                  <td className="py-4 px-6 text-gray-900 font-semibold">
+                    {collection.netAmount && parseFloat(collection.netAmount) > 0 ? 
+                      `₹${parseFloat(collection.netAmount).toLocaleString('en-IN')}` : 
+                      `₹${collection.amount.toLocaleString('en-IN')}`}
+                  </td>
                   <td className="py-4 px-6 text-gray-900">{collection.paymentMode}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.referenceNumber || '-'}</td>
                 </tr>

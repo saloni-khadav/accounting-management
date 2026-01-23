@@ -45,8 +45,20 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Draft', 'Open', 'Completed', 'Cancelled'],
+    enum: ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Cancelled'],
     default: 'Draft'
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  createdBy: {
+    type: String,
+    default: 'User'
+  },
+  rejectionReason: {
+    type: String
   }
 }, {
   timestamps: true

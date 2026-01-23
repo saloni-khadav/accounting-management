@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Invoice = require('../models/Invoice');
 const PO = require('../models/PO');
+const PurchaseOrder = require('../models/PurchaseOrder');
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const Client = require('../models/Client');
@@ -50,14 +51,21 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       });
     });
     
-    // Get pending POs
+    // Get pending POs (both models)
     const pendingPOs = await PO.find({ status: 'Draft' })
       .populate('supplier', 'name')
       .select('poNumber supplierName totalAmount createdAt status reminderSent approvedAt rejectedAt')
       .limit(10)
       .sort({ createdAt: -1 });
     
+    // Get pending Purchase Orders
+    const pendingPurchaseOrders = await PurchaseOrder.find({ approvalStatus: 'pending' })
+      .select('poNumber supplier totalAmount createdAt status approvalStatus reminderSent createdBy')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
     console.log('Pending POs:', pendingPOs.length);
+    console.log('Pending Purchase Orders:', pendingPurchaseOrders.length);
     
     pendingPOs.forEach(po => {
       pendingApprovals.push({
@@ -71,6 +79,19 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         reminderSent: po.reminderSent || false,
         approvedAt: po.approvedAt ? po.approvedAt.toISOString().split('T')[0] : null,
         rejectedAt: po.rejectedAt ? po.rejectedAt.toISOString().split('T')[0] : null
+      });
+    });
+    
+    pendingPurchaseOrders.forEach(po => {
+      pendingApprovals.push({
+        id: po._id,
+        type: 'Purchase Order',
+        description: `PO ${po.poNumber} - ${po.supplier}`,
+        amount: `₹${po.totalAmount.toLocaleString()}`,
+        requestedBy: po.createdBy || 'User',
+        requestDate: po.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: false
       });
     });
     
@@ -178,20 +199,23 @@ router.post('/action', auth, requireManager, async (req, res) => {
       }
       updateResult = await Invoice.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Purchase Order') {
-      const updateData = {
+      // Try PurchaseOrder model first
+      updateResult = await PurchaseOrder.findByIdAndUpdate(itemId, {
         status: newStatus,
-        updatedAt: new Date(),
-        reminderSent: false // Clear reminder when status changes
-      };
-      if (action === 'approve') {
-        updateData.approvedAt = new Date();
-      } else if (action === 'reject') {
-        updateData.rejectedAt = new Date();
-        if (rejectionReason) {
-          updateData.rejectionReason = rejectionReason;
-        }
+        approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+        rejectionReason: action === 'reject' && rejectionReason ? rejectionReason : undefined
+      }, { new: true });
+      
+      // If not found in PurchaseOrder, try PO model
+      if (!updateResult) {
+        updateResult = await PO.findByIdAndUpdate(itemId, {
+          status: newStatus,
+          approvedAt: action === 'approve' ? new Date() : undefined,
+          rejectedAt: action === 'reject' ? new Date() : undefined,
+          rejectionReason: action === 'reject' && rejectionReason ? rejectionReason : undefined,
+          reminderSent: false
+        }, { new: true });
       }
-      updateResult = await PO.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Bill') {
       const updateData = {
         approvalStatus: action === 'approve' ? 'approved' : 'rejected',

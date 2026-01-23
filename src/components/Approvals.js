@@ -106,12 +106,14 @@ const Approvals = () => {
         const data = await response.json();
         console.log('Approvals data received:', data);
         
-        // Separate bills and payments from the response
+        // Separate bills, payments, and purchase orders from the response
         const allApprovals = data.approvals || [];
-        const bills = allApprovals.filter(item => item.type !== 'Payment');
+        const bills = allApprovals.filter(item => item.type !== 'Payment' && item.type !== 'Purchase Order');
         const payments = allApprovals.filter(item => item.type === 'Payment');
+        const purchaseOrders = allApprovals.filter(item => item.type === 'Purchase Order');
         
-        setPendingApprovals(bills);
+        // Combine all approvals for display
+        setPendingApprovals([...bills, ...purchaseOrders]);
         setPendingPayments(payments);
       } else {
         const errorData = await response.json();
@@ -148,6 +150,28 @@ const Approvals = () => {
         } else {
           const errorData = await response.json();
           alert('Error approving payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (type === 'Purchase Order') {
+        // Handle Purchase Order approval
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Purchase Order' })
+        });
+        
+        if (response.ok) {
+          alert('Purchase Order approved successfully!');
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error approving Purchase Order: ' + (errorData.message || 'Unknown error'));
           return;
         }
       }
@@ -215,6 +239,36 @@ const Approvals = () => {
         } else {
           const errorData = await response.json();
           alert('Error rejecting payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (rejectItem.type === 'Purchase Order') {
+        // Handle Purchase Order rejection
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            itemId: rejectItem.id, 
+            action: 'reject', 
+            type: 'Purchase Order',
+            rejectionReason: rejectionReason.trim()
+          })
+        });
+        
+        if (response.ok) {
+          alert('Purchase Order rejected successfully!');
+          setShowRejectModal(false);
+          setRejectionReason('');
+          setRejectItem(null);
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error rejecting Purchase Order: ' + (errorData.message || 'Unknown error'));
           return;
         }
       }

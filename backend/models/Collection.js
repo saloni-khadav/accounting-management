@@ -21,6 +21,25 @@ const collectionSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  tdsSection: {
+    type: String,
+    trim: true
+  },
+  tdsPercentage: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  },
+  tdsAmount: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  netAmount: {
+    type: Number,
+    min: 0
+  },
   collectionDate: {
     type: Date,
     required: true
@@ -48,6 +67,12 @@ collectionSchema.pre('save', async function(next) {
     const count = await this.constructor.countDocuments();
     this.collectionNumber = `COLL-${String(count + 1).padStart(4, '0')}`;
   }
+  
+  // Auto-calculate netAmount if not provided
+  if (!this.netAmount) {
+    this.netAmount = this.amount - (this.tdsAmount || 0);
+  }
+  
   next();
 });
 
