@@ -28,7 +28,29 @@ const AccountsPayable = () => {
       const response = await fetch('http://localhost:5001/api/bills');
       if (response.ok) {
         const data = await response.json();
-        setBills(data);
+        
+        // Fetch payments to calculate actual paid amounts
+        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        let paymentsData = [];
+        if (paymentsResponse.ok) {
+          paymentsData = await paymentsResponse.json();
+        }
+        
+        // Calculate paid amounts for each bill
+        const billsWithPaidAmounts = data.map(bill => {
+          const billPayments = paymentsData.filter(payment => 
+            payment.billId === bill._id && 
+            payment.approvalStatus === 'approved'
+          );
+          const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+          return {
+            ...bill,
+            paidAmount: totalPaid
+          };
+        });
+        
+        setBills(billsWithPaidAmounts);
       }
     } catch (error) {
       console.error('Error fetching bills:', error);
@@ -94,25 +116,62 @@ const AccountsPayable = () => {
       alert('Error recording payment');
     }
   };
-  // Calculate metrics from real data
+  // Function to calculate bill status based on payment and due date
+  const calculateBillStatus = (bill) => {
+    const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const paidAmount = bill.paidAmount || 0;
+    const currentDate = new Date();
+    const dueDate = bill.dueDate ? new Date(bill.dueDate) : null;
+    
+    // Payment status takes priority
+    if (paidAmount >= netPayable) {
+      return 'Fully Paid';
+    }
+    
+    if (paidAmount > 0 && paidAmount < netPayable) {
+      return 'Partially Paid';
+    }
+    
+    // Due date status only when no payment is made (paidAmount === 0)
+    if (paidAmount === 0 && dueDate) {
+      const timeDiff = dueDate.getTime() - currentDate.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      if (daysDiff < 0) {
+        return 'Overdue';
+      } else if (daysDiff <= 7) {
+        return 'Due Soon';
+      } else {
+        return 'Not Paid';
+      }
+    }
+    
+    // Default status when no due date is set
+    return 'Not Paid';
+  };
+
+  // Calculate metrics from real data using dynamic status
   const totalPayable = bills.reduce((sum, bill) => {
     const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
-    return sum + (bill.status !== 'Fully Paid' ? netPayable : 0);
+    const status = calculateBillStatus(bill);
+    return sum + (status !== 'Fully Paid' ? netPayable : 0);
   }, 0);
 
   const overduePayable = bills.reduce((sum, bill) => {
     const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
-    return sum + (bill.status === 'Overdue' ? netPayable : 0);
+    const status = calculateBillStatus(bill);
+    return sum + (status === 'Overdue' ? netPayable : 0);
   }, 0);
 
   const dueSoonPayable = bills.reduce((sum, bill) => {
     const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
-    return sum + (bill.status === 'Due Soon' ? netPayable : 0);
+    const status = calculateBillStatus(bill);
+    return sum + (status === 'Due Soon' ? netPayable : 0);
   }, 0);
 
   // Get overdue bills for table
   const overduePayables = bills
-    .filter(bill => bill.status === 'Overdue')
+    .filter(bill => calculateBillStatus(bill) === 'Overdue')
     .map(bill => ({
       vendor: bill.vendorName,
       dueDate: bill.dueDate ? new Date(bill.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-',
@@ -155,7 +214,8 @@ const AccountsPayable = () => {
     const over180Days = [];
     
     bills.forEach(bill => {
-      if (bill.status === 'Overdue' && bill.dueDate) {
+      const status = calculateBillStatus(bill);
+      if (status === 'Overdue' && bill.dueDate) {
         const daysPastDue = Math.floor((new Date() - new Date(bill.dueDate)) / (1000 * 60 * 60 * 24));
         const netPayable = bill.grandTotal - (bill.tdsAmount || 0);
         
@@ -238,7 +298,7 @@ const AccountsPayable = () => {
                 <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
                 <YAxis stroke="#64748b" fontSize={12} tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  formatter={(value, name) => [`₹${value.toLocaleString('en-IN')}`, name === 'purchases' ? 'Purchases' : 'Payments']}
+                  formatter={(value, name) => [`₹${value.toLocaleString('en-IN')}`, name]}
                   contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                 />
                 <Legend />

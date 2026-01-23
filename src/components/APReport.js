@@ -25,11 +25,28 @@ const APReport = () => {
       
       if (billsResponse.ok) {
         const billsData = await billsResponse.json();
-        setBills(billsData);
-      }
-      
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
+        
+        // Get payments data
+        let paymentsData = [];
+        if (paymentsResponse.ok) {
+          paymentsData = await paymentsResponse.json();
+        }
+        
+        // Calculate paid amounts for each bill (same logic as Bills component)
+        const billsWithPaidAmounts = billsData.map(bill => {
+          const billPayments = paymentsData.filter(payment => 
+            payment.billId === bill._id && 
+            payment.approvalStatus === 'approved'
+          );
+          const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+          return {
+            ...bill,
+            paidAmount: totalPaid
+          };
+        });
+        
+        setBills(billsWithPaidAmounts);
         setPayments(paymentsData);
       }
     } catch (error) {
@@ -168,9 +185,47 @@ const APReport = () => {
   
   const filteredPayments = getFilteredPayments();
 
+  // Function to calculate bill status based on payment and due date (same as Bills component)
+  const calculateBillStatus = (bill) => {
+    const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const paidAmount = bill.paidAmount || 0;
+    const currentDate = new Date();
+    const dueDate = bill.dueDate ? new Date(bill.dueDate) : null;
+    
+    // Payment status takes priority
+    if (paidAmount >= netPayable) {
+      return 'Fully Paid';
+    }
+    
+    if (paidAmount > 0 && paidAmount < netPayable) {
+      return 'Partially Paid';
+    }
+    
+    // Due date status only when no payment is made (paidAmount === 0)
+    if (paidAmount === 0 && dueDate) {
+      const timeDiff = dueDate.getTime() - currentDate.getTime();
+      const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      if (daysDiff < 0) {
+        return 'Overdue';
+      } else if (daysDiff <= 7) {
+        return 'Due Soon';
+      } else {
+        return 'Not Paid';
+      }
+    }
+    
+    // Default status when no due date is set
+    return 'Not Paid';
+  };
+
   // Calculate metrics from filtered data
   const invoicesProcessed = filteredBills.length;
-  const invoicesPaid = filteredBills.filter(bill => bill.status === 'Fully Paid').length;
+  
+  // Count fully paid and partially paid invoices using calculated status
+  const fullyPaidInvoices = filteredBills.filter(bill => calculateBillStatus(bill) === 'Fully Paid').length;
+  const partiallyPaidInvoices = filteredBills.filter(bill => calculateBillStatus(bill) === 'Partially Paid').length;
+  
   const totalPaid = filteredPayments
     .filter(payment => payment.status === 'Completed')
     .reduce((sum, payment) => sum + payment.netAmount, 0);
@@ -189,10 +244,7 @@ const APReport = () => {
         };
       }
       vendorStats[vendorName].value += 1;
-      // Add amount only for approved bills
-      if (bill.status === 'Approved' || bill.status === 'Fully Paid' || bill.status === 'Partially Paid') {
-        vendorStats[vendorName].amount += bill.grandTotal || 0;
-      }
+      vendorStats[vendorName].amount += bill.grandTotal || 0;
     });
     
     return Object.values(vendorStats)
@@ -283,14 +335,18 @@ const APReport = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Invoices Processed</p>
           <p className="text-4xl font-bold">{loading ? '...' : invoicesProcessed}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Invoices Paid</p>
-          <p className="text-4xl font-bold">{loading ? '...' : invoicesPaid}</p>
+          <p className="text-gray-600 mb-2">Fully Paid Invoices</p>
+          <p className="text-4xl font-bold">{loading ? '...' : fullyPaidInvoices}</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg border">
+          <p className="text-gray-600 mb-2">Partially Paid Invoices</p>
+          <p className="text-4xl font-bold">{loading ? '...' : partiallyPaidInvoices}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Total Paid</p>
