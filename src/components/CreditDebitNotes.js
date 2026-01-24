@@ -1,105 +1,61 @@
-import React, { useState } from 'react';
-import { Plus, Search, Eye, Edit, Trash2, Download, FileText, Bell, CheckCircle, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Eye, Edit, Trash2, Download, FileText } from 'lucide-react';
 import CreditDebitNoteForm from './CreditDebitNoteForm';
 
 const CreditDebitNotes = () => {
-  const [creditDebitNotes, setCreditDebitNotes] = useState([
-    { 
-      id: 'CN-0008', 
-      date: '2024-04-09', 
-      vendor: 'Ace Solutions', 
-      type: 'Credit Note', 
-      amount: 8400, 
-      status: 'Open',
-      originalInvoice: 'INV-001',
-      reason: 'Product Return'
-    },
-    { 
-      id: 'CN-0007', 
-      date: '2024-04-07', 
-      vendor: 'Beacon Industries', 
-      type: 'Credit Note', 
-      amount: 17200, 
-      status: 'Closed',
-      originalInvoice: 'INV-002',
-      reason: 'Billing Error'
-    },
-    { 
-      id: 'DN-0005', 
-      date: '2024-04-05', 
-      vendor: 'Omni Enterprises', 
-      type: 'Debit Note', 
-      amount: 12800, 
-      status: 'Closed',
-      originalInvoice: 'INV-003',
-      reason: 'Additional Charges'
-    },
-    { 
-      id: 'CN-0006', 
-      date: '2024-04-02', 
-      vendor: 'Vision Trade Ltd.', 
-      type: 'Credit Note', 
-      amount: 4000, 
-      status: 'Closed',
-      originalInvoice: 'INV-004',
-      reason: 'Discount Adjustment'
-    }
-  ]);
-  
+  const [creditDebitNotes, setCreditDebitNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState([
-    {
-      id: 'REQ-001',
-      vendor: 'ABC Suppliers',
-      originalInvoice: 'INV-00250',
-      amount: '₹ 6,000',
-      type: 'Credit Note',
-      reason: 'Goods Returned',
-      date: '2024-01-15'
-    },
-    {
-      id: 'REQ-002',
-      vendor: 'XYZ Corp',
-      originalInvoice: 'INV-00251',
-      amount: '₹ 8,500',
-      type: 'Debit Note',
-      reason: 'Additional Service Charges',
-      date: '2024-01-16'
-    }
-  ]);
-  const [showNotification, setShowNotification] = useState(false);
 
-  const handleAutoFillFromRequest = (request) => {
-    setEditingNote({
-      vendorName: request.vendor,
-      originalInvoiceNumber: request.originalInvoice,
-      reason: request.reason,
-      referenceNumber: request.id,
-      noteNumber: '',
-      noteDate: new Date().toISOString().split('T')[0],
-      type: request.type
-    });
-    
-    setPendingRequests(prev => prev.filter(r => r.id !== request.id));
-    setShowNotification(true);
-    setIsFormOpen(true);
-    setTimeout(() => setShowNotification(false), 3000);
+  useEffect(() => {
+    fetchCreditDebitNotes();
+  }, []);
+
+  const fetchCreditDebitNotes = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/credit-debit-notes', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCreditDebitNotes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching credit/debit notes:', error);
+    }
+    setLoading(false);
   };
+
 
   const handleEditNote = (note) => {
     setEditingNote(note);
     setIsFormOpen(true);
   };
 
-  const handleDeleteNote = (noteId) => {
+  const handleDeleteNote = async (noteId) => {
     if (window.confirm('Are you sure you want to delete this note?')) {
-      setCreditDebitNotes(creditDebitNotes.filter(note => note.id !== noteId));
-      alert('Note deleted successfully!');
+      try {
+        const response = await fetch(`http://localhost:5001/api/credit-debit-notes/${noteId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          fetchCreditDebitNotes();
+          alert('Note deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+        alert('Error deleting note');
+      }
     }
   };
 
@@ -112,13 +68,22 @@ const CreditDebitNotes = () => {
     }
   };
 
+  const getApprovalStatusColor = (approvalStatus) => {
+    switch (approvalStatus) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const getTypeColor = (type) => {
     return type === 'Credit Note' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800';
   };
 
   const filteredNotes = creditDebitNotes.filter(note => {
-    const matchesSearch = note.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         note.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (note.vendorName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (note.noteNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || note.status === statusFilter;
     const matchesType = !typeFilter || note.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -126,11 +91,11 @@ const CreditDebitNotes = () => {
 
   const totalCredit = creditDebitNotes
     .filter(note => note.type === 'Credit Note')
-    .reduce((sum, note) => sum + note.amount, 0);
+    .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
 
   const totalDebit = creditDebitNotes
     .filter(note => note.type === 'Debit Note')
-    .reduce((sum, note) => sum + note.amount, 0);
+    .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-lg">
@@ -216,6 +181,7 @@ const CreditDebitNotes = () => {
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Original Invoice</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Amount</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Status</th>
+              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Approval</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Actions</th>
             </tr>
           </thead>
@@ -228,15 +194,15 @@ const CreditDebitNotes = () => {
               </tr>
             ) : (
               filteredNotes.map((note) => (
-                <tr key={note.id} className="hover:bg-gray-50">
+                <tr key={note._id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
-                    {note.id}
+                    {note.noteNumber}
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {new Date(note.date).toLocaleDateString()}
+                    {new Date(note.noteDate).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {note.vendor}
+                    {note.vendorName}
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(note.type)}`}>
@@ -244,14 +210,20 @@ const CreditDebitNotes = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {note.originalInvoice || '-'}
+                    {note.originalInvoiceNumber || '-'}
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
-                    ₹{note.amount.toLocaleString()}
+                    ₹{(note.grandTotal || 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(note.status)}`}>
                       {note.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 border-b text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalStatusColor(note.approvalStatus)}`}>
+                      {note.approvalStatus === 'approved' ? 'Approved' : 
+                       note.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
@@ -264,7 +236,7 @@ const CreditDebitNotes = () => {
                         <Edit size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteNote(note.id)}
+                        onClick={() => handleDeleteNote(note._id)}
                         className="text-red-600 hover:text-red-800 p-1"
                         title="Delete"
                       >
@@ -279,43 +251,6 @@ const CreditDebitNotes = () => {
         </table>
       </div>
 
-      {/* Notification */}
-      {showNotification && (
-        <div className="mt-6 mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-600" />
-          <span className="text-green-800 text-sm">Note form opened with request details!</span>
-        </div>
-      )}
-
-      {/* Pending Requests Alert */}
-      {pendingRequests.length > 0 && (
-        <div className="mt-6 mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell className="w-5 h-5 text-orange-600" />
-            <h3 className="font-medium text-orange-800">Pending Requests ({pendingRequests.length})</h3>
-          </div>
-          <div className="space-y-2">
-            {pendingRequests.map(request => (
-              <div key={request.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3 bg-white rounded border">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium text-sm">{request.id}</span>
-                    <span className="text-sm text-gray-600">- {request.vendor}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{request.originalInvoice} • {request.amount} • {request.reason}</div>
-                </div>
-                <button 
-                  onClick={() => handleAutoFillFromRequest(request)}
-                  className="px-3 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
-                >
-                  Create {request.type}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Form Modal */}
       <CreditDebitNoteForm
@@ -324,16 +259,43 @@ const CreditDebitNotes = () => {
           setIsFormOpen(false);
           setEditingNote(null);
         }}
-        onSave={(savedNote) => {
-          if (editingNote) {
-            setCreditDebitNotes(creditDebitNotes.map(note => 
-              note.id === editingNote.id ? savedNote : note
-            ));
-          } else {
-            setCreditDebitNotes([savedNote, ...creditDebitNotes]);
+        onSave={async (savedNote) => {
+          try {
+            const method = editingNote ? 'PUT' : 'POST';
+            const url = editingNote 
+              ? `http://localhost:5001/api/credit-debit-notes/${editingNote._id}`
+              : 'http://localhost:5001/api/credit-debit-notes';
+            
+            // Format the data properly
+            const formattedNote = {
+              ...savedNote,
+              noteDate: new Date(savedNote.noteDate).toISOString(),
+              invoiceDate: savedNote.invoiceDate ? new Date(savedNote.invoiceDate).toISOString() : null
+            };
+            
+            const response = await fetch(url, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(formattedNote)
+            });
+            
+            if (response.ok) {
+              fetchCreditDebitNotes();
+              setIsFormOpen(false);
+              setEditingNote(null);
+              alert(`${savedNote.type} ${editingNote ? 'updated' : 'created'} successfully!`);
+            } else {
+              const errorData = await response.json();
+              console.error('Server error:', errorData);
+              alert(`Error: ${errorData.message || 'Failed to save note'}`);
+            }
+          } catch (error) {
+            console.error('Error saving note:', error);
+            alert('Error saving note');
           }
-          setIsFormOpen(false);
-          setEditingNote(null);
         }}
         editingNote={editingNote}
       />

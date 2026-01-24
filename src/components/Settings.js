@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard } from 'lucide-react';
 
 const Settings = () => {
   const [settings, setSettings] = useState({
     // General Settings
-    companyName: 'ABC Enterprises',
+    companyName: '',
     financialYear: '2024-25',
     currency: 'INR',
     dateFormat: 'DD/MM/YYYY',
@@ -15,6 +15,12 @@ const Settings = () => {
     invoiceStartNumber: 1,
     autoGenerateInvoice: true,
     invoiceTemplate: 'Standard',
+    
+    // Credit Note Settings
+    creditNotePrefix: 'CN',
+    creditNoteStartNumber: 1,
+    autoGenerateCreditNote: true,
+    creditNoteTemplate: 'Standard',
     
     // Notification Settings
     emailNotifications: true,
@@ -38,6 +44,34 @@ const Settings = () => {
     roleBasedAccess: true
   });
 
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const userData = data.user;
+        setSettings(prev => ({
+          ...prev,
+          companyName: userData.companyName || userData.profile?.tradeName || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setSettings(prev => ({
       ...prev,
@@ -49,6 +83,17 @@ const Settings = () => {
     console.log('Saving settings:', settings);
     alert('Settings saved successfully!');
   };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -175,6 +220,65 @@ const Settings = () => {
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Credit Note Settings */}
+        <div className="bg-green-50 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <CreditCard className="w-5 h-5 text-green-600 mr-2" />
+            <h2 className="text-xl font-semibold text-gray-800">Credit Note Settings</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Credit Note Prefix</label>
+                <input
+                  type="text"
+                  value={settings.creditNotePrefix}
+                  onChange={(e) => handleInputChange('creditNotePrefix', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
+                <input
+                  type="number"
+                  value={settings.creditNoteStartNumber}
+                  onChange={(e) => handleInputChange('creditNoteStartNumber', e.target.value)}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Credit Note Template</label>
+              <select
+                value={settings.creditNoteTemplate}
+                onChange={(e) => handleInputChange('creditNoteTemplate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="Standard">Standard</option>
+                <option value="Professional">Professional</option>
+                <option value="Minimal">Minimal</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Auto Generate Credit Note Numbers</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.autoGenerateCreditNote}
+                  onChange={(e) => handleInputChange('autoGenerateCreditNote', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
               </label>
             </div>
           </div>

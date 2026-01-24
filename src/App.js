@@ -18,6 +18,10 @@ import BankReconciliation from './components/BankReconciliation';
 import BankDashboard from './components/BankDashboard';
 import BankStatementUpload from './components/BankStatementUpload';
 import AssetsManagement from './components/AssetsManagement';
+import AssetsEntry from './components/AssetsEntry';
+import AssetsReport from './components/AssetsReport';
+import Depreciation from './components/Depreciation';
+import CapitalWorkInProgress from './components/CapitalWorkInProgress';
 import BalanceSheet from './components/BalanceSheet';
 import TDSReconciliation from './components/TDSReconciliation';
 import GSTReconciliation from './components/GSTReconciliation';
@@ -42,6 +46,7 @@ import VendorMaster from './components/VendorMaster';
 import ImportExport from './components/ImportExport';
 import TaxInvoice from './components/TaxInvoice';
 import InvoiceManagement from './components/InvoiceManagement';
+import Approvals from './components/Approvals';
 import ChatBot from './components/ChatBot';
 
 function App() {
@@ -98,6 +103,16 @@ function App() {
         return <TaxReport />;
       case 'Assets':
         return <AssetsManagement />;
+      case 'Assets Dashboard':
+        return <AssetsManagement />;
+      case 'Asset Entry':
+        return <AssetsEntry />;
+      case 'Assets Report':
+        return <AssetsReport />;
+      case 'Depreciation':
+        return <Depreciation />;
+      case 'Capital Work in Progress':
+        return <CapitalWorkInProgress />;
       case 'Balance Sheet':
         return <BalanceSheet />;
       case 'GST Reconciliation':
@@ -138,6 +153,8 @@ function App() {
         return <InvoiceManagement setActivePage={setActivePage} />;
       case 'Import/Export':
         return <ImportExport />;
+      case 'Approvals':
+        return <Approvals />;
       default:
         return <Dashboard />;
     }

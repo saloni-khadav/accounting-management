@@ -1,12 +1,123 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Search, Download } from 'lucide-react';
+import { exportToExcel } from '../utils/excelExport';
 
 const TDSPurchases = () => {
-  const transactionsData = [
-    { date: 'April 2024', vendor: 'Ace Solutions', section: '194C', amount: '₹2,500', status: 'Paid', interest: '—' },
-    { date: 'April 7.024', vendor: 'Beacon Industries', section: '194C', amount: '₹3,200', status: 'Payable', interest: '₹300' },
-    { date: 'April 4,204', vendor: 'Omni Enterprises', section: '194J', amount: '₹5,000', status: 'Payable', interest: '₹200' },
-    { date: 'April 1.204', vendor: 'Ace Solutions', section: '194Q', amount: '₹4,500', status: 'Paid', interest: '—' },
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [transactionsData, setTransactionsData] = useState([]);
+  const [summaryData, setSummaryData] = useState({
+    totalTds: 0,
+    paid: 0,
+    payable: 0,
+    interest: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch TDS data from bills
+  const fetchTDSData = async () => {
+    try {
+      setLoading(true);
+      const [billsResponse, vendorsResponse] = await Promise.all([
+        fetch('http://localhost:5001/api/bills'),
+        fetch('http://localhost:5001/api/vendors')
+      ]);
+      
+      if (billsResponse.ok && vendorsResponse.ok) {
+        const bills = await billsResponse.json();
+        const vendors = await vendorsResponse.json();
+        
+        // Create vendor PAN lookup
+        const vendorPANMap = {};
+        vendors.forEach(vendor => {
+          if (vendor.vendorName && vendor.panNumber) {
+            vendorPANMap[vendor.vendorName] = vendor.panNumber;
+          }
+        });
+        
+        // Filter bills that have TDS and are approved
+        const tdsTransactions = bills
+          .filter(bill => bill.tdsAmount && bill.tdsAmount > 0 && bill.approvalStatus === 'approved')
+          .map(bill => ({
+            _id: bill._id,
+            vendorName: bill.vendorName,
+            invoiceNo: bill.billNumber,
+            invoiceDate: bill.billDate,
+            panNo: bill.vendorPAN || vendorPANMap[bill.vendorName] || 'N/A',
+            tdsSection: bill.tdsSection || 'N/A',
+            taxableValue: bill.totalTaxableValue || 0,
+            tdsAmount: bill.tdsAmount || 0,
+            interest: 0,
+            totalTdsPayable: bill.tdsAmount || 0,
+            status: 'Payable',
+            chalanNo: bill.chalanNo || null,
+            chalanDate: bill.chalanDate || null
+          }))
+          .filter(transaction => {
+            if (!searchTerm) return true;
+            const search = searchTerm.toLowerCase();
+            return (
+              transaction.vendorName.toLowerCase().includes(search) ||
+              transaction.invoiceNo.toLowerCase().includes(search) ||
+              transaction.panNo.toLowerCase().includes(search)
+            );
+          });
+        
+        setTransactionsData(tdsTransactions);
+        
+        // Calculate summary from the filtered data
+        const totalTds = tdsTransactions.reduce((sum, t) => sum + t.tdsAmount, 0);
+        const paid = tdsTransactions.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.tdsAmount, 0);
+        const payable = tdsTransactions.filter(t => t.status === 'Payable').reduce((sum, t) => sum + t.tdsAmount, 0);
+        const interest = tdsTransactions.reduce((sum, t) => sum + t.interest, 0);
+        
+        setSummaryData({ totalTds, paid, payable, interest });
+        setError(null);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to load TDS data from bills');
+      setTransactionsData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTDSData();
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchTDSData();
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleExportToExcel = () => {
+    if (transactionsData.length === 0) {
+      alert('No TDS data to export');
+      return;
+    }
+    
+    const exportData = transactionsData.map(transaction => ({
+      'Vendor Name': transaction.vendorName,
+      'Invoice No.': transaction.invoiceNo,
+      'Invoice Date': new Date(transaction.invoiceDate).toLocaleDateString('en-IN'),
+      'PAN No.': transaction.panNo,
+      'TDS Section': transaction.tdsSection,
+      'Taxable Value': transaction.taxableValue,
+      'TDS Amount': transaction.tdsAmount,
+      'Interest': transaction.interest,
+      'Total TDS Payable': transaction.totalTdsPayable,
+      'Status': transaction.status,
+      'Chalan No.': transaction.chalanNo || '',
+      'Chalan Date': transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-IN') : ''
+    }));
+    
+    exportToExcel(exportData, `TDS_Purchases_${new Date().toISOString().split('T')[0]}`);
+    alert('TDS data exported successfully!');
+  };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -17,19 +128,42 @@ const TDSPurchases = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Total TDS</h3>
-          <p className="text-4xl font-bold text-gray-900">₹15,200</p>
+          <p className="text-4xl font-bold text-gray-900">₹{summaryData.totalTds.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Paid</h3>
-          <p className="text-4xl font-bold text-gray-900">₹8,000</p>
+          <p className="text-4xl font-bold text-gray-900">₹{summaryData.paid.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Payable</h3>
-          <p className="text-4xl font-bold text-gray-900">₹7,200</p>
+          <p className="text-4xl font-bold text-gray-900">₹{summaryData.payable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Interest</h3>
-          <p className="text-4xl font-bold text-gray-900">₹500</p>
+          <p className="text-4xl font-bold text-gray-900">₹{summaryData.interest.toLocaleString('en-IN')}</p>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by vendor, invoice, or PAN..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80"
+            />
+          </div>
+          <button 
+            onClick={handleExportToExcel}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
         </div>
       </div>
 
@@ -37,32 +171,72 @@ const TDSPurchases = () => {
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Transaction Details</h2>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Date</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Vendor</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">TDS Section</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">TDS Amount</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Status</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Interest</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactionsData.map((transaction, index) => (
-                <tr key={index} className="border-b border-gray-100">
-                  <td className="py-5 px-4 text-gray-900">{transaction.date}</td>
-                  <td className="py-5 px-4 text-gray-900">{transaction.vendor}</td>
-                  <td className="py-5 px-4 text-gray-900">{transaction.section}</td>
-                  <td className="py-5 px-4 text-gray-900 font-semibold">{transaction.amount}</td>
-                  <td className="py-5 px-4 text-gray-900">{transaction.status}</td>
-                  <td className="py-5 px-4 text-gray-900">{transaction.interest}</td>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">
+              Loading TDS data...
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">
+              Error: {error}
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Vendor Name</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Invoice No.</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Invoice Date</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">PAN No.</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">TDS Section</th>
+                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Taxable Value</th>
+                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">TDS Amount</th>
+                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Interest</th>
+                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Total TDS Payable</th>
+                  <th className="text-center py-4 px-3 font-semibold text-gray-900 text-sm">Status</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Chalan No.</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Chalan Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {transactionsData.map((transaction, index) => (
+                  <tr key={transaction._id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-3 text-gray-900 font-medium">{transaction.vendorName}</td>
+                    <td className="py-4 px-3 text-gray-900">{transaction.invoiceNo}</td>
+                    <td className="py-4 px-3 text-gray-900">{new Date(transaction.invoiceDate).toLocaleDateString('en-IN')}</td>
+                    <td className="py-4 px-3 text-gray-900 font-mono text-sm">{transaction.panNo}</td>
+                    <td className="py-4 px-3 text-gray-900">{transaction.tdsSection}</td>
+                    <td className="py-4 px-3 text-gray-900 text-right font-semibold">₹{transaction.taxableValue.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-3 text-gray-900 text-right font-semibold">₹{transaction.tdsAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-3 text-gray-900 text-right">{transaction.interest > 0 ? `₹${transaction.interest.toLocaleString('en-IN')}` : '—'}</td>
+                    <td className="py-4 px-3 text-gray-900 text-right font-bold">₹{transaction.totalTdsPayable.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-3 text-center">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        transaction.status === 'Paid' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {transaction.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-3 text-gray-900">{transaction.chalanNo || '—'}</td>
+                    <td className="py-4 px-3 text-gray-900">{transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-IN') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
+        
+        {!loading && !error && transactionsData.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No TDS transactions found. TDS data is automatically loaded from bills with TDS amounts.
+            <br />
+            <span className="text-sm">Create bills with TDS sections to see TDS purchase data here.</span>
+          </div>
+        )}
       </div>
+
+
     </div>
   );
 };

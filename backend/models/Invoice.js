@@ -266,18 +266,39 @@ const invoiceSchema = new mongoose.Schema({
   // Status
   status: {
     type: String,
-    enum: ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled'],
+    enum: ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled', 'Approved', 'Rejected'],
     default: 'Draft'
+  },
+  rejectionReason: {
+    type: String,
+    trim: true
+  },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  reminderSentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reminderSentAt: {
+    type: Date
+  },
+  approvedAt: {
+    type: Date
+  },
+  rejectedAt: {
+    type: Date
   },
   
   // Audit Fields
   createdBy: {
-    type: String,
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   updatedBy: {
-    type: String,
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

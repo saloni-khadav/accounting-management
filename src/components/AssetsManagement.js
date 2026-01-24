@@ -1,28 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 const AssetsManagement = () => {
-  const assetAllocation = [
-    { name: 'Machinery', value: 35, color: '#1e40af' },
-    { name: 'Vehicles', value: 30, color: '#3b82f6' },
-    { name: 'Buildings', value: 35, color: '#60a5fa' }
-  ];
+  const [assets, setAssets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [assetAllocation, setAssetAllocation] = useState([]);
+  const [topAssets, setTopAssets] = useState([]);
+  const [summary, setSummary] = useState({
+    totalValue: 0,
+    totalDepreciation: 0,
+    netValue: 0,
+    monthlyDepreciation: 0
+  });
 
-  const topAssets = [
-    { name: 'Delivery Truck', value: 25000 },
-    { name: 'Office Building', value: 300000 },
-    { name: 'Forklift', value: 20000 },
-    { name: 'Computer Equip.', value: 10000 },
-    { name: 'Warehouse', value: 145000 }
-  ];
+  useEffect(() => {
+    fetchAssets();
+  }, []);
 
-  const assetList = [
-    { name: 'Forklift', type: 'Machinery', date: '04/10/2022', value: '$20,000', depreciation: '$4,000' },
-    { name: 'Delivery Truck', type: 'Vehicle', date: '12/05/2021', value: '$25,000', depreciation: '$7,000' },
-    { name: 'Office Building', type: 'Buildings', date: '08/20/2018', value: '$300,000', depreciation: '$20,000' },
-    { name: 'Computer Equipment', type: 'Machinery', date: '03/15/2023', value: '$10,000', depreciation: '$1,000' },
-    { name: 'Warehouse', type: 'Buildings', date: '11/30/2017', value: '$145,000', depreciation: '$3,000' }
-  ];
+  const fetchAssets = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/assets');
+      const data = await response.json();
+      setAssets(data);
+      calculateSummary(data);
+      calculateChartData(data);
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+    }
+    setLoading(false);
+  };
+
+  const calculateSummary = (assetsData) => {
+    const totalValue = assetsData.reduce((sum, asset) => sum + asset.purchaseValue, 0);
+    const totalDepreciation = assetsData.reduce((sum, asset) => sum + (asset.accumulatedDepreciation || 0), 0);
+    const netValue = totalValue - totalDepreciation;
+    const monthlyDepreciation = 2000; // This would need proper calculation based on depreciation method
+    
+    setSummary({
+      totalValue,
+      totalDepreciation,
+      netValue,
+      monthlyDepreciation
+    });
+  };
+
+  const calculateChartData = (assetsData) => {
+    // Calculate asset allocation by category
+    const categoryTotals = assetsData.reduce((acc, asset) => {
+      acc[asset.category] = (acc[asset.category] || 0) + asset.purchaseValue;
+      return acc;
+    }, {});
+    
+    const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
+    const colors = ['#1e40af', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe'];
+    
+    const allocation = Object.entries(categoryTotals).map(([category, value], index) => ({
+      name: category,
+      value: total > 0 ? Math.round((value / total) * 100) : 0,
+      color: colors[index % colors.length]
+    }));
+    
+    setAssetAllocation(allocation);
+    
+    // Get top 5 assets by value
+    const sortedAssets = [...assetsData]
+      .sort((a, b) => b.purchaseValue - a.purchaseValue)
+      .slice(0, 5)
+      .map(asset => ({
+        name: asset.assetName.length > 15 ? asset.assetName.substring(0, 15) + '...' : asset.assetName,
+        value: asset.purchaseValue
+      }));
+    
+    setTopAssets(sortedAssets);
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -35,19 +86,19 @@ const AssetsManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Total Asset Value</h3>
-          <p className="text-2xl font-bold text-blue-600">$500,000</p>
+          <p className="text-2xl font-bold text-blue-600">₹{summary.totalValue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Accumulated</h3>
-          <p className="text-2xl font-bold text-green-600">$50,000</p>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Accumulated Depreciation</h3>
+          <p className="text-2xl font-bold text-green-600">₹{summary.totalDepreciation.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Net Asset Value</h3>
-          <p className="text-2xl font-bold text-purple-600">$450,000</p>
+          <p className="text-2xl font-bold text-purple-600">₹{summary.netValue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Current Month</h3>
-          <p className="text-2xl font-bold text-red-600">$2,000</p>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Assets</h3>
+          <p className="text-2xl font-bold text-red-600">{assets.length}</p>
         </div>
       </div>
 
@@ -90,51 +141,61 @@ const AssetsManagement = () => {
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Assets by Value</h3>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topAssets} layout="horizontal" margin={{ left: 80 }}>
-                <XAxis type="number" stroke="#64748b" fontSize={12} tickFormatter={(value) => `$${value/1000}k`} />
-                <YAxis type="category" dataKey="name" stroke="#64748b" fontSize={12} width={80} />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Value']} />
-                <Bar dataKey="value" fill="url(#blueGradient)" radius={[0, 4, 4, 0]} />
-                <defs>
-                  <linearGradient id="blueGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#1e40af" />
-                    <stop offset="100%" stopColor="#60a5fa" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
+            {topAssets.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topAssets} layout="vertical" margin={{ left: 100, right: 20, top: 10, bottom: 10 }}>
+                  <XAxis type="number" stroke="#64748b" fontSize={12} tickFormatter={(value) => `₹${(value/100000).toFixed(1)}L`} />
+                  <YAxis type="category" dataKey="name" stroke="#64748b" fontSize={11} width={90} />
+                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']} />
+                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">No assets data available</div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Asset List Table */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset List</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Name</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Type</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Purchase Date</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Value</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Accum. Depreciation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assetList.map((asset, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{asset.name}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{asset.type}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{asset.date}</td>
-                  <td className="py-3 px-4 text-sm font-semibold text-gray-900">{asset.value}</td>
-                  <td className="py-3 px-4 text-sm text-red-600 font-medium">{asset.depreciation}</td>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Assets</h3>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading assets...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Category</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Purchase Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Value</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {assets.slice(0, 10).map((asset) => (
+                  <tr key={asset._id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{asset.assetName}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600">{asset.category}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600">{new Date(asset.purchaseDate).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-sm font-semibold text-gray-900">₹{asset.purchaseValue.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-sm">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        asset.status === 'Active' ? 'bg-green-100 text-green-800' :
+                        asset.status === 'Under Maintenance' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {asset.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

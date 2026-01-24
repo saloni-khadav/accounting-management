@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown } from 'lucide-react';
 import { generateCreditNoteNumber } from '../utils/numberGenerator';
+import { exportToExcel } from '../utils/excelExport';
+import { generateCreditNotePDF } from '../utils/pdfGenerator';
 
 const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   const [creditNoteData, setCreditNoteData] = useState({
     // Credit Note Details
     creditNoteNumber: '',
     creditNoteDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
     originalInvoiceNumber: '',
+    originalInvoiceDate: '',
     reason: '',
     
     // Supplier Details
@@ -70,6 +75,9 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const [showNotification, setShowNotification] = useState(false);
   const [autoFillData, setAutoFillData] = useState(null);
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
+  const [clients, setClients] = useState([]);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
 
   useEffect(() => {
     if (editingCreditNote) {
@@ -100,6 +108,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         creditNoteDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         originalInvoiceNumber: '',
+        originalInvoiceDate: '',
         reason: '',
         supplierName: 'ABC Enterprises',
         supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
@@ -143,6 +152,58 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   useEffect(() => {
     calculateTotals();
   }, [creditNoteData.items]);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5001/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          const profile = userData.user.profile || {};
+          
+          setCreditNoteData(prev => ({
+            ...prev,
+            supplierName: userData.user.companyName || profile.tradeName || prev.supplierName,
+            supplierAddress: profile.address || prev.supplierAddress,
+            supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
+            supplierPAN: profile.panNumber || prev.supplierPAN
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Fetch clients data
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/clients');
+        if (response.ok) {
+          const clientsData = await response.json();
+          setClients(clientsData);
+        }
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchClients();
+    }
+  }, [isOpen]);
 
   const calculateItemTotals = (item) => {
     const quantity = Math.max(0, Number(item.quantity) || 0);
@@ -196,6 +257,23 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       grandTotal
     }));
   };
+
+  const handleClientSelect = (client) => {
+    setCreditNoteData(prev => ({
+      ...prev,
+      customerName: client.clientName,
+      customerAddress: client.billingAddress || '',
+      customerGSTIN: client.gstNumber || '',
+      customerPlace: client.customerPlace || ''
+    }));
+    setShowClientDropdown(false);
+    setClientSearchTerm(client.clientName);
+  };
+
+  const filteredClients = clients.filter(client =>
+    client.clientName.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+    client.clientCode.toLowerCase().includes(clientSearchTerm.toLowerCase())
+  );
 
   const handleInputChange = (field, value) => {
     setCreditNoteData(prev => ({
@@ -265,14 +343,12 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     
     const savedCreditNote = {
       ...creditNoteData,
-      _id: editingCreditNote?._id || Date.now().toString(),
       status: 'Draft'
     };
     
     if (onSave) {
       onSave(savedCreditNote);
     }
-    alert('Credit Note saved successfully!');
   };
 
   const handleNewEntry = () => {
@@ -295,6 +371,102 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     setTimeout(() => setShowNotification(false), 3000);
   };
 
+  const handleClose = () => {
+    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      onClose();
+    }
+  };
+
+  const handleExportPDF = () => {
+    generateCreditNotePDF(creditNoteData);
+    setShowExportDropdown(false);
+  };
+
+  const handleExportExcel = () => {
+    // Main Credit Note Data
+    const mainData = {
+      'Credit Note Number': creditNoteData.creditNoteNumber,
+      'Credit Note Date': creditNoteData.creditNoteDate,
+      'Reference Number': creditNoteData.referenceNumber || '',
+      'Original Invoice Number': creditNoteData.originalInvoiceNumber,
+      'Original Invoice Date': creditNoteData.originalInvoiceDate || '',
+      'Reason': creditNoteData.reason || '',
+      
+      // Supplier Details
+      'Supplier Name': creditNoteData.supplierName,
+      'Supplier Address': creditNoteData.supplierAddress,
+      'Supplier GSTIN': creditNoteData.supplierGSTIN,
+      'Supplier PAN': creditNoteData.supplierPAN,
+      
+      // Customer Details
+      'Customer Name': creditNoteData.customerName,
+      'Customer Address': creditNoteData.customerAddress,
+      'Customer GSTIN': creditNoteData.customerGSTIN || '',
+      'Customer Place': creditNoteData.customerPlace || '',
+      
+      // Totals
+      'Subtotal': creditNoteData.subtotal || 0,
+      'Total Discount': creditNoteData.totalDiscount || 0,
+      'Taxable Value': creditNoteData.totalTaxableValue || 0,
+      'CGST Amount': creditNoteData.totalCGST || 0,
+      'SGST Amount': creditNoteData.totalSGST || 0,
+      'IGST Amount': creditNoteData.totalIGST || 0,
+      'Total Tax': creditNoteData.totalTax || 0,
+      'Grand Total': creditNoteData.grandTotal || 0,
+      
+      // Additional Info
+      'Notes': creditNoteData.notes || '',
+      'Terms & Conditions': creditNoteData.termsConditions || '',
+      'Status': 'Draft'
+    };
+    
+    // Items Data
+    const itemsData = creditNoteData.items.map((item, index) => ({
+      'Item No': index + 1,
+      'Product': item.product || '',
+      'Description': item.description || '',
+      'HSN/SAC Code': item.hsnCode || '',
+      'Quantity': item.quantity || 0,
+      'Unit': item.unit || 'Nos',
+      'Unit Price': item.unitPrice || 0,
+      'Discount': item.discount || 0,
+      'Taxable Value': item.taxableValue || 0,
+      'CGST Rate (%)': item.cgstRate || 0,
+      'CGST Amount': item.cgstAmount || 0,
+      'SGST Rate (%)': item.sgstRate || 0,
+      'SGST Amount': item.sgstAmount || 0,
+      'IGST Rate (%)': item.igstRate || 0,
+      'IGST Amount': item.igstAmount || 0,
+      'Total Amount': item.totalAmount || 0
+    }));
+    
+    // Create workbook with multiple sheets
+    const workbook = {
+      'Credit Note Summary': [mainData],
+      'Items Details': itemsData
+    };
+    
+    exportToExcel(workbook, `CreditNote_${creditNoteData.creditNoteNumber}_${new Date().toISOString().split('T')[0]}`);
+    setShowExportDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowExportDropdown(false);
+      }
+      if (!event.target.closest('.client-dropdown-container')) {
+        setShowClientDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -303,7 +475,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">{editingCreditNote ? 'Edit Credit Note' : 'Create Credit Note'}</h1>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
           >
             ×
@@ -357,7 +529,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       </div>
 
       {/* Credit Note Details */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Credit Note Number *</label>
           <input
@@ -386,6 +558,15 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           />
         </div>
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Original Invoice Date</label>
+          <input
+            type="date"
+            value={creditNoteData.originalInvoiceDate}
+            onChange={(e) => handleInputChange('originalInvoiceDate', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
           <input
             type="text"
@@ -400,14 +581,41 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       <div className="mb-6 p-4 bg-blue-50 rounded-lg">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Customer Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="relative client-dropdown-container">
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
-            <input
-              type="text"
-              value={creditNoteData.customerName}
-              onChange={(e) => handleInputChange('customerName', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={clientSearchTerm || creditNoteData.customerName}
+                onChange={(e) => {
+                  setClientSearchTerm(e.target.value);
+                  setShowClientDropdown(true);
+                  handleInputChange('customerName', e.target.value);
+                }}
+                onFocus={() => setShowClientDropdown(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Search or enter customer name"
+              />
+              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+              
+              {showClientDropdown && filteredClients.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {filteredClients.map((client) => (
+                    <div
+                      key={client._id}
+                      onClick={() => handleClientSelect(client)}
+                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{client.clientName}</div>
+                      <div className="text-sm text-gray-500">{client.clientCode}</div>
+                      {client.contactPerson && (
+                        <div className="text-xs text-gray-400">{client.contactPerson}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer GSTIN</label>
@@ -448,12 +656,17 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           <table className="w-full border border-gray-200 rounded-lg">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Unit</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">IGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Total</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Action</th>
               </tr>
@@ -461,6 +674,15 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             <tbody>
               {creditNoteData.items.map((item, index) => (
                 <tr key={index} className="border-b">
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={item.product || ''}
+                      onChange={(e) => handleItemChange(index, 'product', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      placeholder="Product/Item"
+                    />
+                  </td>
                   <td className="px-3 py-2">
                     <input
                       type="text"
@@ -486,7 +708,21 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
+                      step="0.01"
                     />
+                  </td>
+                  <td className="px-3 py-2">
+                    <select
+                      value={item.unit}
+                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="Nos">Nos</option>
+                      <option value="Kg">Kg</option>
+                      <option value="Liters">Liters</option>
+                      <option value="Hours">Hours</option>
+                      <option value="Pieces">Pieces</option>
+                    </select>
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -495,8 +731,20 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
+                      step="0.01"
                     />
                   </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={item.discount}
+                      onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                      step="0.01"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
                   <td className="px-3 py-2">
                     <input
                       type="number"
@@ -505,6 +753,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
                       max="28"
+                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -515,6 +764,18 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
                       max="28"
+                      step="0.01"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="number"
+                      value={item.igstRate}
+                      onChange={(e) => handleItemChange(index, 'igstRate', e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                      max="28"
+                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
@@ -522,6 +783,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                     <button
                       onClick={() => removeItem(index)}
                       className="text-red-600 hover:text-red-800"
+                      disabled={creditNoteData.items.length === 1}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -552,12 +814,28 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             <span className="font-medium">₹{(creditNoteData.subtotal || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-gray-600">Total Discount:</span>
+            <span className="font-medium">₹{(creditNoteData.totalDiscount || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Taxable Value:</span>
+            <span className="font-medium">₹{(creditNoteData.totalTaxableValue || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-gray-600">CGST:</span>
             <span className="font-medium">₹{(creditNoteData.totalCGST || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">SGST:</span>
             <span className="font-medium">₹{(creditNoteData.totalSGST || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">IGST:</span>
+            <span className="font-medium">₹{(creditNoteData.totalIGST || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Total Tax:</span>
+            <span className="font-medium">₹{(creditNoteData.totalTax || 0).toFixed(2)}</span>
           </div>
           <hr className="my-2" />
           <div className="flex justify-between text-lg font-bold">
@@ -576,6 +854,38 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           >
             Cancel
           </button>
+          
+          {/* Export Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </button>
+            
+            {showExportDropdown && (
+              <div className="absolute right-0 bottom-full mb-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <button
+                  onClick={handleExportPDF}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-t-lg flex items-center"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  PDF
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-b-lg flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Excel
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button 
             onClick={handleSave}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"

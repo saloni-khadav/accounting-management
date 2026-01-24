@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Eye, Edit, Trash2, Download, FileText, Bell, CheckCircle, RotateCcw } from 'lucide-react';
+import { exportToExcel } from '../utils/excelExport';
+import { generateCreditNotePDF } from '../utils/pdfGenerator';
 import CreditNote from './CreditNote';
 
 const CreditNoteManagement = ({ setActivePage }) => {
@@ -10,16 +12,91 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
 
+  useEffect(() => {
+    fetchCreditNotes();
+  }, []);
+
+  const fetchCreditNotes = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/credit-notes', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCreditNotes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching credit notes:', error);
+    }
+    setLoading(false);
+  };
+
+  // Filter credit notes based on search and status
+  const filteredCreditNotes = creditNotes.filter(creditNote => {
+    const matchesSearch = creditNote.creditNoteNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         creditNote.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         creditNote.originalInvoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || creditNote.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+
+  const handleDownloadPDF = (creditNote) => {
+    generateCreditNotePDF(creditNote);
+  };
+
+  const handleExportToExcel = () => {
+    if (filteredCreditNotes.length === 0) {
+      alert('No credit note data to export');
+      return;
+    }
+    
+    const exportData = filteredCreditNotes.map(creditNote => ({
+      'Credit Note Number': creditNote.creditNoteNumber,
+      'Date': new Date(creditNote.creditNoteDate).toLocaleDateString(),
+      'Customer': creditNote.customerName,
+      'Original Invoice': creditNote.originalInvoiceNumber || '',
+      'Original Invoice Date': creditNote.originalInvoiceDate ? new Date(creditNote.originalInvoiceDate).toLocaleDateString() : '',
+      'Reason': creditNote.reason || '',
+      'Taxable Value': creditNote.totalTaxableValue || 0,
+      'Total Tax': creditNote.totalTax || 0,
+      'Grand Total': creditNote.grandTotal || 0,
+      'Status': creditNote.status || 'Draft'
+    }));
+    
+    exportToExcel(exportData, `credit_notes_${new Date().toISOString().split('T')[0]}`);
+    alert('Credit Note data exported successfully!');
+  };
 
   const handleEditCreditNote = (creditNote) => {
     setEditingCreditNote(creditNote);
     setIsFormOpen(true);
   };
 
-  const handleDeleteCreditNote = (creditNoteId) => {
+  const handleDeleteCreditNote = async (creditNoteId) => {
     if (window.confirm('Are you sure you want to delete this credit note?')) {
-      setCreditNotes(creditNotes.filter(cn => cn._id !== creditNoteId));
-      alert('Credit Note deleted successfully!');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5001/api/credit-notes/${creditNoteId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          setCreditNotes(creditNotes.filter(cn => cn._id !== creditNoteId));
+          alert('Credit Note deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting credit note:', error);
+        alert('Error deleting credit note');
+      }
     }
   };
 
@@ -44,6 +121,13 @@ const CreditNoteManagement = ({ setActivePage }) => {
           <p className="text-gray-600">Manage credit notes and returns</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleExportToExcel}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export to Excel
+          </button>
           <button
             onClick={() => setIsFormOpen(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
@@ -95,14 +179,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
             </tr>
           </thead>
           <tbody>
-            {creditNotes.length === 0 ? (
+            {filteredCreditNotes.length === 0 ? (
               <tr>
                 <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                  No credit notes found
+                  {creditNotes.length === 0 ? 'No credit notes found' : 'No credit notes match your filters'}
                 </td>
               </tr>
             ) : (
-              creditNotes.map((creditNote) => (
+              filteredCreditNotes.map((creditNote) => (
                 <tr key={creditNote._id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
                     {creditNote.creditNoteNumber}
@@ -126,6 +210,13 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleDownloadPDF(creditNote)}
+                        className="text-blue-600 hover:text-blue-800 p-1" 
+                        title="Download PDF"
+                      >
+                        <Download size={16} />
+                      </button>
                       <button 
                         onClick={() => handleEditCreditNote(creditNote)}
                         className="text-green-600 hover:text-green-800 p-1" 
@@ -156,16 +247,45 @@ const CreditNoteManagement = ({ setActivePage }) => {
           setIsFormOpen(false);
           setEditingCreditNote(null);
         }}
-        onSave={(savedCreditNote) => {
-          if (editingCreditNote) {
-            setCreditNotes(creditNotes.map(cn => 
-              cn._id === editingCreditNote._id ? savedCreditNote : cn
-            ));
-          } else {
-            setCreditNotes([savedCreditNote, ...creditNotes]);
+        onSave={async (savedCreditNote) => {
+          try {
+            const token = localStorage.getItem('token');
+            if (editingCreditNote) {
+              const response = await fetch(`http://localhost:5001/api/credit-notes/${editingCreditNote._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(savedCreditNote)
+              });
+              if (response.ok) {
+                const updatedCreditNote = await response.json();
+                setCreditNotes(creditNotes.map(cn => 
+                  cn._id === editingCreditNote._id ? updatedCreditNote : cn
+                ));
+              }
+            } else {
+              const response = await fetch('http://localhost:5001/api/credit-notes', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(savedCreditNote)
+              });
+              if (response.ok) {
+                const newCreditNote = await response.json();
+                setCreditNotes([newCreditNote, ...creditNotes]);
+              }
+            }
+            setIsFormOpen(false);
+            setEditingCreditNote(null);
+            alert('Credit Note saved successfully!');
+          } catch (error) {
+            console.error('Error saving credit note:', error);
+            alert('Error saving credit note');
           }
-          setIsFormOpen(false);
-          setEditingCreditNote(null);
         }}
         editingCreditNote={editingCreditNote}
       />

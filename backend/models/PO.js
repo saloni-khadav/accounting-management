@@ -51,8 +51,33 @@ const poSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Draft', 'Sent', 'Approved', 'Cancelled'],
+    enum: ['Draft', 'Sent', 'Approved', 'Cancelled', 'Rejected'],
     default: 'Draft'
+  },
+  rejectionReason: {
+    type: String,
+    trim: true
+  },
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  reminderSentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reminderSentAt: {
+    type: Date
+  },
+  approvedAt: {
+    type: Date
+  },
+  rejectedAt: {
+    type: Date
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

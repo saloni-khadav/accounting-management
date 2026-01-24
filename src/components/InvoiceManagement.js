@@ -14,53 +14,10 @@ const InvoiceManagement = ({ setActivePage }) => {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [pendingOrders, setPendingOrders] = useState([
-    {
-      id: 'PO-001',
-      customer: 'ABC Enterprises',
-      amount: '₹ 25,000',
-      items: [{ name: 'Product A', qty: 5, rate: 5000 }],
-      date: '2024-01-15',
-      status: 'pending'
-    },
-    {
-      id: 'PO-002', 
-      customer: 'XYZ Corp',
-      amount: '₹ 15,000',
-      items: [{ name: 'Product B', qty: 3, rate: 5000 }],
-      date: '2024-01-16',
-      status: 'pending'
-    }
-  ]);
-  const [showNotification, setShowNotification] = useState(false);
-  const [autoFillData, setAutoFillData] = useState(null);
 
   useEffect(() => {
     fetchInvoices();
   }, [statusFilter, dateFilter]);
-
-  // Handle auto-fill from purchase order
-  const handleAutoFillFromOrder = (order) => {
-    setAutoFillData({
-      customer: order.customer,
-      orderNo: order.id,
-      items: order.items,
-      amount: order.amount
-    });
-    
-    // Create pre-filled invoice data
-    setEditingInvoice({
-      customerName: order.customer,
-      referenceNumber: order.id,
-      invoiceNumber: '',
-      invoiceDate: new Date().toISOString().split('T')[0],
-    });
-    
-    setPendingOrders(prev => prev.filter(o => o.id !== order.id));
-    setShowNotification(true);
-    setIsFormOpen(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -203,7 +160,7 @@ const InvoiceManagement = ({ setActivePage }) => {
         </div>
       </div>
 
-      {/* Filters */}}
+      {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -462,44 +419,6 @@ const InvoiceManagement = ({ setActivePage }) => {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Notification */}
-      {showNotification && (
-        <div className="mt-6 mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-600" />
-          <span className="text-green-800 text-sm">Invoice form opened with purchase order details!</span>
-        </div>
-      )}
-
-      {/* Pending Orders Alert */}
-      {pendingOrders.length > 0 && (
-        <div className="mt-6 mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell className="w-5 h-5 text-blue-600" />
-            <h3 className="font-medium text-blue-800">Pending Purchase Orders ({pendingOrders.length})</h3>
-          </div>
-          <div className="space-y-2">
-            {pendingOrders.map(order => (
-              <div key={order.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3 bg-white rounded border">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium text-sm">{order.id}</span>
-                    <span className="text-sm text-gray-600">- {order.customer}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{order.date} • {order.amount}</div>
-                </div>
-                <button 
-                  onClick={() => handleAutoFillFromOrder(order)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                >
-                  Create Invoice
-                </button>
-              </div>
-            ))}
           </div>
         </div>
       )}

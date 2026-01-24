@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -28,6 +28,40 @@ import {
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => {
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [userRole, setUserRole] = useState('user');
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    // Get user role from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || 'user'); // Use actual user role from database
+    
+    // Fetch pending approvals count for managers
+    if (user.role === 'manager') {
+      fetchPendingCount();
+      const interval = setInterval(fetchPendingCount, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const fetchPendingCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/manager/pending', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const pending = data.approvals.filter(item => item.status === 'pending').length;
+        setPendingCount(pending);
+      }
+    } catch (error) {
+      console.error('Error fetching pending count:', error);
+    }
+  };
 
   const menuItems = [
     { 
@@ -35,17 +69,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: CreditCard, 
       label: 'Accounts Payable',
       submenu: [
-        { id: 'Accounts Payable', label: 'Overview' },
-        { id: 'Bills', label: 'Bills' },
-        { id: 'Payments', label: 'Payments' },
-        { id: 'Purchase Orders', label: 'Purchase Orders' },
-        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes' },
-        { id: 'TDS on Purchases', label: 'TDS on Purchases' },
-        { id: 'Vendors Aging', label: 'Vendors Aging' },
-        { id: 'Vendor Master', label: 'Vendor Master' },
-        { id: 'AP Reconciliation', label: 'AP Reconciliation' },
-        { id: 'AP Report', label: 'AP Report' },
-        { id: 'Approvals & Workflows', label: 'Approvals & Workflows' }
+        { id: 'Accounts Payable', label: 'Overview', icon: LayoutDashboard },
+        { id: 'Bills', label: 'Bills', icon: FileText },
+        { id: 'Payments', label: 'Payments', icon: DollarSign },
+        { id: 'Purchase Orders', label: 'Purchase Orders', icon: ShoppingCart },
+        { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes', icon: Receipt },
+        { id: 'TDS on Purchases', label: 'TDS on Purchases', icon: Percent },
+        { id: 'Vendors Aging', label: 'Vendors Aging', icon: Clock },
+        { id: 'Vendor Master', label: 'Vendor Master', icon: Building },
+        { id: 'AP Reconciliation', label: 'AP Reconciliation', icon: FileCheck },
+        { id: 'AP Report', label: 'AP Report', icon: BarChart3 }
       ]
     },
     { 
@@ -53,22 +86,38 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       icon: Calculator, 
       label: 'Taxation',
       submenu: [
-        { id: 'Taxation', label: 'TDS Reconciliation' },
-        { id: 'GST Reconciliation', label: 'GST Reconciliation' },
-        { id: 'GST Dashboard', label: 'GST Dashboard' },
-        { id: 'Tax Report', label: 'Tax Report' }
+        { id: 'Taxation', label: 'TDS Reconciliation', icon: FileCheck },
+        { id: 'GST Reconciliation', label: 'GST Reconciliation', icon: Sparkles },
+        { id: 'GST Dashboard', label: 'GST Dashboard', icon: LayoutDashboard },
+        { id: 'Tax Report', label: 'Tax Report', icon: BarChart3 }
       ]
     },
-    { id: 'Assets', icon: TrendingUp, label: 'Assets' },
+    { 
+      id: 'Assets', 
+      icon: TrendingUp, 
+      label: 'Assets',
+      submenu: [
+        { id: 'Assets Dashboard', label: 'Assets Dashboard', icon: LayoutDashboard },
+        { id: 'Asset Entry', label: 'Asset Entry', icon: FileText },
+        { id: 'Assets Report', label: 'Assets Report', icon: BarChart3 },
+        { id: 'Depreciation', label: 'Depreciation', icon: TrendingUp },
+        { id: 'Capital Work in Progress', label: 'Capital Work in Progress', icon: Clock }
+      ]
+    },
     { id: 'Balance Sheet', icon: BarChart3, label: 'Balance Sheet' },
     { id: 'Import/Export', icon: Upload, label: 'Import/Export' },
   ];
+
+  // Add Approvals & Workflows only for non-manager users
+  const allMenuItems = userRole === 'manager' 
+    ? menuItems 
+    : [...menuItems, { id: 'Approvals & Workflows', icon: FileCheck, label: 'Workflows' }];
 
   const receivableItems = [
     { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'Client Master', icon: Users, label: 'Client Master' },
     { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
-    { id: 'Create PO', icon: FileText, label: 'Create PO' },
+    { id: 'Create PO', icon: FileText, label: 'Proforma Invoice' },
     { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
     { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
     { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
@@ -225,7 +274,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
           </li>
           
           {/* Other Menu Items */}
-          {menuItems.map((item) => {
+          {allMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.id}>
@@ -238,7 +287,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                     }
                   }}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    activePage === item.id
+                    activePage === item.id || (item.submenu && item.submenu.some(sub => sub.id === activePage))
                       ? 'bg-sidebar-active text-white'
                       : 'hover:bg-sidebar-hover'
                   }`}
@@ -255,25 +304,53 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
                 </button>
                 {!isCollapsed && item.submenu && expandedMenu === item.id && (
                   <ul className="ml-8 mt-2 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <li key={subItem.id}>
-                        <button
-                          onClick={() => setActivePage(subItem.id)}
-                          className={`w-full text-left p-2 rounded-lg transition-colors text-sm ${
-                            activePage === subItem.id
-                              ? 'bg-sidebar-active text-white'
-                              : 'hover:bg-sidebar-hover'
-                          }`}
-                        >
-                          {subItem.label}
-                        </button>
-                      </li>
-                    ))}
+                    {item.submenu.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      return (
+                        <li key={subItem.id}>
+                          <button
+                            onClick={() => setActivePage(subItem.id)}
+                            className={`w-full flex items-center p-2 rounded-lg transition-colors text-sm ${
+                              activePage === subItem.id
+                                ? 'bg-sidebar-active text-white'
+                                : 'hover:bg-sidebar-hover'
+                            }`}
+                          >
+                            {SubIcon && <SubIcon size={16} />}
+                            <span className={`${SubIcon ? 'ml-2' : ''}`}>{subItem.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </li>
             );
           })}
+
+          {/* Approval - Only for Managers */}
+          {userRole === 'manager' && (
+            <li>
+              <button
+                onClick={() => setActivePage('Approvals')}
+                className={`w-full flex items-center p-3 rounded-lg transition-colors relative ${
+                  activePage === 'Approvals'
+                    ? 'bg-sidebar-active text-white'
+                    : 'hover:bg-sidebar-hover'
+                }`}
+              >
+                <CheckCircle size={20} />
+                {!isCollapsed && (
+                  <span className="ml-3 font-medium">Approvals</span>
+                )}
+                {pendingCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
     </div>

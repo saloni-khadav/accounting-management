@@ -171,4 +171,52 @@ router.get('/utils/next-number', async (req, res) => {
   }
 });
 
+// Get debtors aging report
+router.get('/reports/debtors-aging', async (req, res) => {
+  try {
+    const today = new Date();
+    const invoices = await Invoice.find({ 
+      status: { $in: ['Sent', 'Overdue'] },
+      dueDate: { $exists: true }
+    });
+
+    const agingData = {};
+    
+    invoices.forEach(invoice => {
+      const daysOverdue = Math.floor((today - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24));
+      const customer = invoice.customerName;
+      
+      if (!agingData[customer]) {
+        agingData[customer] = {
+          customerName: customer,
+          totalDue: 0,
+          days1_30: 0,
+          days31_60: 0,
+          days61_120: 0,
+          days121_180: 0,
+          days180Plus: 0
+        };
+      }
+      
+      agingData[customer].totalDue += invoice.grandTotal;
+      
+      if (daysOverdue <= 30) {
+        agingData[customer].days1_30 += invoice.grandTotal;
+      } else if (daysOverdue <= 60) {
+        agingData[customer].days31_60 += invoice.grandTotal;
+      } else if (daysOverdue <= 120) {
+        agingData[customer].days61_120 += invoice.grandTotal;
+      } else if (daysOverdue <= 180) {
+        agingData[customer].days121_180 += invoice.grandTotal;
+      } else {
+        agingData[customer].days180Plus += invoice.grandTotal;
+      }
+    });
+    
+    res.json(Object.values(agingData));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

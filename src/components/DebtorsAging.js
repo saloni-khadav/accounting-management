@@ -1,104 +1,143 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const DebtorsAging = () => {
-  const agingData = [
-    { label: '32 Invoices', value: 100, color: 'bg-blue-600' },
-    { label: '20 1-30 Day', value: 75, color: 'bg-blue-600' },
-    { label: '18 1-60 Day', value: 55, color: 'bg-blue-500' },
-    { label: '14 1-90 Days', value: 35, color: 'bg-blue-300' }
-  ];
+  const [invoicesData, setInvoicesData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const debtorsData = [
-    { customer: 'Alpha Enterprises', totalDue: '₹38,000', notDue: '15,000', days1_30: '10,000', days31_60: '10,000', days61_90: '13,000', days90Plus: '40' },
-    { customer: 'Sun Corporation', totalDue: '₹26,000', notDue: '30,000', days1_30: '6,000', days31_60: '13,000', days61_90: '100', days90Plus: '20' },
-    { customer: 'Global Solutions', totalDue: '₹26,000', notDue: '26,000', days1_30: '11,000', days31_60: '600', days61_90: '1,000', days90Plus: '20' },
-    { customer: 'K.P.Industries', totalDue: '₹30,000', notDue: '10,000', days1_30: '3,800', days31_60: '16,000', days61_90: '600', days90Plus: '10' },
-    { customer: 'Vision Tech', totalDue: '₹26,000', notDue: '26,000', days1_30: '26,000', days31_60: '12,000', days61_90: '3,000', days90Plus: '5' }
-  ];
+  useEffect(() => {
+    fetchInvoicesAging();
+  }, []);
 
-  const totals = {
-    totalDue: '₹132,000',
-    notDue: '26,800',
-    days1_30: '215,000',
-    days31_60: '31-000',
-    days61_90: '8,000'
+  const fetchInvoicesAging = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/invoices');
+      if (response.ok) {
+        const invoices = await response.json();
+        const agingData = calculateAging(invoices);
+        setInvoicesData(agingData);
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const calculateAging = (invoices) => {
+    const today = new Date();
+    return invoices.map(invoice => {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+      const amount = invoice.grandTotal || 0;
+      
+      return {
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoice.invoiceDate,
+        customerName: invoice.customerName,
+        totalAmount: amount,
+        daysDiff,
+        lessThan30: daysDiff < 30 ? amount : 0,
+        days30to60: daysDiff >= 30 && daysDiff < 60 ? amount : 0,
+        days60to90: daysDiff >= 60 && daysDiff < 90 ? amount : 0,
+        days90to180: daysDiff >= 90 && daysDiff < 180 ? amount : 0,
+        moreThan180: daysDiff >= 180 ? amount : 0
+      };
+    }).filter(invoice => invoice.daysDiff >= 0);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
+
+  const formatAmount = (amount) => {
+    return amount > 0 ? amount.toFixed(2) : '-';
+  };
+
+  const handleExport = () => {
+    const exportData = invoicesData.map(invoice => ({
+      'Invoice Number': invoice.invoiceNumber,
+      'Date': formatDate(invoice.invoiceDate),
+      'Customer': invoice.customerName,
+      '< 30 Days': invoice.lessThan30 > 0 ? invoice.lessThan30.toFixed(2) : '',
+      '30 to 60 Days': invoice.days30to60 > 0 ? invoice.days30to60.toFixed(2) : '',
+      '60 to 90 Days': invoice.days60to90 > 0 ? invoice.days60to90.toFixed(2) : '',
+      '90 to 180 Days': invoice.days90to180 > 0 ? invoice.days90to180.toFixed(2) : '',
+      '> 180 Days': invoice.moreThan180 > 0 ? invoice.moreThan180.toFixed(2) : ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Debtors Aging');
+    XLSX.writeFile(wb, `Debtors_Aging_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const totals = invoicesData.reduce((acc, invoice) => ({
+    lessThan30: acc.lessThan30 + invoice.lessThan30,
+    days30to60: acc.days30to60 + invoice.days30to60,
+    days60to90: acc.days60to90 + invoice.days60to90,
+    days90to180: acc.days90to180 + invoice.days90to180,
+    moreThan180: acc.moreThan180 + invoice.moreThan180
+  }), { lessThan30: 0, days30to60: 0, days60to90: 0, days90to180: 0, moreThan180: 0 });
+
+  if (loading) {
+    return <div className="p-6 bg-gray-50 min-h-screen"><div className="text-center py-8">Loading...</div></div>;
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Debtors Ageing</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Debtors Aging Report</h1>
+        <button 
+          onClick={handleExport}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <Download size={16} />
+          Export
+        </button>
       </div>
 
-      {/* Top Section */}
-      <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100 mb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left - Aging Bars */}
-          <div className="space-y-4">
-            {agingData.map((item, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <span className="text-lg font-semibold text-gray-900 w-32">{item.label}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-8">
-                  <div 
-                    className={`${item.color} h-8 rounded-full transition-all`}
-                    style={{ width: `${item.value}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Right - Total Outstanding */}
-          <div className="flex flex-col items-end justify-center">
-            <h3 className="text-lg font-medium text-gray-600 mb-2">Total Outstanding</h3>
-            <p className="text-5xl font-bold text-gray-900 mb-6">₹182,500</p>
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2">
-              <Download size={20} />
-              EXPORT
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Debtors Table */}
+      {/* Aging Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Customer Name</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Total Due</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">Not Due</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">1-30 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">31-60 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">61-90 Days</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700">&gt;90 Das</th>
+              <tr className="bg-gray-100">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Invoice Number</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Date</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Customer</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-green-500 border-r border-gray-300">&lt; 30 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-yellow-500 border-r border-gray-300">30 to 60 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-orange-500 border-r border-gray-300">60 to 90 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-red-500 border-r border-gray-300">90 to 180 Days</th>
+                <th className="text-center py-3 px-4 font-semibold text-white bg-red-700">&gt; 180 Days</th>
               </tr>
             </thead>
             <tbody>
-              {debtorsData.map((debtor, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 font-medium text-gray-900">{debtor.customer}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.totalDue}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.notDue}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days1_30}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days31_60}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days61_90}</td>
-                  <td className="py-4 px-6 text-gray-700">{debtor.days90Plus}</td>
+              {invoicesData.map((invoice, index) => (
+                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="py-3 px-4 text-blue-600 font-medium border-r border-gray-200">{invoice.invoiceNumber}</td>
+                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{formatDate(invoice.invoiceDate)}</td>
+                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{invoice.customerName}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.lessThan30)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days30to60)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days60to90)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(invoice.days90to180)}</td>
+                  <td className="py-3 px-4 text-center text-gray-700">{formatAmount(invoice.moreThan180)}</td>
                 </tr>
               ))}
-              {/* Totals Row */}
-              <tr className="bg-gray-50 font-semibold">
-                <td className="py-4 px-6 text-gray-900"></td>
-                <td className="py-4 px-6 text-gray-900">{totals.totalDue}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.notDue}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days1_30}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days31_60}</td>
-                <td className="py-4 px-6 text-gray-900">{totals.days61_90}</td>
-                <td className="py-4 px-6 text-gray-900"></td>
-              </tr>
+              {invoicesData.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="py-8 text-center text-gray-500">No invoices found</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
