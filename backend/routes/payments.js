@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
+const auth = require('../middleware/auth');
+const roleAuth = require('../middleware/roleAuth');
 
 // Function to update bill status when payment is made
 const updateBillStatusOnPayment = async (billId) => {
@@ -12,7 +14,7 @@ const updateBillStatusOnPayment = async (billId) => {
     // Calculate total paid amount for this bill using billId
     const payments = await Payment.find({ 
       billId: billId,
-      status: 'Completed'
+      approvalStatus: 'approved'
     });
     
     const totalPaid = payments.reduce((sum, payment) => sum + payment.netAmount, 0);
@@ -59,17 +61,39 @@ router.post('/', async (req, res) => {
     
     console.log('Payment saved:', savedPayment);
     
-    // Update bill status if billId is provided
-    if (savedPayment.billId && savedPayment.status === 'Completed') {
-      console.log('Updating bill status for billId:', savedPayment.billId);
-      await updateBillStatusOnPayment(savedPayment.billId);
-    } else {
-      console.log('No billId or payment not completed:', { billId: savedPayment.billId, status: savedPayment.status });
-    }
-    
     res.status(201).json(savedPayment);
   } catch (error) {
     console.error('Error creating payment:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update payment approval status
+router.patch('/:id/approval', async (req, res) => {
+  try {
+    const { action } = req.body;
+    const payment = await Payment.findById(req.params.id);
+    
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+    
+    if (action === 'approve') {
+      payment.approvalStatus = 'approved';
+      payment.status = 'Completed';
+      
+      // Update bill status when payment is approved
+      if (payment.billId) {
+        await updateBillStatusOnPayment(payment.billId);
+      }
+    } else if (action === 'reject') {
+      payment.approvalStatus = 'rejected';
+      payment.status = 'Rejected';
+    }
+    
+    await payment.save();
+    res.json(payment);
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
@@ -98,6 +122,19 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Delete all payments
+router.delete('/all/payments', async (req, res) => {
+  try {
+    const result = await Payment.deleteMany({});
+    res.json({ 
+      message: 'All payments deleted successfully', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Delete payment
 router.delete('/:id', async (req, res) => {
   try {
@@ -115,12 +152,12 @@ router.delete('/:id', async (req, res) => {
 router.get('/stats/summary', async (req, res) => {
   try {
     const completed = await Payment.aggregate([
-      { $match: { status: 'Completed' } },
+      { $match: { approvalStatus: 'approved' } },
       { $group: { _id: null, total: { $sum: '$netAmount' } } }
     ]);
     
     const pending = await Payment.aggregate([
-      { $match: { status: 'Pending' } },
+      { $match: { approvalStatus: 'pending' } },
       { $group: { _id: null, total: { $sum: '$netAmount' } } }
     ]);
 

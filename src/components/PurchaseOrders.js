@@ -172,9 +172,19 @@ const PurchaseOrders = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Filter out empty items (items without name or with zero quantity/rate)
+      const validItems = items.filter(item => 
+        item.name.trim() !== '' && item.quantity > 0 && item.rate > 0
+      );
+
+      if (validItems.length === 0) {
+        alert('Please add at least one valid item with name, quantity, and rate.');
+        return;
+      }
+
       const poData = {
         ...formData,
-        items,
+        items: validItems, // Use filtered items instead of all items
         subTotal: calculateSubTotal(),
         totalDiscount: calculateDiscount(),
         totalTax: calculateTax(),
@@ -569,9 +579,9 @@ const PurchaseOrders = () => {
               </div>
 
               {/* Item Details and Summary Side by Side */}
-              <div className="flex gap-8 mb-8">
+              <div className="flex gap-6 mb-8">
                 {/* Item Details */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-semibold mb-4">Item Details</h2>
                   
                   <div className="overflow-x-auto">
@@ -716,6 +726,7 @@ const PurchaseOrders = () => {
                             </td>
                             <td className="px-3 py-2">
                               <button 
+                                type="button"
                                 onClick={() => removeItem(idx)}
                                 className="text-red-600 hover:text-red-800"
                                 disabled={items.length === 1}
@@ -730,6 +741,7 @@ const PurchaseOrders = () => {
                   </div>
 
                   <button 
+                    type="button"
                     onClick={addItem}
                     className="flex items-center gap-2 text-blue-600 font-medium mt-4 hover:text-blue-700"
                   >
@@ -739,8 +751,10 @@ const PurchaseOrders = () => {
                 </div>
 
                 {/* Summary */}
-                <div className="w-80">
-                  <div className="space-y-3">
+                <div className="w-96 min-w-[400px]">
+                  <div className="bg-gray-50 p-6 rounded-lg border">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">Order Summary</h3>
+                    <div className="space-y-4">
                     <div className="flex justify-between text-lg">
                       <span>Sub Total</span>
                       <span className="font-semibold">₹ {calculateSubTotal().toLocaleString()}</span>
@@ -765,9 +779,10 @@ const PurchaseOrders = () => {
                       <span>Total Tax</span>
                       <span>₹ {calculateTax().toLocaleString()}</span>
                     </div>
-                    <div className="border-t pt-3 flex justify-between text-xl font-bold">
+                    <div className="border-t pt-4 flex justify-between text-xl font-bold text-blue-600">
                       <span>Total Amount</span>
                       <span>₹ {calculateTotal().toLocaleString()}</span>
+                    </div>
                     </div>
                   </div>
                 </div>

@@ -48,6 +48,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Delete all POs
+router.delete('/all/pos', async (req, res) => {
+  try {
+    const result = await PO.deleteMany({});
+    res.json({ 
+      message: 'All purchase orders deleted successfully', 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get PO by ID
 router.get('/:id', async (req, res) => {
   try {

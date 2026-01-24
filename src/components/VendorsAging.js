@@ -15,7 +15,29 @@ const VendorsAging = () => {
       const response = await fetch('http://localhost:5001/api/bills');
       if (response.ok) {
         const bills = await response.json();
-        const agingData = calculateAging(bills);
+        
+        // Fetch payments to calculate actual paid amounts
+        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        let payments = [];
+        if (paymentsResponse.ok) {
+          payments = await paymentsResponse.json();
+        }
+        
+        // Calculate paid amounts for each bill
+        const billsWithPaidAmounts = bills.map(bill => {
+          const billPayments = payments.filter(payment => 
+            payment.billId === bill._id && 
+            payment.approvalStatus === 'approved'
+          );
+          const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+          return {
+            ...bill,
+            paidAmount: totalPaid
+          };
+        });
+        
+        const agingData = calculateAging(billsWithPaidAmounts);
         setBillsData(agingData);
       }
     } catch (error) {
@@ -28,23 +50,36 @@ const VendorsAging = () => {
   const calculateAging = (bills) => {
     const today = new Date();
     return bills
-      .filter(bill => bill.status !== 'Fully Paid') // Exclude fully paid bills
+      .filter(bill => {
+        // Only include approved bills
+        if (bill.approvalStatus !== 'approved') return false;
+        
+        // Calculate remaining amount
+        const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+        const paidAmount = bill.paidAmount || 0;
+        const remainingAmount = netPayable - paidAmount;
+        
+        // Exclude fully paid bills (remaining amount <= 0)
+        return remainingAmount > 0;
+      })
       .map(bill => {
         const billDate = new Date(bill.billDate);
         const daysDiff = Math.floor((today - billDate) / (1000 * 60 * 60 * 24));
-        const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0); // Net payable amount
+        const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+        const paidAmount = bill.paidAmount || 0;
+        const remainingAmount = netPayable - paidAmount; // Show remaining amount instead of total
         
         return {
           billNumber: bill.billNumber,
           billDate: bill.billDate,
           vendorName: bill.vendorName,
-          totalAmount: netPayable,
+          totalAmount: remainingAmount, // Use remaining amount
           daysDiff,
-          lessThan30: daysDiff < 30 ? netPayable : 0,
-          days30to60: daysDiff >= 30 && daysDiff < 60 ? netPayable : 0,
-          days60to90: daysDiff >= 60 && daysDiff < 90 ? netPayable : 0,
-          days90to180: daysDiff >= 90 && daysDiff < 180 ? netPayable : 0,
-          moreThan180: daysDiff >= 180 ? netPayable : 0
+          lessThan30: daysDiff < 30 ? remainingAmount : 0,
+          days30to60: daysDiff >= 30 && daysDiff < 60 ? remainingAmount : 0,
+          days60to90: daysDiff >= 60 && daysDiff < 90 ? remainingAmount : 0,
+          days90to180: daysDiff >= 90 && daysDiff < 180 ? remainingAmount : 0,
+          moreThan180: daysDiff >= 180 ? remainingAmount : 0
         };
       }).filter(bill => bill.daysDiff >= 0);
   };

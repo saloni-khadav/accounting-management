@@ -10,6 +10,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [approvedPOs, setApprovedPOs] = useState([]);
+  const [availablePOs, setAvailablePOs] = useState([]);
   const [showPODropdown, setShowPODropdown] = useState(false);
   const [poSearchTerm, setPOSearchTerm] = useState('');
 
@@ -219,13 +220,21 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
     const fetchApprovedPOs = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/purchase-orders');
+        // Use the new available POs endpoint
+        const response = await fetch('http://localhost:5001/api/purchase-orders/available');
         if (response.ok) {
-          const posData = await response.json();
-          const approved = posData.filter(po => 
-            po.approvalStatus === 'approved' || po.status === 'Approved'
-          );
-          setApprovedPOs(approved);
+          const availablePOsData = await response.json();
+          setAvailablePOs(availablePOsData);
+          
+          // Also fetch all approved POs for reference
+          const allPOsResponse = await fetch('http://localhost:5001/api/purchase-orders');
+          if (allPOsResponse.ok) {
+            const allPOsData = await allPOsResponse.json();
+            const approved = allPOsData.filter(po => 
+              po.approvalStatus === 'approved' || po.status === 'Approved'
+            );
+            setApprovedPOs(approved);
+          }
         }
       } catch (error) {
         console.error('Error fetching purchase orders:', error);
@@ -433,6 +442,12 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   };
 
   const handlePOSelect = (po) => {
+    // Prevent selection of fully utilized POs
+    if (po.remainingAmount <= 0) {
+      alert('This Purchase Order has been fully utilized. Please select another PO.');
+      return;
+    }
+    
     setBillData(prev => ({
       ...prev,
       referenceNumber: po.poNumber,
@@ -477,7 +492,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     setVendorSearchTerm(po.supplier);
   };
 
-  const filteredPOs = approvedPOs.filter(po =>
+  const filteredPOs = availablePOs.filter(po =>
     po.poNumber.toLowerCase().includes(poSearchTerm.toLowerCase()) ||
     po.supplier.toLowerCase().includes(poSearchTerm.toLowerCase())
   );
@@ -651,6 +666,16 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           tdsAmount: savedBill.tdsAmount,
           tdsSection: savedBill.tdsSection
         });
+        
+        // Refresh available POs after saving bill
+        if (billData.referenceNumber) {
+          const availablePOsResponse = await fetch('http://localhost:5001/api/purchase-orders/available');
+          if (availablePOsResponse.ok) {
+            const availablePOsData = await availablePOsResponse.json();
+            setAvailablePOs(availablePOsData);
+          }
+        }
+        
         if (userRole === 'manager') {
           alert(isEditing ? 'Bill updated successfully!' : 'Bill created successfully!');
         } else {
@@ -817,20 +842,41 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 />
                 <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
                 
-                {showPODropdown && filteredPOs.length > 0 && (
+                {showPODropdown && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {filteredPOs.map((po) => (
-                      <div
-                        key={po._id}
-                        onClick={() => handlePOSelect(po)}
-                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-gray-900">{po.poNumber}</div>
-                        <div className="text-sm text-gray-500">{po.supplier}</div>
-                        <div className="text-xs text-blue-600">₹{po.totalAmount?.toLocaleString() || '0'}</div>
-                        <div className="text-xs text-green-600">{po.items?.length || 0} items</div>
+                    {filteredPOs.length > 0 ? (
+                      filteredPOs.map((po) => (
+                        <div
+                          key={po._id}
+                          onClick={() => handlePOSelect(po)}
+                          className={`px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                            po.remainingAmount <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="font-medium text-gray-900">{po.poNumber}</div>
+                          <div className="text-sm text-gray-500">{po.supplier}</div>
+                          <div className="flex justify-between items-center mt-1">
+                            <div className="text-xs text-blue-600">Total: ₹{po.totalAmount?.toLocaleString() || '0'}</div>
+                            <div className={`text-xs font-medium ${
+                              po.remainingAmount > 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              Available: ₹{po.remainingAmount?.toLocaleString() || '0'}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">{po.items?.length || 0} items</div>
+                          {po.usedAmount > 0 && (
+                            <div className="text-xs text-orange-600">Used: ₹{po.usedAmount?.toLocaleString() || '0'}</div>
+                          )}
+                          {po.remainingAmount <= 0 && (
+                            <div className="text-xs text-red-600 font-medium">Fully Utilized</div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-4 text-center text-gray-500">
+                        {poSearchTerm ? 'No matching POs found' : 'No available POs with remaining amount'}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
@@ -1056,7 +1102,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           type="number"
                           value={item.quantity}
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                           min="0"
                           step="0.01"
                         />
@@ -1066,7 +1112,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           type="number"
                           value={item.unitPrice}
                           onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-28 px-2 py-1 border border-gray-300 rounded text-sm"
                           min="0"
                           step="0.01"
                         />
@@ -1076,7 +1122,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           type="number"
                           value={item.discount}
                           onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                           min="0"
                           step="0.01"
                         />

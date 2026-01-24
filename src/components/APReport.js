@@ -33,7 +33,9 @@ const APReport = () => {
         }
         
         // Calculate paid amounts for each bill (same logic as Bills component)
-        const billsWithPaidAmounts = billsData.map(bill => {
+        const billsWithPaidAmounts = billsData
+          .filter(bill => bill.approvalStatus === 'approved') // Only approved bills
+          .map(bill => {
           const billPayments = paymentsData.filter(payment => 
             payment.billId === bill._id && 
             payment.approvalStatus === 'approved'

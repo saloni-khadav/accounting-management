@@ -36,8 +36,10 @@ const AccountsPayable = () => {
           paymentsData = await paymentsResponse.json();
         }
         
-        // Calculate paid amounts for each bill
-        const billsWithPaidAmounts = data.map(bill => {
+        // Calculate paid amounts for each bill and filter only approved bills
+        const billsWithPaidAmounts = data
+          .filter(bill => bill.approvalStatus === 'approved') // Only approved bills
+          .map(bill => {
           const billPayments = paymentsData.filter(payment => 
             payment.billId === bill._id && 
             payment.approvalStatus === 'approved'

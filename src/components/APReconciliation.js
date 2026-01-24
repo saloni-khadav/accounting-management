@@ -25,7 +25,9 @@ const APReconciliation = () => {
       
       if (billsResponse.ok) {
         const billsData = await billsResponse.json();
-        setBills(billsData);
+        // Only include approved bills
+        const approvedBills = billsData.filter(bill => bill.approvalStatus === 'approved');
+        setBills(approvedBills);
       }
       
       if (paymentsResponse.ok) {

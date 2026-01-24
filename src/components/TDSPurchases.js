@@ -35,9 +35,9 @@ const TDSPurchases = () => {
           }
         });
         
-        // Filter bills that have TDS and convert to TDS transaction format
+        // Filter bills that have TDS and are approved
         const tdsTransactions = bills
-          .filter(bill => bill.tdsAmount && bill.tdsAmount > 0)
+          .filter(bill => bill.tdsAmount && bill.tdsAmount > 0 && bill.approvalStatus === 'approved')
           .map(bill => ({
             _id: bill._id,
             vendorName: bill.vendorName,

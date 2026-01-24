@@ -407,6 +407,7 @@ const Payments = () => {
       paymentNo: payment.paymentNumber,
       date: new Date(payment.paymentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
       vendor: payment.vendor,
+      invoiceNumber: payment.invoiceNumber || '-',
       referenceNumber: payment.referenceNumber || '-',
       status: displayStatus,
       amount: `₹${payment.netAmount.toLocaleString('en-IN')}`,
@@ -461,6 +462,7 @@ const Payments = () => {
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Payment #</th>
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Payment Date</th>
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Vendor</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Invoice Number</th>
                 <th className="text-left py-4 px-4 font-semibold text-gray-900 text-base">Reference #</th>
                 <th className="text-center py-4 px-4 font-semibold text-gray-900 text-base">Status</th>
                 <th className="text-right py-4 px-4 font-semibold text-gray-900 text-base">Amount</th>
@@ -470,13 +472,13 @@ const Payments = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                  <td colSpan="8" className="py-8 text-center text-gray-500">
                     Loading payments...
                   </td>
                 </tr>
               ) : paymentsData.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                  <td colSpan="8" className="py-8 text-center text-gray-500">
                     No payments found
                   </td>
                 </tr>
@@ -486,6 +488,7 @@ const Payments = () => {
                   <td className="py-5 px-4 text-gray-900 font-medium">{payment.paymentNo}</td>
                   <td className="py-5 px-4 text-gray-900">{payment.date}</td>
                   <td className="py-5 px-4 text-gray-900">{payment.vendor}</td>
+                  <td className="py-5 px-4 text-gray-600">{payment.invoiceNumber}</td>
                   <td className="py-5 px-4 text-gray-600">{payment.referenceNumber}</td>
                   <td className="py-5 px-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(payment.status)}`}>
