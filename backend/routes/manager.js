@@ -7,6 +7,7 @@ const PurchaseOrder = require('../models/PurchaseOrder');
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const Client = require('../models/Client');
+const CreditDebitNote = require('../models/CreditDebitNote');
 
 const router = express.Router();
 
@@ -138,6 +139,27 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       });
     });
     
+    // Get pending Credit/Debit Notes
+    const pendingCreditDebitNotes = await CreditDebitNote.find({ approvalStatus: 'pending' })
+      .select('noteNumber type vendorName grandTotal createdAt approvalStatus reminderSent createdBy')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    console.log('Pending Credit/Debit Notes:', pendingCreditDebitNotes.length);
+    
+    pendingCreditDebitNotes.forEach(note => {
+      pendingApprovals.push({
+        id: note._id,
+        type: note.type,
+        description: `${note.type} ${note.noteNumber} - ${note.vendorName}`,
+        amount: `₹${note.grandTotal.toLocaleString()}`,
+        requestedBy: note.createdBy || 'User',
+        requestDate: note.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: note.reminderSent || false
+      });
+    });
+    
     console.log('Total Pending Approvals:', pendingApprovals.length);
     
     // Sort by request date (newest first)
@@ -238,6 +260,17 @@ router.post('/action', auth, requireManager, async (req, res) => {
         updateData.rejectionReason = rejectionReason;
       }
       updateResult = await Payment.findByIdAndUpdate(itemId, updateData, { new: true });
+    } else if (type === 'Credit Note' || type === 'Debit Note') {
+      const updateData = {
+        approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+        status: action === 'approve' ? 'Open' : 'Cancelled',
+        updatedAt: new Date(),
+        reminderSent: false
+      };
+      if (action === 'reject' && rejectionReason) {
+        updateData.rejectionReason = rejectionReason;
+      }
+      updateResult = await CreditDebitNote.findByIdAndUpdate(itemId, updateData, { new: true });
     } else if (type === 'Client Approval') {
       const updateData = {
         approvalStatus: newStatus,

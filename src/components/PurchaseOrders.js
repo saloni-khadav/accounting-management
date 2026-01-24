@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash } from 'lucide-react';
 
 const PurchaseOrders = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -12,6 +12,7 @@ const PurchaseOrders = () => {
   const [supplierSearch, setSupplierSearch] = useState('');
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState([]);
+  const [editingOrder, setEditingOrder] = useState(null);
   const [formData, setFormData] = useState({
     supplier: '',
     poNumber: '',
@@ -178,14 +179,20 @@ const PurchaseOrders = () => {
         totalDiscount: calculateDiscount(),
         totalTax: calculateTax(),
         totalAmount: calculateTotal(),
-        status: 'Pending Approval',
-        approvalStatus: 'pending',
+        status: editingOrder ? editingOrder.status : 'Pending Approval',
+        approvalStatus: editingOrder ? editingOrder.approvalStatus : 'pending',
         createdBy: 'Current User',
-        createdAt: new Date().toISOString()
+        createdAt: editingOrder ? editingOrder.createdAt : new Date().toISOString()
       };
 
-      const response = await fetch('http://localhost:5001/api/purchase-orders', {
-        method: 'POST',
+      const url = editingOrder 
+        ? `http://localhost:5001/api/purchase-orders/${editingOrder._id}`
+        : 'http://localhost:5001/api/purchase-orders';
+      
+      const method = editingOrder ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json'
         },
@@ -193,8 +200,9 @@ const PurchaseOrders = () => {
       });
 
       if (response.ok) {
-        alert('Purchase Order created and sent for manager approval!');
+        alert(editingOrder ? 'Purchase Order updated successfully!' : 'Purchase Order created and sent for manager approval!');
         setShowCreateForm(false);
+        setEditingOrder(null);
         setFormData({
           supplier: '',
           poNumber: '',
@@ -205,11 +213,44 @@ const PurchaseOrders = () => {
         setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
         fetchPurchaseOrders();
       } else {
-        alert('Error creating Purchase Order');
+        alert(editingOrder ? 'Error updating Purchase Order' : 'Error creating Purchase Order');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error creating Purchase Order');
+      alert(editingOrder ? 'Error updating Purchase Order' : 'Error creating Purchase Order');
+    }
+  };
+
+  const handleEdit = (order) => {
+    setEditingOrder(order);
+    setFormData({
+      supplier: order.supplier,
+      poNumber: order.poNumber,
+      poDate: order.poDate ? order.poDate.split('T')[0] : '',
+      deliveryDate: order.deliveryDate ? order.deliveryDate.split('T')[0] : ''
+    });
+    setSupplierSearch(order.supplier);
+    setItems(order.items || [{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+    setShowCreateForm(true);
+  };
+
+  const handleDelete = async (orderId) => {
+    if (window.confirm('Are you sure you want to delete this Purchase Order?')) {
+      try {
+        const response = await fetch(`http://localhost:5001/api/purchase-orders/${orderId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          alert('Purchase Order deleted successfully!');
+          fetchPurchaseOrders();
+        } else {
+          alert('Error deleting Purchase Order');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error deleting Purchase Order');
+      }
     }
   };
 
@@ -234,13 +275,28 @@ const PurchaseOrders = () => {
     return 'bg-gray-100 text-gray-800';
   };
 
+  const isApproved = (order) => {
+    return order.approvalStatus === 'approved' || order.status === 'Approved';
+  };
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-gray-900">Purchase Orders</h1>
         <button 
-          onClick={() => setShowCreateForm(true)}
+          onClick={() => {
+            setEditingOrder(null);
+            setFormData({
+              supplier: '',
+              poNumber: '',
+              poDate: new Date().toISOString().split('T')[0],
+              deliveryDate: ''
+            });
+            setSupplierSearch('');
+            setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+            setShowCreateForm(true);
+          }}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
         >
           Create New
@@ -329,18 +385,19 @@ const PurchaseOrders = () => {
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Order Date</th>
               <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Status</th>
               <th className="text-right py-4 px-6 font-semibold text-gray-900 text-base">Amount</th>
+              <th className="text-center py-4 px-6 font-semibold text-gray-900 text-base">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" className="py-8 text-center text-gray-500">
+                <td colSpan="6" className="py-8 text-center text-gray-500">
                   Loading purchase orders...
                 </td>
               </tr>
             ) : ordersData.length === 0 ? (
               <tr>
-                <td colSpan="5" className="py-8 text-center text-gray-500">
+                <td colSpan="6" className="py-8 text-center text-gray-500">
                   No purchase orders found
                 </td>
               </tr>
@@ -361,6 +418,34 @@ const PurchaseOrders = () => {
                     </span>
                   </td>
                   <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>
+                  <td className="py-5 px-6">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleEdit(order)}
+                        disabled={isApproved(order)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          isApproved(order)
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
+                        }`}
+                        title={isApproved(order) ? 'Cannot edit approved order' : 'Edit Purchase Order'}
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(order._id)}
+                        disabled={isApproved(order)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          isApproved(order)
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                        }`}
+                        title={isApproved(order) ? 'Cannot delete approved order' : 'Delete Purchase Order'}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -390,9 +475,20 @@ const PurchaseOrders = () => {
             <div className="p-8">
               {/* Modal Header */}
               <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Create Purchase Order</h1>
+                <h1 className="text-3xl font-bold">{editingOrder ? 'Edit Purchase Order' : 'Create Purchase Order'}</h1>
                 <button 
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingOrder(null);
+                    setFormData({
+                      supplier: '',
+                      poNumber: '',
+                      poDate: new Date().toISOString().split('T')[0],
+                      deliveryDate: ''
+                    });
+                    setSupplierSearch('');
+                    setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-lg"
                 >
                   <X size={24} />
@@ -680,7 +776,18 @@ const PurchaseOrders = () => {
               {/* Actions */}
               <div className="flex justify-end gap-4">
                 <button 
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingOrder(null);
+                    setFormData({
+                      supplier: '',
+                      poNumber: '',
+                      poDate: new Date().toISOString().split('T')[0],
+                      deliveryDate: ''
+                    });
+                    setSupplierSearch('');
+                    setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+                  }}
                   className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
@@ -689,7 +796,7 @@ const PurchaseOrders = () => {
                   type="submit"
                   className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Create
+                  {editingOrder ? 'Update' : 'Create'}
                 </button>
               </div>
               </form>

@@ -162,6 +162,11 @@ const Bills = () => {
 
   // Function to calculate bill status based on payment and due date
   const calculateBillStatus = (bill) => {
+    // If bill is not approved by manager, show hyphen
+    if (bill.approvalStatus === 'pending' || bill.approvalStatus === 'rejected') {
+      return '-';
+    }
+    
     const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
     const paidAmount = bill.paidAmount || 0;
     const currentDate = new Date();
@@ -222,11 +227,11 @@ const Bills = () => {
       };
     });
 
-  const overdueCount = bills.filter(bill => calculateBillStatus(bill) === 'Overdue').length;
-  const dueSoonCount = bills.filter(bill => calculateBillStatus(bill) === 'Due Soon').length;
-  const notPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Not Paid').length;
-  const partiallyPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Partially Paid').length;
-  const fullyPaidCount = bills.filter(bill => calculateBillStatus(bill) === 'Fully Paid').length;
+  const overdueCount = bills.filter(bill => bill.approvalStatus === 'approved' && calculateBillStatus(bill) === 'Overdue').length;
+  const dueSoonCount = bills.filter(bill => bill.approvalStatus === 'approved' && calculateBillStatus(bill) === 'Due Soon').length;
+  const notPaidCount = bills.filter(bill => bill.approvalStatus === 'approved' && calculateBillStatus(bill) === 'Not Paid').length;
+  const partiallyPaidCount = bills.filter(bill => bill.approvalStatus === 'approved' && calculateBillStatus(bill) === 'Partially Paid').length;
+  const fullyPaidCount = bills.filter(bill => bill.approvalStatus === 'approved' && calculateBillStatus(bill) === 'Fully Paid').length;
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -235,6 +240,7 @@ const Bills = () => {
       case 'Not Paid': return 'bg-blue-400 text-white';
       case 'Partially Paid': return 'bg-yellow-500 text-white';
       case 'Fully Paid': return 'bg-green-500 text-white';
+      case '-': return 'bg-gray-400 text-white';
       default: return 'bg-blue-400 text-white';
     }
   };

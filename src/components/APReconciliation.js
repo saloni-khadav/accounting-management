@@ -42,7 +42,12 @@ const APReconciliation = () => {
 
   // Calculate reconciliation data from bills and payments
   const totalPayable = bills.reduce((sum, bill) => sum + (bill.grandTotal || 0), 0);
-  const totalPaid = payments.reduce((sum, payment) => sum + (payment.netAmount || payment.amount || 0), 0);
+  
+  // Only count approved and completed payments for Total Paid
+  const totalPaid = payments
+    .filter(payment => payment.status === 'Completed' && payment.approvalStatus === 'approved')
+    .reduce((sum, payment) => sum + (payment.netAmount || payment.amount || 0), 0);
+    
   const invoicedAmount = bills
     .filter(bill => bill.status !== 'Draft' && bill.status !== 'Cancelled')
     .reduce((sum, bill) => sum + (bill.grandTotal || 0), 0);

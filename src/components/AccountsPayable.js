@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Plus, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const AccountsPayable = () => {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
@@ -256,18 +256,8 @@ const AccountsPayable = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Accounts Payable</h1>
-        <button
-          onClick={() => {
-            console.log('Button clicked!');
-            setIsPaymentFormOpen(true);
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          New Payment
-        </button>
       </div>
 
       {/* Top Summary Cards */}
