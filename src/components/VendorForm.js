@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Upload, Download } from 'lucide-react';
+import { X, Save, FileText, Upload, Download, Plus } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import DocumentUpload from './DocumentUpload';
 
@@ -13,6 +13,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     website: '',
     billingAddress: '',
     gstNumber: '',
+    gstNumbers: [{ gstNumber: '', isDefault: true }],
     panNumber: '',
     paymentTerms: '',
     creditLimit: '',
@@ -57,6 +58,11 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           website: editingVendor.website || '',
           billingAddress: editingVendor.billingAddress || '',
           gstNumber: editingVendor.gstNumber || '',
+          gstNumbers: editingVendor.gstNumbers && editingVendor.gstNumbers.length > 0 
+            ? editingVendor.gstNumbers 
+            : editingVendor.gstNumber 
+              ? [{ gstNumber: editingVendor.gstNumber, isDefault: true }]
+              : [{ gstNumber: '', isDefault: true }],
           panNumber: editingVendor.panNumber || '',
           paymentTerms: editingVendor.paymentTerms || '',
           creditLimit: editingVendor.creditLimit || '',
@@ -92,6 +98,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           website: '',
           billingAddress: '',
           gstNumber: '',
+          gstNumbers: [{ gstNumber: '', isDefault: true }],
           panNumber: '',
           paymentTerms: '',
           creditLimit: '',
@@ -126,6 +133,49 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
+    });
+  };
+
+  const handleGSTChange = (index, value) => {
+    const updatedGSTNumbers = [...formData.gstNumbers];
+    updatedGSTNumbers[index].gstNumber = value;
+    setFormData({
+      ...formData,
+      gstNumbers: updatedGSTNumbers,
+      gstNumber: updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || ''
+    });
+  };
+
+  const addGSTNumber = () => {
+    setFormData({
+      ...formData,
+      gstNumbers: [...formData.gstNumbers, { gstNumber: '', isDefault: false }]
+    });
+  };
+
+  const removeGSTNumber = (index) => {
+    if (formData.gstNumbers.length > 1) {
+      const updatedGSTNumbers = formData.gstNumbers.filter((_, i) => i !== index);
+      if (formData.gstNumbers[index].isDefault && updatedGSTNumbers.length > 0) {
+        updatedGSTNumbers[0].isDefault = true;
+      }
+      setFormData({
+        ...formData,
+        gstNumbers: updatedGSTNumbers,
+        gstNumber: updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || ''
+      });
+    }
+  };
+
+  const setDefaultGST = (index) => {
+    const updatedGSTNumbers = formData.gstNumbers.map((gst, i) => ({
+      ...gst,
+      isDefault: i === index
+    }));
+    setFormData({
+      ...formData,
+      gstNumbers: updatedGSTNumbers,
+      gstNumber: updatedGSTNumbers[index].gstNumber
     });
   };
 
@@ -168,7 +218,16 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
         const updates = {};
         
         if (documentType === 'gstCertificate' && result.data.gstNumber) {
-          updates.gstNumber = result.data.gstNumber;
+          // Find the first empty GST number field or update the first one
+          const updatedGSTNumbers = [...formData.gstNumbers];
+          const emptyIndex = updatedGSTNumbers.findIndex(gst => !gst.gstNumber);
+          if (emptyIndex !== -1) {
+            updatedGSTNumbers[emptyIndex].gstNumber = result.data.gstNumber;
+          } else {
+            updatedGSTNumbers[0].gstNumber = result.data.gstNumber;
+          }
+          updates.gstNumbers = updatedGSTNumbers;
+          updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
         }
         if (documentType === 'bankStatement') {
           if (result.data.accountNumber) updates.accountNumber = result.data.accountNumber;
@@ -244,7 +303,13 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData);
+    // Ensure gstNumber field is synced with default GST from gstNumbers array
+    const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);
+    const submissionData = {
+      ...formData,
+      gstNumber: defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || ''
+    };
+    onSave(submissionData);
     onClose();
   };
 
@@ -362,45 +427,79 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                GST Number
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="gstNumber"
-                  value={formData.gstNumber}
-                  onChange={handleInputChange}
-                  maxLength="15"
-                  placeholder="15 characters GST number"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="flex items-center">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) handleOCRUpload(file, 'gstCertificate');
-                    }}
-                    className="hidden"
-                    id="gstFile"
-                  />
-                  <label
-                    htmlFor="gstFile"
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
-                  >
-                    {uploadStates.gst.loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                    ) : (
-                      <Upload className="w-4 h-4 mr-1" />
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  GST Numbers
+                </label>
+                <button
+                  type="button"
+                  onClick={addGSTNumber}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  + Add GST Number
+                </button>
+              </div>
+              <div className="space-y-2">
+                {formData.gstNumbers.map((gstItem, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={gstItem.gstNumber}
+                      onChange={(e) => handleGSTChange(index, e.target.value)}
+                      maxLength="15"
+                      placeholder="15 characters GST number"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDefaultGST(index)}
+                      className={`px-2 py-1 text-xs rounded ${
+                        gstItem.isDefault 
+                          ? 'bg-green-100 text-green-800 border border-green-300' 
+                          : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                      }`}
+                      title={gstItem.isDefault ? 'Default GST' : 'Set as Default'}
+                    >
+                      {gstItem.isDefault ? 'Default' : 'Set Default'}
+                    </button>
+                    {formData.gstNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeGSTNumber(index)}
+                        className="px-2 py-1 text-xs bg-red-100 text-red-600 border border-red-300 rounded hover:bg-red-200"
+                        title="Remove GST Number"
+                      >
+                        Remove
+                      </button>
                     )}
-                    Upload
-                  </label>
-                  {formData.documents.gstCertificate && (
-                    <span className="ml-2 text-green-600 text-sm">✓</span>
-                  )}
-                </div>
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleOCRUpload(file, 'gstCertificate');
+                        }}
+                        className="hidden"
+                        id={`gstFile${index}`}
+                      />
+                      <label
+                        htmlFor={`gstFile${index}`}
+                        className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
+                      >
+                        {uploadStates.gst.loading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                        ) : (
+                          <Upload className="w-4 h-4 mr-1" />
+                        )}
+                        Upload
+                      </label>
+                      {formData.documents.gstCertificate && (
+                        <span className="ml-2 text-green-600 text-sm">✓</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               {uploadStates.gst.error && (
                 <p className="text-red-500 text-sm mt-1">{uploadStates.gst.error}</p>

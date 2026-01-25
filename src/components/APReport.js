@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 const APReport = () => {
   const [bills, setBills] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [creditDebitNotes, setCreditDebitNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('This Quarter');
   const [selectedVendor, setSelectedVendor] = useState('All Vendors');
@@ -18,9 +19,14 @@ const APReport = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [billsResponse, paymentsResponse] = await Promise.all([
+      const [billsResponse, paymentsResponse, notesResponse] = await Promise.all([
         fetch('http://localhost:5001/api/bills'),
-        fetch('http://localhost:5001/api/payments')
+        fetch('http://localhost:5001/api/payments'),
+        fetch('http://localhost:5001/api/credit-debit-notes', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
       ]);
       
       if (billsResponse.ok) {
@@ -30,6 +36,14 @@ const APReport = () => {
         let paymentsData = [];
         if (paymentsResponse.ok) {
           paymentsData = await paymentsResponse.json();
+        }
+        
+        // Get credit/debit notes data
+        let notesData = [];
+        if (notesResponse.ok) {
+          notesData = await notesResponse.json();
+          const approvedNotes = notesData.filter(note => note.approvalStatus === 'approved');
+          setCreditDebitNotes(approvedNotes);
         }
         
         // Calculate paid amounts for each bill (same logic as Bills component)
@@ -232,6 +246,11 @@ const APReport = () => {
     .filter(payment => payment.status === 'Completed')
     .reduce((sum, payment) => sum + payment.netAmount, 0);
 
+  // Calculate total credit notes amount and count
+  const creditNotesData = creditDebitNotes.filter(note => note.type === 'Credit Note' && note.status !== 'Cancelled');
+  const totalCreditNotesAmount = creditNotesData.reduce((sum, note) => sum + (note.grandTotal || 0), 0);
+  const totalCreditNotesCount = creditNotesData.length;
+
   // Generate vendor chart data from filtered bills
   const getVendorData = () => {
     const vendorStats = {};
@@ -337,7 +356,7 @@ const APReport = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Invoices Processed</p>
           <p className="text-4xl font-bold">{loading ? '...' : invoicesProcessed}</p>
@@ -353,6 +372,11 @@ const APReport = () => {
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Total Paid</p>
           <p className="text-4xl font-bold">{loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}</p>
+        </div>
+        <div className="bg-white p-6 rounded-lg border">
+          <p className="text-gray-600 mb-2">Total Credit Notes</p>
+          <p className="text-4xl font-bold text-blue-600">{loading ? '...' : totalCreditNotesCount}</p>
+          <p className="text-sm text-gray-500 mt-1">₹{totalCreditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
       </div>
 

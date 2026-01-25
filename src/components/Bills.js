@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Edit, Trash2, Download } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Edit, Trash2, Download, Eye, X } from 'lucide-react';
 import VendorBill from './VendorBill';
 
 const Bills = () => {
@@ -11,6 +11,8 @@ const Bills = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [viewingBill, setViewingBill] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   useEffect(() => {
     fetchBills();
@@ -116,6 +118,15 @@ const Bills = () => {
         alert('Error deleting bill');
       }
     }
+  };
+
+  const isApproved = (bill) => {
+    return bill.approvalStatus === 'approved';
+  };
+
+  const handleViewBill = (bill) => {
+    setViewingBill(bill);
+    setShowViewModal(true);
   };
 
   const handleStatusChange = async (billId, newStatus) => {
@@ -423,16 +434,33 @@ const Bills = () => {
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleViewBill(originalBill)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="View"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button
                         onClick={() => handleEditBill(originalBill)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
+                        disabled={isApproved(originalBill)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          isApproved(originalBill)
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-blue-600 hover:bg-blue-50'
+                        }`}
+                        title={isApproved(originalBill) ? 'Cannot edit approved bill' : 'Edit'}
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteBill(originalBill._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
+                        disabled={isApproved(originalBill)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          isApproved(originalBill)
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-red-600 hover:bg-red-50'
+                        }`}
+                        title={isApproved(originalBill) ? 'Cannot delete approved bill' : 'Delete'}
                       >
                         <Trash2 size={18} />
                       </button>
@@ -470,6 +498,221 @@ const Bills = () => {
         onSave={handleSaveBill}
         editingBill={editingBill}
       />
+
+      {/* View Bill Modal */}
+      {showViewModal && viewingBill && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <div className="p-8">
+              {/* Modal Header */}
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">Bill Details</h1>
+                <button 
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingBill(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Bill Information */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Bill Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Bill Number</label>
+                      <p className="text-lg font-semibold text-blue-600">{viewingBill.billNumber}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Vendor</label>
+                      <p className="text-lg">{viewingBill.vendorName}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Status</label>
+                      <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(calculateBillStatus(viewingBill))}`}>
+                        {calculateBillStatus(viewingBill)}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Reference Number</label>
+                      <p className="text-lg">{viewingBill.referenceNumber || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Dates & Details</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Bill Date</label>
+                      <p className="text-lg">{new Date(viewingBill.billDate).toLocaleDateString()}</p>
+                    </div>
+                    {viewingBill.dueDate && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Due Date</label>
+                        <p className="text-lg">{new Date(viewingBill.dueDate).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Payment Terms</label>
+                      <p className="text-lg">{viewingBill.paymentTerms || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Place of Supply</label>
+                      <p className="text-lg">{viewingBill.placeOfSupply || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vendor Details */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Vendor Details</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Address</label>
+                      <p className="text-sm">{viewingBill.vendorAddress || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">GSTIN</label>
+                      <p className="text-sm">{viewingBill.vendorGSTIN || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">PAN</label>
+                      <p className="text-sm">{viewingBill.vendorPAN || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Contact Person</label>
+                      <p className="text-sm">{viewingBill.contactPerson || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              {viewingBill.items && viewingBill.items.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold mb-4">Items</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Product</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">HSN Code</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Qty</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Unit Price</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Discount%</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">CGST%</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">SGST%</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">IGST%</th>
+                          <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingBill.items.map((item, idx) => (
+                          <tr key={idx} className="border-b">
+                            <td className="px-4 py-3">{item.product}</td>
+                            <td className="px-4 py-3">{item.hsnCode}</td>
+                            <td className="px-4 py-3 text-right">{item.quantity}</td>
+                            <td className="px-4 py-3 text-right">₹{item.unitPrice?.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right">{item.discount}%</td>
+                            <td className="px-4 py-3 text-right">{item.cgstRate}%</td>
+                            <td className="px-4 py-3 text-right">{item.sgstRate}%</td>
+                            <td className="px-4 py-3 text-right">{item.igstRate}%</td>
+                            <td className="px-4 py-3 text-right font-semibold">₹{item.totalAmount?.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Financial Summary */}
+              <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-4">Financial Summary</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₹{viewingBill.subtotal?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Discount:</span>
+                      <span>₹{viewingBill.totalDiscount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total CGST:</span>
+                      <span>₹{viewingBill.totalCGST?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total SGST:</span>
+                      <span>₹{viewingBill.totalSGST?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total IGST:</span>
+                      <span>₹{viewingBill.totalIGST?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>TDS Amount:</span>
+                      <span>₹{viewingBill.tdsAmount?.toLocaleString() || '0'}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="text-right">
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-sm text-gray-600">Grand Total</div>
+                          <div className="text-xl font-bold text-blue-600">₹{viewingBill.grandTotal?.toLocaleString() || '0'}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600">Net Payable</div>
+                          <div className="text-lg font-semibold text-green-600">₹{((viewingBill.grandTotal || 0) - (viewingBill.tdsAmount || 0)).toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600">Paid Amount</div>
+                          <div className="text-lg font-semibold text-orange-600">₹{(viewingBill.paidAmount || 0).toLocaleString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600">Remaining Amount</div>
+                          <div className="text-lg font-bold text-red-600">₹{(((viewingBill.grandTotal || 0) - (viewingBill.tdsAmount || 0)) - (viewingBill.paidAmount || 0)).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {viewingBill.notes && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Notes</h3>
+                  <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{viewingBill.notes}</p>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingBill(null);
+                  }}
+                  className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
