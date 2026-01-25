@@ -3,10 +3,50 @@ const router = express.Router();
 const CreditDebitNote = require('../models/CreditDebitNote');
 const auth = require('../middleware/auth');
 
+// Get next note number
+router.get('/next-note-number/:type', auth, async (req, res) => {
+  try {
+    const { type } = req.params;
+    const yearCode = '2627';
+    const prefix = type === 'Credit Note' ? 'CN' : 'DN';
+    
+    // Find the latest note number for current year format (check all notes, not just user's)
+    const latestNote = await CreditDebitNote.findOne({
+      noteNumber: { $regex: `^${prefix}-${yearCode}-` }
+    }).sort({ noteNumber: -1 });
+    
+    let nextNumber = 1;
+    if (latestNote) {
+      const parts = latestNote.noteNumber.split('-');
+      if (parts.length === 3) {
+        const lastNumber = parseInt(parts[2]);
+        nextNumber = lastNumber + 1;
+      }
+    }
+    
+    const noteNumber = `${prefix}-${yearCode}-${nextNumber.toString().padStart(3, '0')}`;
+    res.json({ noteNumber });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all credit/debit notes
 router.get('/', auth, async (req, res) => {
   try {
     const notes = await CreditDebitNote.find({ userId: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(notes);
+  } catch (error) {
+    console.error('Error fetching credit/debit notes:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all credit/debit notes for reconciliation (without auth)
+router.get('/reconciliation', async (req, res) => {
+  try {
+    const notes = await CreditDebitNote.find({})
       .sort({ createdAt: -1 });
     res.json(notes);
   } catch (error) {

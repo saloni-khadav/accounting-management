@@ -6,13 +6,63 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const [vendors, setVendors] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState(null);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [showGSTDropdown, setShowGSTDropdown] = useState(false);
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [approvedPOs, setApprovedPOs] = useState([]);
   const [availablePOs, setAvailablePOs] = useState([]);
   const [showPODropdown, setShowPODropdown] = useState(false);
   const [poSearchTerm, setPOSearchTerm] = useState('');
+
+  // GST code to state mapping function
+  const getStateFromGST = (gstNumber) => {
+    if (!gstNumber || gstNumber.length < 2) return '';
+    
+    const gstStateCode = gstNumber.substring(0, 2);
+    const gstStateMapping = {
+      '01': 'Jammu and Kashmir',
+      '02': 'Himachal Pradesh', 
+      '03': 'Punjab',
+      '04': 'Chandigarh',
+      '05': 'Uttarakhand',
+      '06': 'Haryana',
+      '07': 'Delhi',
+      '08': 'Rajasthan',
+      '09': 'Uttar Pradesh',
+      '10': 'Bihar',
+      '11': 'Sikkim',
+      '12': 'Arunachal Pradesh',
+      '13': 'Nagaland',
+      '14': 'Manipur',
+      '15': 'Mizoram',
+      '16': 'Tripura',
+      '17': 'Meghalaya',
+      '18': 'Assam',
+      '19': 'West Bengal',
+      '20': 'Jharkhand',
+      '21': 'Odisha',
+      '22': 'Chhattisgarh',
+      '23': 'Madhya Pradesh',
+      '24': 'Gujarat',
+      '25': 'Daman and Diu',
+      '26': 'Dadra and Nagar Haveli',
+      '27': 'Maharashtra',
+      '28': 'Andhra Pradesh',
+      '29': 'Karnataka',
+      '30': 'Goa',
+      '31': 'Lakshadweep',
+      '32': 'Kerala',
+      '33': 'Tamil Nadu',
+      '34': 'Puducherry',
+      '35': 'Andaman and Nicobar Islands',
+      '36': 'Telangana',
+      '37': 'Andhra Pradesh (New)'
+    };
+    
+    return gstStateMapping[gstStateCode] || '';
+  };
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
@@ -38,10 +88,10 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     referenceNumber: '',
     placeOfSupply: '',
     
-    supplierName: 'ABC Enterprises',
-    supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
-    supplierGSTIN: '29ABCDE1234F1Z5',
-    supplierPAN: 'ABCDE1234F',
+    supplierName: '',
+    supplierAddress: '',
+    supplierGSTIN: '',
+    supplierPAN: '',
     
     vendorName: '',
     vendorAddress: '',
@@ -94,6 +144,40 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   });
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!isOpen) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5001/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          const profile = userData.user.profile || {};
+          const gstBasedState = getStateFromGST(profile.gstNumber);
+          
+          setBillData(prev => ({
+            ...prev,
+            supplierName: userData.user.companyName || profile.tradeName || 'Your Company',
+            supplierAddress: profile.address || 'Your Address',
+            supplierGSTIN: profile.gstNumber || '',
+            supplierPAN: profile.panNumber || '',
+            placeOfSupply: gstBasedState || ''
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [isOpen]);
+
+  useEffect(() => {
     if (editingBill) {
       console.log('Loading bill for editing:', editingBill);
       console.log('Bill vendorPAN:', editingBill.vendorPAN);
@@ -126,18 +210,21 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       setAttachments(editingBill.attachments || []);
       setVendorSearchTerm(editingBill.vendorName);
     } else {
-      // Reset form for new bill
+      // Reset form for new bill but keep supplier details
+      const currentSupplierData = {
+        supplierName: billData.supplierName,
+        supplierAddress: billData.supplierAddress,
+        supplierGSTIN: billData.supplierGSTIN,
+        supplierPAN: billData.supplierPAN,
+        placeOfSupply: billData.placeOfSupply
+      };
+      
       setBillData({
         billNumber: generateInvoiceNumber(),
         billDate: new Date().toISOString().split('T')[0],
         billSeries: 'BILL',
         referenceNumber: '',
-        placeOfSupply: '',
-        
-        supplierName: 'ABC Enterprises',
-        supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
-        supplierGSTIN: '29ABCDE1234F1Z5',
-        supplierPAN: 'ABCDE1234F',
+        ...currentSupplierData,
         
         vendorName: '',
         vendorAddress: '',
@@ -208,8 +295,19 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           // Auto-populate PAN if editing bill and PAN is missing
           if (editingBill && !billData.vendorPAN && editingBill.vendorName) {
             const vendor = vendorsData.find(v => v.vendorName === editingBill.vendorName);
-            if (vendor && vendor.panNumber) {
-              setBillData(prev => ({ ...prev, vendorPAN: vendor.panNumber }));
+            if (vendor) {
+              setSelectedVendor(vendor);
+              if (vendor.panNumber) {
+                setBillData(prev => ({ ...prev, vendorPAN: vendor.panNumber }));
+              }
+            }
+          }
+          
+          // Set selected vendor if vendor name matches
+          if (billData.vendorName) {
+            const vendor = vendorsData.find(v => v.vendorName === billData.vendorName);
+            if (vendor) {
+              setSelectedVendor(vendor);
             }
           }
         }
@@ -248,58 +346,15 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   }, [isOpen, editingBill, billData.vendorPAN]);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const response = await fetch('http://localhost:5001/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          const profile = userData.user.profile || {};
-          
-          let stateFromAddress = '';
-          if (profile.address) {
-            const addressParts = profile.address.split(',');
-            for (let part of addressParts) {
-              const trimmedPart = part.trim();
-              const states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Puducherry', 'Chandigarh', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Lakshadweep'];
-              if (states.includes(trimmedPart)) {
-                stateFromAddress = trimmedPart;
-                break;
-              }
-            }
-          }
-          
-          setBillData(prev => ({
-            ...prev,
-            supplierName: userData.user.companyName || profile.tradeName || prev.supplierName,
-            supplierAddress: profile.address || prev.supplierAddress,
-            supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
-            supplierPAN: profile.panNumber || prev.supplierPAN,
-            placeOfSupply: stateFromAddress || prev.placeOfSupply
-          }));
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
-
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowExportDropdown(false);
       }
       if (!event.target.closest('.vendor-dropdown-container')) {
         setShowVendorDropdown(false);
+      }
+      if (!event.target.closest('.gst-dropdown-container')) {
+        setShowGSTDropdown(false);
       }
       if (!event.target.closest('.po-dropdown-container')) {
         setShowPODropdown(false);
@@ -401,6 +456,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       }
     }
     
+    // Auto-set place of supply based on supplier GSTIN
+    if (field === 'supplierGSTIN') {
+      const placeOfSupply = getStateFromGST(value);
+      setBillData(prev => ({
+        ...prev,
+        [field]: value,
+        placeOfSupply: placeOfSupply
+      }));
+      return;
+    }
+    
     setBillData(prev => {
       const updated = { ...prev, [field]: value };
       
@@ -427,11 +493,24 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const handleVendorSelect = (vendor) => {
     console.log('Selected vendor:', vendor); // Debug log
     console.log('Vendor PAN:', vendor.panNumber); // Debug PAN
+    
+    // Set selected vendor for GST dropdown
+    setSelectedVendor(vendor);
+    
+    // Get default GST or first available GST
+    const defaultGST = vendor.gstNumbers && vendor.gstNumbers.length > 0 
+      ? vendor.gstNumbers.find(gst => gst.isDefault) || vendor.gstNumbers[0]
+      : null;
+    
+    const selectedGSTNumber = defaultGST ? defaultGST.gstNumber : (vendor.gstNumber || '');
+    const vendorPlace = getStateFromGST(selectedGSTNumber);
+    
     setBillData(prev => ({
       ...prev,
       vendorName: vendor.vendorName,
       vendorAddress: vendor.billingAddress || '',
-      vendorGSTIN: vendor.gstNumber || '',
+      vendorGSTIN: selectedGSTNumber,
+      vendorPlace: vendorPlace,
       vendorPAN: vendor.panNumber || '', // Map panNumber to vendorPAN
       contactPerson: vendor.contactPerson || '',
       contactDetails: vendor.contactDetails || '',
@@ -476,10 +555,19 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     // Find and auto-fill vendor details
     const vendor = vendors.find(v => v.vendorName === po.supplier);
     if (vendor) {
+      setSelectedVendor(vendor);
+      const defaultGST = vendor.gstNumbers && vendor.gstNumbers.length > 0 
+        ? vendor.gstNumbers.find(gst => gst.isDefault) || vendor.gstNumbers[0]
+        : null;
+      
+      const selectedGSTNumber = defaultGST ? defaultGST.gstNumber : (vendor.gstNumber || '');
+      const vendorPlace = getStateFromGST(selectedGSTNumber);
+      
       setBillData(prev => ({
         ...prev,
         vendorAddress: vendor.billingAddress || '',
-        vendorGSTIN: vendor.gstNumber || '',
+        vendorGSTIN: selectedGSTNumber,
+        vendorPlace: vendorPlace,
         vendorPAN: vendor.panNumber || '',
         contactPerson: vendor.contactPerson || '',
         contactDetails: vendor.contactDetails || '',
@@ -490,6 +578,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     setShowPODropdown(false);
     setPOSearchTerm(po.poNumber);
     setVendorSearchTerm(po.supplier);
+  };
+
+  const handleGSTSelect = (gstNumber) => {
+    const vendorPlace = getStateFromGST(gstNumber);
+    
+    setBillData(prev => ({
+      ...prev,
+      vendorGSTIN: gstNumber,
+      vendorPlace: vendorPlace
+    }));
+    setShowGSTDropdown(false);
   };
 
   const filteredPOs = availablePOs.filter(po =>
@@ -935,15 +1034,48 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   )}
                 </div>
               </div>
-              <div>
+              <div className="relative gst-dropdown-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vendor GSTIN</label>
-                <input
-                  type="text"
-                  value={billData.vendorGSTIN}
-                  onChange={(e) => handleInputChange('vendorGSTIN', e.target.value)}
-                  maxLength="15"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={billData.vendorGSTIN}
+                    onChange={(e) => handleInputChange('vendorGSTIN', e.target.value)}
+                    onFocus={() => {
+                      if (selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0) {
+                        setShowGSTDropdown(true);
+                      }
+                    }}
+                    maxLength="15"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Select from dropdown or enter manually"
+                  />
+                  {selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
+                    <ChevronDown 
+                      className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
+                      onClick={() => setShowGSTDropdown(!showGSTDropdown)}
+                    />
+                  )}
+                  
+                  {showGSTDropdown && selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {selectedVendor.gstNumbers.map((gst, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleGSTSelect(gst.gstNumber)}
+                          className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center"
+                        >
+                          <span className="font-medium text-gray-900">{gst.gstNumber}</span>
+                          {gst.isDefault && (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vendor PAN *</label>

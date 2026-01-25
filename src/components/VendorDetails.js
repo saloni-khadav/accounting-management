@@ -78,8 +78,25 @@ const VendorDetails = ({ vendor, isOpen, onClose }) => {
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-600">GST Number</label>
-                  <p className="text-gray-900">{vendor.gstNumber || 'N/A'}</p>
+                  <label className="text-sm font-medium text-gray-600">GST Numbers</label>
+                  <div className="text-gray-900">
+                    {vendor.gstNumbers && vendor.gstNumbers.length > 0 ? (
+                      <div className="space-y-1">
+                        {vendor.gstNumbers.map((gst, index) => (
+                          <div key={index} className="flex items-center">
+                            <span>{gst.gstNumber}</span>
+                            {gst.isDefault && (
+                              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p>{vendor.gstNumber || 'N/A'}</p>
+                    )}
+                  </div>
                 </div>
                 
                 <div>

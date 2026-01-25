@@ -622,8 +622,16 @@ const Payments = () => {
                     />
                     {showBillDropdown && bills.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').length > 0 ? (
-                          bills.filter(bill => bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid').map((bill) => {
+                        {bills.filter(bill => {
+                          const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+                          const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+                          return bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid' && remainingAmount > 0;
+                        }).length > 0 ? (
+                          bills.filter(bill => {
+                            const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+                            const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+                            return bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid' && remainingAmount > 0;
+                          }).map((bill) => {
                             const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
                             const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
                             return (
@@ -653,7 +661,7 @@ const Payments = () => {
                           )})
                         ) : (
                           <div className="px-3 py-2 text-gray-500 text-sm">
-                            No approved bills found for this vendor
+                            No unpaid bills found for this vendor
                           </div>
                         )}
                       </div>

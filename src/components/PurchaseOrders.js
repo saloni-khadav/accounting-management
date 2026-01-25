@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye } from 'lucide-react';
 
 const PurchaseOrders = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -13,6 +13,8 @@ const PurchaseOrders = () => {
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [viewingOrder, setViewingOrder] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [formData, setFormData] = useState({
     supplier: '',
     poNumber: '',
@@ -264,6 +266,11 @@ const PurchaseOrders = () => {
     }
   };
 
+  const handleView = (order) => {
+    setViewingOrder(order);
+    setShowViewModal(true);
+  };
+
   const ordersData = filteredOrders;
 
   const stats = {
@@ -431,6 +438,13 @@ const PurchaseOrders = () => {
                   <td className="py-5 px-6">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleView(order)}
+                        className="p-2 rounded-lg transition-colors text-green-600 hover:text-green-800 hover:bg-green-50"
+                        title="View Purchase Order Details"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
                         onClick={() => handleEdit(order)}
                         disabled={isApproved(order)}
                         className={`p-2 rounded-lg transition-colors ${
@@ -477,6 +491,155 @@ const PurchaseOrders = () => {
           <ChevronRight size={20} className="text-gray-600" />
         </button>
       </div>
+
+      {/* View PO Modal */}
+      {showViewModal && viewingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+            <div className="p-8">
+              {/* Modal Header */}
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">Purchase Order Details</h1>
+                <button 
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingOrder(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* PO Information */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Order Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">PO Number</label>
+                      <p className="text-lg font-semibold text-blue-600">{viewingOrder.poNumber}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Supplier</label>
+                      <p className="text-lg">{viewingOrder.supplier}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Status</label>
+                      <span className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(viewingOrder.status, viewingOrder.approvalStatus)}`}>
+                        {viewingOrder.approvalStatus === 'pending' ? 'Pending Approval' : 
+                         viewingOrder.approvalStatus === 'approved' ? 'Approved' :
+                         viewingOrder.approvalStatus === 'rejected' ? 'Rejected' :
+                         viewingOrder.status || 'Draft'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Dates</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Order Date</label>
+                      <p className="text-lg">{new Date(viewingOrder.poDate).toLocaleDateString()}</p>
+                    </div>
+                    {viewingOrder.deliveryDate && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Delivery Date</label>
+                        <p className="text-lg">{new Date(viewingOrder.deliveryDate).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Created By</label>
+                      <p className="text-lg">{viewingOrder.createdBy || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Items</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full border border-gray-200 rounded-lg">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Item Name</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Qty</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Rate</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Discount%</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">CGST%</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">SGST%</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">IGST%</th>
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewingOrder.items?.map((item, idx) => {
+                        const itemTotal = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
+                                         (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100);
+                        return (
+                          <tr key={idx} className="border-b">
+                            <td className="px-4 py-3">{item.name}</td>
+                            <td className="px-4 py-3">{item.hsn}</td>
+                            <td className="px-4 py-3 text-right">{item.quantity}</td>
+                            <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right">{item.discount}%</td>
+                            <td className="px-4 py-3 text-right">{item.cgstRate}%</td>
+                            <td className="px-4 py-3 text-right">{item.sgstRate}%</td>
+                            <td className="px-4 py-3 text-right">{item.igstRate}%</td>
+                            <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Sub Total:</span>
+                      <span>₹{viewingOrder.subTotal?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Discount:</span>
+                      <span>₹{viewingOrder.totalDiscount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Tax:</span>
+                      <span>₹{viewingOrder.totalTax?.toLocaleString() || '0'}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="text-right">
+                      <div className="text-sm text-gray-600">Total Amount</div>
+                      <div className="text-2xl font-bold text-blue-600">₹{viewingOrder.totalAmount?.toLocaleString() || '0'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex justify-end mt-8">
+                <button 
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingOrder(null);
+                  }}
+                  className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create PO Modal */}
       {showCreateForm && (

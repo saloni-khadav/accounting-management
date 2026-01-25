@@ -33,6 +33,17 @@ const vendorSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  gstNumbers: [{
+    gstNumber: {
+      type: String,
+      trim: true,
+      maxlength: 15
+    },
+    isDefault: {
+      type: Boolean,
+      default: false
+    }
+  }],
   gstNumber: {
     type: String,
     trim: true,

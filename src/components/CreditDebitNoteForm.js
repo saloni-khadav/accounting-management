@@ -9,31 +9,39 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   const [vendorInvoices, setVendorInvoices] = useState([]);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
 
+  const tdsSection = [
+    { code: '194H', rate: 5, description: 'Commission or Brokerage' },
+    { code: '194C', rate: 1, description: 'Individual/HUF' },
+    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194J(a)', rate: 2, description: 'Technical Services' },
+    { code: '194J(b)', rate: 10, description: 'Professional' },
+    { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
+    { code: '194I(b)', rate: 10, description: 'Rent - Land & Building' },
+    { code: '194A', rate: 10, description: 'Interest other than on Securities' }
+  ];
+
   // Generate automatic note number
-  const generateNoteNumber = (type) => {
-    // For financial year 2026-27 format
-    const yearCode = '2627';
-    const prefix = type === 'Credit Note' ? 'CN' : 'DN';
-    
-    // Find existing notes with same prefix and year
-    const existingNotes = creditDebitNotes.filter(note => 
-      note.noteNumber && note.noteNumber.startsWith(`${prefix}-${yearCode}-`)
-    );
-    
-    // Get the highest sequence number
-    let maxSequence = 0;
-    existingNotes.forEach(note => {
-      const parts = note.noteNumber.split('-');
-      if (parts.length === 3) {
-        const sequence = parseInt(parts[2]);
-        if (sequence > maxSequence) {
-          maxSequence = sequence;
+  const generateNoteNumber = async (type) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/credit-debit-notes/next-note-number/${encodeURIComponent(type)}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.noteNumber;
+      } else {
+        throw new Error('Failed to generate note number');
       }
-    });
-    
-    const nextSequence = (maxSequence + 1).toString().padStart(3, '0');
-    return `${prefix}-${yearCode}-${nextSequence}`;
+    } catch (error) {
+      console.error('Error generating note number:', error);
+      // Fallback to timestamp-based number
+      const timestamp = Date.now().toString().slice(-3);
+      const prefix = type === 'Credit Note' ? 'CN' : 'DN';
+      return `${prefix}-2627-${timestamp}`;
+    }
   };
 
   useEffect(() => {
@@ -86,6 +94,11 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     originalInvoiceNumber: '',
     reason: '',
     
+    // TDS Details
+    tdsSection: '',
+    tdsPercentage: 0,
+    tdsAmount: 0,
+    
     // Vendor Details
     vendorName: '',
     vendorAddress: '',
@@ -93,14 +106,22 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     
     // Items
     items: [{
+      product: '',
       description: '',
       hsnCode: '',
       quantity: 1,
+      unit: 'Nos',
       unitPrice: 0,
+      discount: 0,
+      taxableValue: 0,
       cgstRate: 9,
       sgstRate: 9,
+      igstRate: 0,
+      cessRate: 0,
       cgstAmount: 0,
       sgstAmount: 0,
+      igstAmount: 0,
+      cessAmount: 0,
       totalAmount: 0
     }],
     
@@ -119,50 +140,74 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         ...editingNote,
         noteDate: editingNote.date ? new Date(editingNote.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         invoiceDate: editingNote.invoiceDate || '',
-        noteNumber: editingNote.noteNumber || generateNoteNumber(editingNote.type || 'Credit Note'),
+        noteNumber: editingNote.noteNumber || '',
         items: editingNote.items || [{
+          product: '',
           description: '',
           hsnCode: '',
           quantity: 1,
+          unit: 'Nos',
           unitPrice: 0,
+          discount: 0,
+          taxableValue: 0,
           cgstRate: 9,
           sgstRate: 9,
+          igstRate: 0,
+          cessRate: 0,
           cgstAmount: 0,
           sgstAmount: 0,
+          igstAmount: 0,
+          cessAmount: 0,
           totalAmount: 0
         }]
       });
-    } else if (creditDebitNotes.length >= 0) {
-      setNoteData({
-        noteNumber: generateNoteNumber('Credit Note'),
-        noteDate: new Date().toISOString().split('T')[0],
-        invoiceDate: '',
-        type: 'Credit Note',
-        referenceNumber: '',
-        originalInvoiceNumber: '',
-        reason: '',
-        vendorName: '',
-        vendorAddress: '',
-        vendorGSTIN: '',
-        items: [{
-          description: '',
-          hsnCode: '',
-          quantity: 1,
-          unitPrice: 0,
-          cgstRate: 9,
-          sgstRate: 9,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          totalAmount: 0
-        }],
-        subtotal: 0,
-        totalCGST: 0,
-        totalSGST: 0,
-        grandTotal: 0,
-        notes: ''
-      });
+    } else {
+      // Generate new note number for new notes
+      const initializeNewNote = async () => {
+        const newNoteNumber = await generateNoteNumber('Credit Note');
+        setNoteData({
+          noteNumber: newNoteNumber,
+          noteDate: new Date().toISOString().split('T')[0],
+          invoiceDate: '',
+          type: 'Credit Note',
+          referenceNumber: '',
+          originalInvoiceNumber: '',
+          reason: '',
+          vendorName: '',
+          vendorAddress: '',
+          vendorGSTIN: '',
+          items: [{
+            product: '',
+            description: '',
+            hsnCode: '',
+            quantity: 1,
+            unit: 'Nos',
+            unitPrice: 0,
+            discount: 0,
+            taxableValue: 0,
+            cgstRate: 9,
+            sgstRate: 9,
+            igstRate: 0,
+            cessRate: 0,
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 0,
+            cessAmount: 0,
+            totalAmount: 0
+          }],
+          subtotal: 0,
+          totalCGST: 0,
+          totalSGST: 0,
+          grandTotal: 0,
+          notes: ''
+        });
+      };
+      
+      if (!editingNote) {
+        initializeNewNote();
+      }
     }
-  }, [editingNote, creditDebitNotes]);
+  }, [editingNote]);
 
   useEffect(() => {
     calculateTotals();
@@ -171,16 +216,21 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   const calculateItemTotals = (item) => {
     const quantity = Math.max(0, Number(item.quantity) || 0);
     const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+    const discountPercent = Math.max(0, Number(item.discount) || 0);
     const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
     const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
     
-    const taxableValue = quantity * unitPrice;
+    const grossAmount = quantity * unitPrice;
+    const discountAmount = (grossAmount * discountPercent) / 100;
+    const taxableValue = grossAmount - discountAmount;
     const cgstAmount = (taxableValue * cgstRate) / 100;
     const sgstAmount = (taxableValue * sgstRate) / 100;
     const totalAmount = taxableValue + cgstAmount + sgstAmount;
 
     return {
       ...item,
+      discountAmount,
+      taxableValue,
       cgstAmount,
       sgstAmount,
       totalAmount
@@ -193,43 +243,61 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     const updatedItems = noteData.items.map(calculateItemTotals);
     
     const subtotal = updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+    const totalDiscount = updatedItems.reduce((sum, item) => sum + Number(item.discountAmount || 0), 0);
+    const totalTaxableValue = updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0);
     const totalCGST = updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0);
     const totalSGST = updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0);
-    const grandTotal = subtotal + totalCGST + totalSGST;
+    const grandTotal = totalTaxableValue + totalCGST + totalSGST;
 
-    setNoteData(prev => ({
-      ...prev,
-      items: updatedItems,
-      subtotal,
-      totalCGST,
-      totalSGST,
-      grandTotal
-    }));
+    setNoteData(prev => {
+      const newData = {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalDiscount,
+        totalTaxableValue,
+        totalCGST,
+        totalSGST,
+        grandTotal
+      };
+      
+      // Recalculate TDS if section is selected
+      if (prev.tdsSection && prev.tdsPercentage > 0) {
+        newData.tdsAmount = (totalTaxableValue * prev.tdsPercentage) / 100;
+      }
+      
+      return newData;
+    });
   };
 
   const handleInputChange = (field, value) => {
-    if (field === 'type') {
-      // Keep the same number but change only the prefix
-      const currentNumber = noteData.noteNumber;
-      if (currentNumber) {
-        const parts = currentNumber.split('-');
-        if (parts.length === 3) {
-          const newPrefix = value === 'Credit Note' ? 'CN' : 'DN';
-          const newNoteNumber = `${newPrefix}-${parts[1]}-${parts[2]}`;
-          setNoteData(prev => ({
-            ...prev,
-            [field]: value,
-            noteNumber: newNoteNumber
-          }));
-          return;
-        }
+    if (field === 'tdsSection') {
+      const selectedSection = tdsSection.find(s => s.code === value);
+      if (selectedSection) {
+        const currentTaxableValue = noteData.totalTaxableValue || 0;
+        const calculatedTds = currentTaxableValue > 0 ? 
+          (currentTaxableValue * selectedSection.rate) / 100 : 0;
+        setNoteData(prev => ({
+          ...prev,
+          tdsSection: value,
+          tdsPercentage: selectedSection.rate,
+          tdsAmount: calculatedTds
+        }));
+        return;
       }
-      // Fallback to generate new number if parsing fails
-      setNoteData(prev => ({
-        ...prev,
-        [field]: value,
-        noteNumber: generateNoteNumber(value)
-      }));
+    }
+    
+    if (field === 'type') {
+      // Generate new note number when type changes
+      const generateNewNumber = async () => {
+        const newNoteNumber = await generateNoteNumber(value);
+        setNoteData(prev => ({
+          ...prev,
+          [field]: value,
+          noteNumber: newNoteNumber
+        }));
+      };
+      generateNewNumber();
     } else if (field === 'vendorName') {
       setVendorSearchTerm(value);
       setShowVendorDropdown(true);
@@ -280,8 +348,12 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
           payments = await paymentsResponse.json();
         }
         
-        // Filter bills for this vendor and exclude fully paid ones
-        const vendorBills = bills.filter(bill => bill.vendorName === vendorName);
+        // Filter bills for this vendor - only approved and not fully paid
+        const vendorBills = bills.filter(bill => 
+          bill.vendorName === vendorName && 
+          bill.approvalStatus === 'approved'
+        );
+        
         const availableInvoices = vendorBills.filter(bill => {
           const billPayments = payments.filter(payment => 
             payment.billId === bill._id && 
@@ -320,14 +392,22 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const addItem = () => {
     const newItem = {
+      product: '',
       description: '',
       hsnCode: '',
       quantity: 1,
+      unit: 'Nos',
       unitPrice: 0,
+      discount: 0,
+      taxableValue: 0,
       cgstRate: 9,
       sgstRate: 9,
+      igstRate: 0,
+      cessRate: 0,
       cgstAmount: 0,
       sgstAmount: 0,
+      igstAmount: 0,
+      cessAmount: 0,
       totalAmount: 0
     };
     
@@ -529,6 +609,27 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                           e.preventDefault();
                           handleInputChange('originalInvoiceNumber', invoice.billNumber);
                           handleInputChange('invoiceDate', new Date(invoice.billDate).toISOString().split('T')[0]);
+                          
+                          // Populate items from selected invoice
+                          if (invoice.items && invoice.items.length > 0) {
+                            const invoiceItems = invoice.items.map(item => ({
+                              description: item.description || '',
+                              hsnCode: item.hsnCode || '',
+                              quantity: item.quantity || 1,
+                              unitPrice: item.unitPrice || 0,
+                              discount: item.discount || 0,
+                              cgstRate: item.cgstRate || 9,
+                              sgstRate: item.sgstRate || 9,
+                              cgstAmount: item.cgstAmount || 0,
+                              sgstAmount: item.sgstAmount || 0,
+                              totalAmount: item.totalAmount || 0
+                            }));
+                            setNoteData(prev => ({
+                              ...prev,
+                              items: invoiceItems
+                            }));
+                          }
+                          
                           setShowInvoiceDropdown(false);
                         }}
                         className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -579,6 +680,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
+                    <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount %</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Total</th>
@@ -622,6 +724,18 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                           onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                           className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                           min="0"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          value={item.discount}
+                          onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          placeholder="0"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -680,6 +794,14 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                 <span className="font-medium">₹{(noteData.subtotal || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-gray-600">Total Discount:</span>
+                <span className="font-medium text-red-600">-₹{(noteData.totalDiscount || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Taxable Value:</span>
+                <span className="font-medium">₹{(noteData.totalTaxableValue || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-gray-600">CGST:</span>
                 <span className="font-medium">₹{(noteData.totalCGST || 0).toFixed(2)}</span>
               </div>
@@ -691,6 +813,37 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
               <div className="flex justify-between text-lg font-bold">
                 <span>Grand Total:</span>
                 <span>₹{(noteData.grandTotal || 0).toFixed(2)}</span>
+              </div>
+              
+              {/* TDS Section */}
+              <hr className="my-2" />
+              <div className="space-y-3 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TDS Section</label>
+                  <select
+                    value={noteData.tdsSection}
+                    onChange={(e) => handleInputChange('tdsSection', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">Select TDS Section</option>
+                    {tdsSection.map((section, idx) => (
+                      <option key={idx} value={section.code}>
+                        {section.code} - {section.rate}% ({section.description})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-gray-600">TDS ({noteData.tdsPercentage}%):</span>
+                  <span className="font-medium text-red-600">-₹{(Number(noteData.tdsAmount) || 0).toFixed(2)}</span>
+                </div>
+                
+                <hr className="my-2" />
+                <div className="flex justify-between text-lg font-bold text-green-600">
+                  <span>Net Amount:</span>
+                  <span>₹{((noteData.grandTotal || 0) - (Number(noteData.tdsAmount) || 0)).toFixed(2)}</span>
+                </div>
               </div>
             </div>
           </div>

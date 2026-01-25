@@ -4,6 +4,7 @@ import { RefreshCw, Download, Search } from 'lucide-react';
 const APReconciliation = () => {
   const [bills, setBills] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [creditDebitNotes, setCreditDebitNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,10 +18,14 @@ const APReconciliation = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch both bills and payments
-      const [billsResponse, paymentsResponse] = await Promise.all([
-        fetch('http://localhost:5001/api/bills'),
-        fetch('http://localhost:5001/api/payments')
+      // Fetch bills, payments, and credit/debit notes
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const [billsResponse, paymentsResponse, notesResponse] = await Promise.all([
+        fetch('http://localhost:5001/api/bills', { headers }),
+        fetch('http://localhost:5001/api/payments', { headers }),
+        fetch('http://localhost:5001/api/credit-debit-notes', { headers })
       ]);
       
       if (billsResponse.ok) {
@@ -35,6 +40,13 @@ const APReconciliation = () => {
         setPayments(paymentsData);
       }
       
+      if (notesResponse.ok) {
+        const notesData = await notesResponse.json();
+        // Only include approved credit/debit notes
+        const approvedNotes = notesData.filter(note => note.approvalStatus === 'approved');
+        setCreditDebitNotes(approvedNotes);
+      }
+      
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -42,7 +54,7 @@ const APReconciliation = () => {
     setLoading(false);
   };
 
-  // Calculate reconciliation data from bills and payments
+  // Calculate reconciliation data from bills, payments, and credit/debit notes
   const totalPayable = bills.reduce((sum, bill) => sum + (bill.grandTotal || 0), 0);
   
   // Only count approved and completed payments for Total Paid
@@ -53,7 +65,18 @@ const APReconciliation = () => {
   const invoicedAmount = bills
     .filter(bill => bill.status !== 'Draft' && bill.status !== 'Cancelled')
     .reduce((sum, bill) => sum + (bill.grandTotal || 0), 0);
-  const unreconciled = totalPayable - totalPaid;
+    
+  // Calculate credit/debit notes impact
+  const creditNotesAmount = creditDebitNotes
+    .filter(note => note.type === 'Credit Note' && note.status !== 'Cancelled')
+    .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
+    
+  const debitNotesAmount = creditDebitNotes
+    .filter(note => note.type === 'Debit Note' && note.status !== 'Cancelled')
+    .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
+    
+  const adjustedPayable = totalPayable - creditNotesAmount + debitNotesAmount;
+  const unreconciled = adjustedPayable - totalPaid;
 
   // Combine bills and payments for reconciliation
   const billsData = bills.map(bill => ({
@@ -85,8 +108,22 @@ const APReconciliation = () => {
     sortDate: new Date(payment.paymentDate)
   }));
 
+  const creditDebitNotesData = creditDebitNotes.map(note => ({
+    date: new Date(note.noteDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    invoiceNo: note.noteNumber,
+    vendor: note.vendorName,
+    type: note.type,
+    amount: `₹${(note.grandTotal || 0).toLocaleString('en-IN')}`,
+    status: note.approvalStatus === 'pending' ? 'Pending Approval' :
+            note.approvalStatus === 'rejected' ? 'Rejected' :
+            note.approvalStatus === 'approved' ? note.status :
+            note.status || 'Open',
+    originalStatus: note.status,
+    sortDate: new Date(note.noteDate)
+  }));
+
   // Combine and sort by date (newest first)
-  const allData = [...billsData, ...paymentsData]
+  const allData = [...billsData, ...paymentsData, ...creditDebitNotesData]
     .sort((a, b) => b.sortDate - a.sortDate);
 
   // Apply filters
@@ -126,22 +163,30 @@ const APReconciliation = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-base font-medium text-gray-600 mb-2">Total Payable</h3>
-          <p className="text-3xl font-bold text-gray-900">₹{totalPayable.toLocaleString('en-IN')}</p>
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Payable</h3>
+          <p className="text-2xl font-bold text-gray-900">₹{totalPayable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-base font-medium text-gray-600 mb-2">Total Paid</h3>
-          <p className="text-3xl font-bold text-green-600">₹{totalPaid.toLocaleString('en-IN')}</p>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Paid</h3>
+          <p className="text-2xl font-bold text-green-600">₹{totalPaid.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-base font-medium text-gray-600 mb-2">Invoiced Amount</h3>
-          <p className="text-3xl font-bold text-gray-900">₹{invoicedAmount.toLocaleString('en-IN')}</p>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Credit Notes</h3>
+          <p className="text-2xl font-bold text-blue-600">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-base font-medium text-gray-600 mb-2">Unreconciled</h3>
-          <p className="text-3xl font-bold text-red-600">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Debit Notes</h3>
+          <p className="text-2xl font-bold text-orange-600">₹{debitNotesAmount.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Adjusted Payable</h3>
+          <p className="text-2xl font-bold text-gray-900">₹{adjustedPayable.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-1">Unreconciled</h3>
+          <p className="text-2xl font-bold text-red-600">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
         </div>
       </div>
 
@@ -166,6 +211,8 @@ const APReconciliation = () => {
             <option value="">All Types</option>
             <option value="Invoice">Invoice</option>
             <option value="Payment">Payment</option>
+            <option value="Credit Note">Credit Note</option>
+            <option value="Debit Note">Debit Note</option>
           </select>
           <select
             value={statusFilter}
@@ -189,10 +236,11 @@ const APReconciliation = () => {
       {/* Bills & Payments Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Bills & Payments ({mismatchData.length})</h2>
+          <h2 className="text-2xl font-bold text-gray-900">AP Transactions ({mismatchData.length})</h2>
           <div className="flex gap-4 text-sm">
             <span className="text-blue-600 font-medium">Bills: {billsData.length}</span>
             <span className="text-green-600 font-medium">Payments: {paymentsData.length}</span>
+            <span className="text-purple-600 font-medium">Credit/Debit Notes: {creditDebitNotesData.length}</span>
           </div>
         </div>
         {loading ? (
@@ -251,13 +299,19 @@ const APReconciliation = () => {
                       <td className="py-4 px-6 text-gray-900">{row.vendor}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          row.type === 'Payment' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                          row.type === 'Payment' ? 'bg-green-100 text-green-800' :
+                          row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800' :
+                          row.type === 'Debit Note' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {row.type}
                         </span>
                       </td>
                       <td className={`py-4 px-6 text-right font-semibold ${
-                        row.type === 'Payment' ? 'text-green-600' : 'text-gray-900'
+                        row.type === 'Payment' ? 'text-green-600' :
+                        row.type === 'Credit Note' ? 'text-blue-600' :
+                        row.type === 'Debit Note' ? 'text-orange-600' :
+                        'text-gray-900'
                       }`}>{row.amount}</td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(row.status, row.type)}`}>

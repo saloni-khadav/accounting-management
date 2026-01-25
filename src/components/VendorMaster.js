@@ -111,7 +111,9 @@ const VendorMaster = () => {
       'Email': vendor.email,
       'Website': vendor.website,
       'Billing Address': vendor.billingAddress,
-      'GST Number': vendor.gstNumber,
+      'GST Number': vendor.gstNumbers && vendor.gstNumbers.length > 0 
+        ? vendor.gstNumbers.map(gst => `${gst.gstNumber}${gst.isDefault ? ' (Default)' : ''}`).join(', ')
+        : vendor.gstNumber || 'N/A',
       'PAN Number': vendor.panNumber,
       'Payment Terms': vendor.paymentTerms,
       'Credit Limit': vendor.creditLimit,

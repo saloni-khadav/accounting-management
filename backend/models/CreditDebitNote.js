@@ -19,6 +19,17 @@ const creditDebitNoteSchema = new mongoose.Schema({
   originalInvoiceNumber: String,
   reason: String,
   
+  // TDS Details
+  tdsSection: String,
+  tdsPercentage: {
+    type: Number,
+    default: 0
+  },
+  tdsAmount: {
+    type: Number,
+    default: 0
+  },
+  
   // Vendor Details
   vendorName: {
     type: String,
@@ -36,6 +47,18 @@ const creditDebitNoteSchema = new mongoose.Schema({
       default: 1
     },
     unitPrice: {
+      type: Number,
+      default: 0
+    },
+    discount: {
+      type: Number,
+      default: 0
+    },
+    discountAmount: {
+      type: Number,
+      default: 0
+    },
+    taxableValue: {
       type: Number,
       default: 0
     },
@@ -63,6 +86,14 @@ const creditDebitNoteSchema = new mongoose.Schema({
   
   // Totals
   subtotal: {
+    type: Number,
+    default: 0
+  },
+  totalDiscount: {
+    type: Number,
+    default: 0
+  },
+  totalTaxableValue: {
     type: Number,
     default: 0
   },
