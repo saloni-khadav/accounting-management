@@ -83,7 +83,16 @@ const paymentSchema = new mongoose.Schema({
   createdBy: {
     type: String,
     trim: true
-  }
+  },
+  attachments: [{
+    fileName: String,
+    fileUrl: String,
+    fileSize: Number,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });

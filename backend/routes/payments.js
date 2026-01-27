@@ -1,9 +1,44 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads/payments');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPG, PNG, DOC, DOCX files are allowed'));
+    }
+  }
+});
 
 // Function to update bill status when payment is made
 const updateBillStatusOnPayment = async (billId) => {
@@ -53,13 +88,28 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create payment
-router.post('/', async (req, res) => {
+router.post('/', upload.array('attachments', 10), async (req, res) => {
   try {
-    console.log('Creating payment with data:', req.body);
-    const payment = new Payment(req.body);
-    const savedPayment = await payment.save();
+    const paymentData = { ...req.body };
     
-    console.log('Payment saved:', savedPayment);
+    // Clean up empty/invalid fields
+    Object.keys(paymentData).forEach(key => {
+      if (paymentData[key] === '' || paymentData[key] === 'undefined') {
+        delete paymentData[key];
+      }
+    });
+    
+    // Handle file uploads
+    if (req.files && req.files.length > 0) {
+      paymentData.attachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: file.filename,
+        fileSize: file.size
+      }));
+    }
+    
+    const payment = new Payment(paymentData);
+    const savedPayment = await payment.save();
     
     res.status(201).json(savedPayment);
   } catch (error) {
@@ -99,20 +149,41 @@ router.patch('/:id/approval', async (req, res) => {
 });
 
 // Update payment
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.array('attachments', 10), async (req, res) => {
   try {
-    const oldPayment = await Payment.findById(req.params.id);
-    const payment = await Payment.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!payment) {
+    const existingPayment = await Payment.findById(req.params.id);
+    if (!existingPayment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
     
+    const updateData = { ...req.body };
+    
+    // Clean up empty/invalid fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === '' || updateData[key] === 'undefined') {
+        delete updateData[key];
+      }
+    });
+    
+    // Handle file uploads - append to existing attachments
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: file.filename,
+        fileSize: file.size
+      }));
+      
+      updateData.attachments = [...(existingPayment.attachments || []), ...newAttachments];
+    }
+    
+    const payment = await Payment.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
     // Update bill status if billId is provided and status changed
-    if (payment.billId && (payment.status !== oldPayment?.status || payment.netAmount !== oldPayment?.netAmount)) {
+    if (payment.billId && (payment.status !== existingPayment?.status || payment.netAmount !== existingPayment?.netAmount)) {
       await updateBillStatusOnPayment(payment.billId);
     }
     
@@ -171,6 +242,20 @@ router.get('/stats/summary', async (req, res) => {
       pending: pending[0]?.total || 0,
       upcoming: upcoming[0]?.total || 0
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Download attachment
+router.get('/download/:filename', (req, res) => {
+  try {
+    const filePath = path.join(uploadsDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

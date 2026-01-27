@@ -105,6 +105,11 @@ const VendorDetails = ({ vendor, isOpen, onClose }) => {
                 </div>
                 
                 <div>
+                  <label className="text-sm font-medium text-gray-600">Aadhaar Number</label>
+                  <p className="text-gray-900">{vendor.aadharNumber || 'N/A'}</p>
+                </div>
+                
+                <div>
                   <label className="text-sm font-medium text-gray-600">Industry Type</label>
                   <p className="text-gray-900">{vendor.industryType || 'N/A'}</p>
                 </div>

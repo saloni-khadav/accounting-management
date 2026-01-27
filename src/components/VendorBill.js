@@ -720,12 +720,6 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         status: editingBill ? editingBill.status : (userRole === 'manager' ? 'Draft' : 'Draft'), // Preserve existing status when editing
         approvalStatus: editingBill ? editingBill.approvalStatus : (userRole === 'manager' ? 'approved' : 'pending'), // Preserve existing approval status when editing
         createdBy: userData.user._id,
-        attachments: attachments.map(att => ({
-          fileName: att.fileName,
-          fileUrl: att.fileUrl || '',
-          fileSize: att.fileSize,
-          uploadedAt: att.uploadedAt
-        })),
         items: (billData.items || []).filter(item => 
           item.description && item.description.trim() && 
           item.hsnCode && item.hsnCode.trim()
@@ -749,13 +743,31 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         : 'http://localhost:5001/api/bills';
       const method = isEditing ? 'PUT' : 'POST';
 
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all bill data fields
+      Object.keys(cleanedData).forEach(key => {
+        if (typeof cleanedData[key] === 'object' && cleanedData[key] !== null) {
+          formData.append(key, JSON.stringify(cleanedData[key]));
+        } else {
+          formData.append(key, cleanedData[key] || '');
+        }
+      });
+      
+      // Add attachment files
+      attachments.forEach((attachment) => {
+        if (attachment.file) {
+          formData.append('attachments', attachment.file);
+        }
+      });
+
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(cleanedData),
+        body: formData,
       });
       
       if (response.ok) {

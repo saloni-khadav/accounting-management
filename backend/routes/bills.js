@@ -1,7 +1,42 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads/bills');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPG, PNG, DOC, DOCX files are allowed'));
+    }
+  }
+});
 
 // Function to update bill status based on payments
 const updateBillStatus = async (billId) => {
@@ -70,6 +105,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Download attachment (move this before /:id route)
+router.get('/download/:filename', (req, res) => {
+  try {
+    const filePath = path.join(uploadsDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get single bill
 router.get('/:id', async (req, res) => {
   try {
@@ -84,22 +133,33 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create bill
-router.post('/', async (req, res) => {
+router.post('/', upload.array('attachments', 10), async (req, res) => {
   try {
-    console.log('Creating bill with data:', {
-      grandTotal: req.body.grandTotal,
-      tdsAmount: req.body.tdsAmount,
-      tdsSection: req.body.tdsSection
+    const billData = { ...req.body };
+    
+    // Parse JSON fields that were stringified in FormData
+    if (typeof billData.items === 'string') {
+      billData.items = JSON.parse(billData.items);
+    }
+    
+    // Clean up empty/invalid fields
+    Object.keys(billData).forEach(key => {
+      if (billData[key] === '' || billData[key] === 'undefined') {
+        delete billData[key];
+      }
     });
     
-    const bill = new Bill(req.body);
+    // Handle file uploads
+    if (req.files && req.files.length > 0) {
+      billData.attachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: file.filename,
+        fileSize: file.size
+      }));
+    }
+    
+    const bill = new Bill(billData);
     const savedBill = await bill.save();
-    
-    console.log('Saved bill:', {
-      grandTotal: savedBill.grandTotal,
-      tdsAmount: savedBill.tdsAmount,
-      tdsSection: savedBill.tdsSection
-    });
     
     res.status(201).json(savedBill);
   } catch (error) {
@@ -109,21 +169,42 @@ router.post('/', async (req, res) => {
 });
 
 // Update bill
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.array('attachments', 10), async (req, res) => {
   try {
     const existingBill = await Bill.findById(req.params.id);
     if (!existingBill) {
       return res.status(404).json({ message: 'Bill not found' });
     }
     
-    // Preserve certain fields during update
     const updateData = {
       ...req.body,
-      // Preserve status and approval status if not explicitly changed
       status: req.body.status || existingBill.status,
       approvalStatus: req.body.approvalStatus || existingBill.approvalStatus,
-      paidAmount: existingBill.paidAmount // Preserve paid amount
+      paidAmount: existingBill.paidAmount
     };
+    
+    // Parse JSON fields that were stringified in FormData
+    if (typeof updateData.items === 'string') {
+      updateData.items = JSON.parse(updateData.items);
+    }
+    
+    // Clean up empty/invalid fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === '' || updateData[key] === 'undefined') {
+        delete updateData[key];
+      }
+    });
+    
+    // Handle file uploads - append to existing attachments
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: file.filename,
+        fileSize: file.size
+      }));
+      
+      updateData.attachments = [...(existingBill.attachments || []), ...newAttachments];
+    }
     
     const bill = await Bill.findByIdAndUpdate(
       req.params.id,
