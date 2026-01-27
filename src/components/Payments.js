@@ -293,27 +293,34 @@ const Payments = () => {
         ...formData,
         netAmount,
         status: 'Pending',
-        approvalStatus: 'pending', // Ensure this is always set
+        approvalStatus: 'pending',
         amount: parseFloat(formData.amount),
         tdsAmount: parseFloat(formData.tdsAmount) || 0,
         tdsPercentage: parseFloat(formData.tdsPercentage) || 0
       };
       
-      console.log('Payment payload:', payload); // Debug log
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Add all payment data fields
+      Object.keys(payload).forEach(key => {
+        if (key !== 'attachments') {
+          formDataToSend.append(key, payload[key] || '');
+        }
+      });
+      
+      // Add attachment files
+      formData.attachments.forEach((file) => {
+        formDataToSend.append('attachments', file);
+      });
       
       const response = await fetch('http://localhost:5001/api/payments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        body: formDataToSend,
       });
-      
-      console.log('Payment creation response status:', response.status);
       
       if (response.ok) {
         const createdPayment = await response.json();
-        console.log('Created payment response:', createdPayment);
         alert('Payment submitted for approval!');
         setIsPaymentFormOpen(false);
         setFormData({
@@ -339,7 +346,6 @@ const Payments = () => {
       } else {
         const errorData = await response.json();
         alert('Error: ' + (errorData.message || 'Error recording payment'));
-        console.error('Error details:', errorData);
       }
     } catch (error) {
       console.error('Error:', error);

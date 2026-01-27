@@ -278,7 +278,6 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   const downloadDocument = (file, index) => {
     if (file instanceof File) {
-      // Create a temporary URL for the file and download it
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
       a.href = url;
@@ -287,6 +286,9 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+    } else if (typeof file === 'string') {
+      // Handle existing uploaded files (file paths)
+      window.open(`http://localhost:5001/api/vendors/download/${file}`, '_blank');
     }
   };
 
@@ -301,16 +303,68 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Ensure gstNumber field is synced with default GST from gstNumbers array
-    const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);
-    const submissionData = {
-      ...formData,
-      gstNumber: defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || ''
-    };
-    onSave(submissionData);
-    onClose();
+    
+    try {
+      const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);
+      
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      Object.keys(formData).forEach(key => {
+        if (key === 'documents') {
+          // Handle documents separately
+          if (formData.documents.panCard) {
+            formDataToSend.append('panCard', formData.documents.panCard);
+          }
+          if (formData.documents.aadharCard) {
+            formDataToSend.append('aadharCard', formData.documents.aadharCard);
+          }
+          if (formData.documents.gstCertificate) {
+            formDataToSend.append('gstCertificate', formData.documents.gstCertificate);
+          }
+          if (formData.documents.bankStatement) {
+            formDataToSend.append('bankStatement', formData.documents.bankStatement);
+          }
+          // Add other documents as files
+          formData.documents.otherDocuments.forEach((file) => {
+            if (file instanceof File) {
+              formDataToSend.append('otherDocuments', file);
+            }
+          });
+        } else if (key === 'gstNumbers') {
+          formDataToSend.append('gstNumbers', JSON.stringify(formData.gstNumbers));
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+      
+      formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
+      
+      const url = editingVendor 
+        ? `http://localhost:5001/api/vendors/${editingVendor._id}`
+        : 'http://localhost:5001/api/vendors';
+      const method = editingVendor ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        body: formDataToSend
+      });
+      
+      if (response.ok) {
+        const savedVendor = await response.json();
+        onSave(savedVendor);
+        onClose();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Error saving vendor');
+      }
+    } catch (error) {
+      console.error('Error saving vendor:', error);
+      alert('Error saving vendor');
+    }
   };
 
   if (!isOpen) return null;
@@ -848,7 +902,9 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                 <div className="space-y-1">
                   {formData.documents.otherDocuments.map((file, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm text-gray-700">{file.name}</span>
+                      <span className="text-sm text-gray-700">
+                        {file instanceof File ? file.name : file}
+                      </span>
                       <div className="flex gap-2">
                         <button
                           type="button"

@@ -1,7 +1,42 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const CreditDebitNote = require('../models/CreditDebitNote');
 const auth = require('../middleware/auth');
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads/credit-debit-notes');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPG, PNG, DOC, DOCX files are allowed'));
+    }
+  }
+});
 
 // Get next note number
 router.get('/next-note-number/:type', auth, async (req, res) => {
@@ -56,14 +91,34 @@ router.get('/reconciliation', async (req, res) => {
 });
 
 // Create new credit/debit note
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
   try {
-    console.log('Received data:', req.body);
-    
     const noteData = {
       ...req.body,
       userId: req.user.id
     };
+    
+    // Parse JSON fields that were stringified in FormData
+    if (typeof noteData.items === 'string') {
+      noteData.items = JSON.parse(noteData.items);
+    }
+    
+    // Clean up empty/invalid fields
+    Object.keys(noteData).forEach(key => {
+      if (noteData[key] === '' || noteData[key] === 'undefined') {
+        delete noteData[key];
+      }
+    });
+    
+    // Handle file uploads
+    if (req.files && req.files.length > 0) {
+      noteData.attachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
+        fileSize: file.size,
+        uploadedAt: new Date()
+      }));
+    }
     
     const note = new CreditDebitNote(noteData);
     await note.save();
@@ -82,17 +137,69 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update credit/debit note
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), async (req, res) => {
   try {
-    const note = await CreditDebitNote.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
-      req.body,
-      { new: true }
-    );
+    const existingNote = await CreditDebitNote.findOne({
+      _id: req.params.id,
+      userId: req.user.id
+    });
     
-    if (!note) {
+    if (!existingNote) {
       return res.status(404).json({ message: 'Note not found' });
     }
+    
+    const updateData = { ...req.body };
+    
+    // Parse JSON fields that were stringified in FormData
+    if (typeof updateData.items === 'string') {
+      updateData.items = JSON.parse(updateData.items);
+    }
+    
+    // Clean up empty/invalid fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === '' || updateData[key] === 'undefined') {
+        delete updateData[key];
+      }
+    });
+    
+    // Handle file uploads and existing attachments
+    let finalAttachments = [];
+    
+    // Parse existing attachments if provided
+    if (updateData.existingAttachments) {
+      try {
+        const existingAttachments = JSON.parse(updateData.existingAttachments);
+        finalAttachments = existingAttachments.map(att => ({
+          fileName: att.fileName,
+          fileUrl: att.fileUrl.replace('http://localhost:5001', ''), // Remove base URL
+          fileSize: att.fileSize,
+          uploadedAt: att.uploadedAt
+        }));
+      } catch (e) {
+        console.error('Error parsing existing attachments:', e);
+      }
+      delete updateData.existingAttachments;
+    }
+    
+    // Add new file uploads
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
+        fileSize: file.size,
+        uploadedAt: new Date()
+      }));
+      
+      finalAttachments = [...finalAttachments, ...newAttachments];
+    }
+    
+    updateData.attachments = finalAttachments;
+    
+    const note = await CreditDebitNote.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      updateData,
+      { new: true }
+    );
     
     res.json(note);
   } catch (error) {
@@ -136,6 +243,20 @@ router.get('/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching credit/debit note:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Download attachment
+router.get('/download/:filename', auth, (req, res) => {
+  try {
+    const filePath = path.join(uploadsDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

@@ -133,7 +133,17 @@ const creditDebitNoteSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
+  },
+  
+  attachments: [{
+    fileName: String,
+    fileUrl: String,
+    fileSize: Number,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });

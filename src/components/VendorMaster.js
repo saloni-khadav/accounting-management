@@ -115,6 +115,7 @@ const VendorMaster = () => {
         ? vendor.gstNumbers.map(gst => `${gst.gstNumber}${gst.isDefault ? ' (Default)' : ''}`).join(', ')
         : vendor.gstNumber || 'N/A',
       'PAN Number': vendor.panNumber,
+      'Aadhaar Number': vendor.aadharNumber,
       'Payment Terms': vendor.paymentTerms,
       'Credit Limit': vendor.creditLimit,
       'Account Number': vendor.accountNumber,

@@ -104,6 +104,33 @@ const vendorSchema = new mongoose.Schema({
   accountManager: {
     type: String,
     trim: true
+  },
+  aadharNumber: {
+    type: String,
+    trim: true,
+    maxlength: 12
+  },
+  documents: {
+    panCard: {
+      type: String,
+      trim: true
+    },
+    aadharCard: {
+      type: String,
+      trim: true
+    },
+    gstCertificate: {
+      type: String,
+      trim: true
+    },
+    bankStatement: {
+      type: String,
+      trim: true
+    },
+    otherDocuments: [{
+      type: String,
+      trim: true
+    }]
   }
 }, {
   timestamps: true
