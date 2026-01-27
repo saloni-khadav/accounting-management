@@ -271,6 +271,12 @@ const Payments = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.attachments || formData.attachments.length === 0) {
+      alert('At least one attachment is required');
+      return;
+    }
+    
     try {
       const netAmount = parseFloat(formData.amount) - (parseFloat(formData.tdsAmount) || 0);
       
@@ -860,7 +866,7 @@ const Payments = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attachments
+                    Attachments <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-3">
                     <div className="flex items-center justify-center w-full">

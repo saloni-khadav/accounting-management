@@ -507,6 +507,11 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       return;
     }
     
+    if (!attachments || attachments.length === 0) {
+      alert('At least one attachment is required');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const userResponse = await fetch('http://localhost:5001/api/auth/me', {
@@ -968,7 +973,9 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
             {/* Attachments */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Attachments <span className="text-red-500">*</span>
+              </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                 <div className="flex items-center justify-center">
                   <label className="flex flex-col items-center cursor-pointer">
