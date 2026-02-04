@@ -141,18 +141,19 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     // Get pending Credit/Debit Notes
     const pendingCreditDebitNotes = await CreditDebitNote.find({ approvalStatus: 'pending' })
-      .select('noteNumber type vendorName grandTotal createdAt approvalStatus reminderSent createdBy')
+      .select('noteNumber type vendorName grandTotal tdsAmount createdAt approvalStatus reminderSent createdBy')
       .limit(10)
       .sort({ createdAt: -1 });
     
     console.log('Pending Credit/Debit Notes:', pendingCreditDebitNotes.length);
     
     pendingCreditDebitNotes.forEach(note => {
+      const netAmount = (note.grandTotal || 0) - (note.tdsAmount || 0);
       pendingApprovals.push({
         id: note._id,
         type: note.type,
         description: `${note.type} ${note.noteNumber} - ${note.vendorName}`,
-        amount: `₹${note.grandTotal.toLocaleString()}`,
+        amount: `₹${netAmount.toLocaleString()}`,
         requestedBy: note.createdBy || 'User',
         requestDate: note.createdAt.toISOString().split('T')[0],
         status: 'pending',

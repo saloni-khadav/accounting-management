@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, User, ChevronDown } from 'lucide-react';
 
-const Header = ({ setActivePage }) => {
+const Header = ({ setActivePage, onLogout }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [companyName, setCompanyName] = useState('John Doe');
   const [companyLogo, setCompanyLogo] = useState(null);
@@ -120,8 +120,9 @@ const Header = ({ setActivePage }) => {
   };
 
   const handleLogout = () => {
-    // Add logout logic here
-    alert('Logout functionality to be implemented');
+    if (onLogout) {
+      onLogout();
+    }
     setShowDropdown(false);
   };
 

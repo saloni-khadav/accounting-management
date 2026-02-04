@@ -17,6 +17,18 @@ const purchaseOrderSchema = new mongoose.Schema({
   deliveryDate: {
     type: Date
   },
+  gstNumber: {
+    type: String,
+    trim: true
+  },
+  deliveryAddress: {
+    type: String,
+    trim: true
+  },
+  remarks: {
+    type: String,
+    default: ''
+  },
   items: [{
     name: String,
     hsn: String,
