@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download } from 'lucide-react';
+import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
+import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
 
 const PurchaseOrders = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -19,11 +21,18 @@ const PurchaseOrders = () => {
     supplier: '',
     poNumber: '',
     poDate: new Date().toISOString().split('T')[0],
-    deliveryDate: ''
+    deliveryDate: '',
+    gstNumber: '',
+    deliveryAddress: '',
+    remarks: ''
   });
   const [items, setItems] = useState([
     { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
+  const [companyGST, setCompanyGST] = useState('');
+  const [selectedVendorGST, setSelectedVendorGST] = useState('');
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [showGSTDropdown, setShowGSTDropdown] = useState(false);
 
   useEffect(() => {
     let filtered = purchaseOrders;
@@ -47,7 +56,7 @@ const PurchaseOrders = () => {
   useEffect(() => {
     fetchPurchaseOrders();
     fetchVendors();
-    if (showCreateForm) {
+    if (showCreateForm && !editingOrder) {
       generatePONumber();
     }
   }, [showCreateForm]);
@@ -55,6 +64,7 @@ const PurchaseOrders = () => {
   useEffect(() => {
     fetchPurchaseOrders();
     fetchVendors();
+    fetchCompanyProfile();
   }, []);
 
   const generatePONumber = async () => {
@@ -86,6 +96,28 @@ const PurchaseOrders = () => {
     }
   };
 
+  const fetchCompanyProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.user && result.user.profile && result.user.profile.gstNumber) {
+          setCompanyGST(result.user.profile.gstNumber);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching company profile:', error);
+    }
+  };
+
   const fetchPurchaseOrders = async () => {
     try {
       const response = await fetch('http://localhost:5001/api/purchase-orders');
@@ -111,9 +143,41 @@ const PurchaseOrders = () => {
   };
 
   const handleSupplierSelect = (vendor) => {
-    setFormData(prev => ({ ...prev, supplier: vendor.vendorName }));
+    setFormData(prev => ({ 
+      ...prev, 
+      supplier: vendor.vendorName,
+      gstNumber: vendor.gstNumber || '',
+      deliveryAddress: vendor.billingAddress || ''
+    }));
     setSupplierSearch(vendor.vendorName);
     setShowSupplierDropdown(false);
+    setSelectedVendor(vendor);
+    
+    const vendorGST = vendor.gstNumber || '';
+    setSelectedVendorGST(vendorGST);
+    
+    // Apply GST logic when vendor is selected
+    if (companyGST && vendorGST) {
+      const gstType = determineGSTType(companyGST, vendorGST);
+      const updatedItems = applyGSTRates(items, gstType);
+      setItems(updatedItems);
+    }
+  };
+
+  const handleGSTSelect = (gstNumber, billingAddress) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      gstNumber: gstNumber,
+      deliveryAddress: billingAddress
+    }));
+    setShowGSTDropdown(false);
+    
+    // Apply GST logic when GST is changed
+    if (companyGST && gstNumber) {
+      const gstType = determineGSTType(companyGST, gstNumber);
+      const updatedItems = applyGSTRates(items, gstType);
+      setItems(updatedItems);
+    }
   };
 
   const filteredVendors = vendors.filter(vendor =>
@@ -122,7 +186,36 @@ const PurchaseOrders = () => {
   );
 
   const addItem = () => {
-    setItems([...items, { name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+    // Get GST rates from existing items or calculate based on current GST selection
+    let gstRates = { cgstRate: 9, sgstRate: 9, igstRate: 0 };
+    
+    if (items.length > 0) {
+      // Use GST rates from first item
+      gstRates = {
+        cgstRate: items[0].cgstRate,
+        sgstRate: items[0].sgstRate,
+        igstRate: items[0].igstRate
+      };
+    } else if (companyGST && formData.gstNumber) {
+      // Calculate GST rates based on current selection
+      const gstType = determineGSTType(companyGST, formData.gstNumber);
+      const tempItem = [{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }];
+      const updatedItem = applyGSTRates(tempItem, gstType);
+      gstRates = {
+        cgstRate: updatedItem[0].cgstRate,
+        sgstRate: updatedItem[0].sgstRate,
+        igstRate: updatedItem[0].igstRate
+      };
+    }
+    
+    setItems([...items, { 
+      name: '', 
+      hsn: '', 
+      quantity: 0, 
+      rate: 0, 
+      discount: 0, 
+      ...gstRates 
+    }]);
   };
 
   const removeItem = (index) => {
@@ -186,7 +279,7 @@ const PurchaseOrders = () => {
 
       const poData = {
         ...formData,
-        items: validItems, // Use filtered items instead of all items
+        items: validItems,
         subTotal: calculateSubTotal(),
         totalDiscount: calculateDiscount(),
         totalTax: calculateTax(),
@@ -219,7 +312,10 @@ const PurchaseOrders = () => {
           supplier: '',
           poNumber: '',
           poDate: new Date().toISOString().split('T')[0],
-          deliveryDate: ''
+          deliveryDate: '',
+          gstNumber: '',
+          deliveryAddress: '',
+          remarks: ''
         });
         setSupplierSearch('');
         setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
@@ -235,13 +331,19 @@ const PurchaseOrders = () => {
 
   const handleEdit = (order) => {
     setEditingOrder(order);
-    setFormData({
-      supplier: order.supplier,
-      poNumber: order.poNumber,
+    
+    const editFormData = {
+      supplier: order.supplier || '',
+      poNumber: order.poNumber || '',
       poDate: order.poDate ? order.poDate.split('T')[0] : '',
-      deliveryDate: order.deliveryDate ? order.deliveryDate.split('T')[0] : ''
-    });
-    setSupplierSearch(order.supplier);
+      deliveryDate: order.deliveryDate ? order.deliveryDate.split('T')[0] : '',
+      gstNumber: order.gstNumber || '',
+      deliveryAddress: order.deliveryAddress || '',
+      remarks: order.remarks || ''
+    };
+    
+    setFormData(editFormData);
+    setSupplierSearch(order.supplier || '');
     setItems(order.items || [{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
     setShowCreateForm(true);
   };
@@ -269,6 +371,12 @@ const PurchaseOrders = () => {
   const handleView = (order) => {
     setViewingOrder(order);
     setShowViewModal(true);
+  };
+
+  const handleDownloadPDF = () => {
+    if (viewingOrder) {
+      generatePurchaseOrderPDF(viewingOrder);
+    }
   };
 
   const ordersData = filteredOrders;
@@ -308,7 +416,10 @@ const PurchaseOrders = () => {
               supplier: '',
               poNumber: '',
               poDate: new Date().toISOString().split('T')[0],
-              deliveryDate: ''
+              deliveryDate: '',
+              gstNumber: '',
+              deliveryAddress: '',
+              remarks: ''
             });
             setSupplierSearch('');
             setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
@@ -533,6 +644,12 @@ const PurchaseOrders = () => {
                          viewingOrder.status || 'Draft'}
                       </span>
                     </div>
+                    {viewingOrder.gstNumber && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">GST Number</label>
+                        <p className="text-lg">{viewingOrder.gstNumber}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -552,6 +669,18 @@ const PurchaseOrders = () => {
                       <label className="text-sm font-medium text-gray-600">Created By</label>
                       <p className="text-lg">{viewingOrder.createdBy || 'N/A'}</p>
                     </div>
+                    {viewingOrder.remarks && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Remarks</label>
+                        <p className="text-lg">{viewingOrder.remarks}</p>
+                      </div>
+                    )}
+                    {viewingOrder.deliveryAddress && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Delivery Address</label>
+                        <p className="text-lg whitespace-pre-line">{viewingOrder.deliveryAddress}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -624,8 +753,15 @@ const PurchaseOrders = () => {
                 </div>
               </div>
 
-              {/* Close Button */}
-              <div className="flex justify-end mt-8">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-4 mt-8">
+                <button 
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Download size={16} />
+                  Download PDF
+                </button>
                 <button 
                   onClick={() => {
                     setShowViewModal(false);
@@ -657,7 +793,10 @@ const PurchaseOrders = () => {
                       supplier: '',
                       poNumber: '',
                       poDate: new Date().toISOString().split('T')[0],
-                      deliveryDate: ''
+                      deliveryDate: '',
+                      gstNumber: '',
+                      deliveryAddress: '',
+                      remarks: ''
                     });
                     setSupplierSearch('');
                     setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
@@ -669,8 +808,8 @@ const PurchaseOrders = () => {
               </div>
 
               <form onSubmit={handleSubmit}>
-              {/* Supplier, PO Number and Dates */}
-              <div className="grid grid-cols-4 gap-6 mb-8">
+              {/* Supplier, PO Number, Dates */}
+              <div className="grid grid-cols-4 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium mb-2">Supplier</label>
                   <div className="relative">
@@ -741,8 +880,60 @@ const PurchaseOrders = () => {
                 </div>
               </div>
 
+              {/* GST Number and Delivery Address */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                  <label className="block text-sm font-medium mb-2">GST Number</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="gstNumber"
+                      value={formData.gstNumber}
+                      onChange={handleInputChange}
+                      onFocus={() => selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 1 && setShowGSTDropdown(true)}
+                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg"
+                      placeholder="GST Number"
+                    />
+                    {selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowGSTDropdown(!showGSTDropdown)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown size={20} />
+                      </button>
+                    )}
+                    {showGSTDropdown && selectedVendor && selectedVendor.gstNumbers && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                        {selectedVendor.gstNumbers.map((gstData, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleGSTSelect(gstData.gstNumber, gstData.billingAddress)}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium">{gstData.gstNumber}</div>
+                            <div className="text-sm text-gray-500">{gstData.billingAddress}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Delivery Address</label>
+                  <textarea
+                    name="deliveryAddress"
+                    value={formData.deliveryAddress}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    placeholder="Enter delivery address..."
+                  />
+                </div>
+              </div>
+
               {/* Item Details and Summary Side by Side */}
-              <div className="flex gap-6 mb-8">
+              <div className="flex gap-6 mb-6">
                 {/* Item Details */}
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-semibold mb-4">Item Details</h2>
@@ -951,6 +1142,19 @@ const PurchaseOrders = () => {
                 </div>
               </div>
 
+              {/* Remarks */}
+              <div className="mb-8">
+                <label className="block text-sm font-medium mb-2">Remarks</label>
+                <textarea
+                  name="remarks"
+                  value={formData.remarks}
+                  onChange={handleInputChange}
+                  rows="3"
+                  className="w-full p-3 border border-gray-300 rounded-lg"
+                  placeholder="Enter any additional remarks or notes..."
+                />
+              </div>
+
               {/* Actions */}
               <div className="flex justify-end gap-4">
                 <button 
@@ -961,7 +1165,10 @@ const PurchaseOrders = () => {
                       supplier: '',
                       poNumber: '',
                       poDate: new Date().toISOString().split('T')[0],
-                      deliveryDate: ''
+                      deliveryDate: '',
+                      gstNumber: '',
+                      deliveryAddress: '',
+                      remarks: ''
                     });
                     setSupplierSearch('');
                     setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);

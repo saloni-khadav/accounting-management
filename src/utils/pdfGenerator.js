@@ -259,6 +259,195 @@ export const generateTaxInvoicePDF = (invoiceData) => {
   doc.save(`TaxInvoice_${invoiceData.invoiceNumber || 'FAT20326517264441'}.pdf`);
 };
 
+export const generatePurchaseOrderPDF = (poData) => {
+  const doc = new jsPDF();
+  
+  // Title - Purchase Order (centered)
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Purchase Order', 105, 20, { align: 'center' });
+  
+  // Company Details - Left Side
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('From: Your Company Name', 20, 35);
+  
+  // PO Number Box - Right Side
+  doc.rect(120, 30, 70, 15, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.text(`PO Number: ${poData.poNumber || 'PO-001'}`, 125, 40);
+  
+  // Company Address
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Your Company Address', 20, 42);
+  doc.text('City, State - PIN Code', 20, 47);
+  
+  // Horizontal line
+  doc.line(20, 55, 190, 55);
+  
+  // PO Details Section - Left Side
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('PO Date:', 20, 65);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.poDate ? new Date(poData.poDate).toLocaleDateString() : new Date().toLocaleDateString(), 20, 72);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('Delivery Date:', 20, 82);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString() : 'TBD', 20, 89);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('Status:', 20, 99);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.status || 'Pending', 20, 106);
+  
+  // Supplier Details - Right Side
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Supplier Details:', 120, 65);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(poData.supplier || 'Supplier Name', 120, 72);
+  
+  if (poData.gstNumber) {
+    doc.text(`GST Number: ${poData.gstNumber}`, 120, 79);
+  }
+  
+  if (poData.deliveryAddress) {
+    const addressLines = doc.splitTextToSize(poData.deliveryAddress, 60);
+    let addressY = 86;
+    addressLines.forEach(line => {
+      doc.text(line, 120, addressY);
+      addressY += 4;
+    });
+  } else {
+    doc.text('Supplier Address', 120, 86);
+    doc.text('Contact Information', 120, 93);
+  }
+  
+  // Total Items
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(`Total Items: ${poData.items?.length || 0}`, 20, 120);
+  
+  // Items table
+  const tableData = [];
+  
+  if (poData.items && poData.items.length > 0) {
+    poData.items.forEach(item => {
+      const itemTotal = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
+                      (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100);
+      
+      tableData.push([
+        item.name || 'Item Name',
+        item.hsn || 'HSN/SAC',
+        item.quantity || 0,
+        Number(item.rate || 0).toFixed(2),
+        `${item.discount || 0}%`,
+        `CGST: ${item.cgstRate || 0}%\nSGST: ${item.sgstRate || 0}%\nIGST: ${item.igstRate || 0}%`,
+        Number(itemTotal).toFixed(2)
+      ]);
+    });
+  }
+  
+  // Calculate totals
+  const subTotal = Number(poData.subTotal || 0);
+  const totalDiscount = Number(poData.totalDiscount || 0);
+  const totalTax = Number(poData.totalTax || 0);
+  const grandTotal = Number(poData.totalAmount || 0);
+  
+  // Add total row
+  if (tableData.length > 0) {
+    tableData.push([
+      '',
+      'Total',
+      poData.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
+      subTotal.toFixed(2),
+      `-${totalDiscount.toFixed(2)}`,
+      `Tax: ${totalTax.toFixed(2)}`,
+      grandTotal.toFixed(2)
+    ]);
+  }
+  
+  doc.autoTable({
+    startY: 130,
+    head: [[
+      'Item Name',
+      'HSN/SAC',
+      'Qty',
+      'Rate ₹',
+      'Discount',
+      'Tax Details',
+      'Total ₹'
+    ]],
+    body: tableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center',
+      valign: 'middle'
+    },
+    bodyStyles: {
+      fontSize: 8,
+      cellPadding: 2,
+      valign: 'top'
+    },
+    columnStyles: {
+      0: { cellWidth: 35, halign: 'left' },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 20, halign: 'right' },
+      4: { cellWidth: 20, halign: 'center' },
+      5: { cellWidth: 30, halign: 'left' },
+      6: { cellWidth: 25, halign: 'right' }
+    },
+    didParseCell: function(data) {
+      if (data.row.index === tableData.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+    margin: { bottom: 60 }
+  });
+  
+  // Summary section
+  let finalY = doc.lastAutoTable.finalY + 15;
+  
+  if (finalY > 220) {
+    finalY = 220;
+  }
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Order Summary:', 120, finalY);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Sub Total: ₹${subTotal.toFixed(2)}`, 120, finalY + 8);
+  doc.text(`Total Discount: ₹${totalDiscount.toFixed(2)}`, 120, finalY + 16);
+  doc.text(`Total Tax: ₹${totalTax.toFixed(2)}`, 120, finalY + 24);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(`Grand Total: ₹${grandTotal.toFixed(2)}`, 120, finalY + 35);
+  
+  // Signature area
+  const signatureY = finalY + 50;
+  doc.line(20, signatureY, 60, signatureY);
+  doc.line(140, signatureY, 180, signatureY);
+  doc.setFontSize(8);
+  doc.text('Prepared By', 30, signatureY + 8);
+  doc.text('Authorized Signatory', 150, signatureY + 8);
+  
+  // Download PDF
+  doc.save(`PurchaseOrder_${poData.poNumber || 'PO-001'}.pdf`);
+};
+
 export const generateCreditNotePDF = (creditNoteData) => {
   const doc = new jsPDF();
   
@@ -519,4 +708,229 @@ export const generateCreditNotePDF = (creditNoteData) => {
   
   // Download PDF
   doc.save(`CreditNote_${creditNoteData.creditNoteNumber || 'RARIMZ260687389T'}.pdf`);
+};
+
+export const generateCreditDebitNotePDF = (noteData) => {
+  const doc = new jsPDF();
+  
+  // Title - Credit/Debit Note (centered)
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(noteData.type || 'Credit Note', 105, 20, { align: 'center' });
+  
+  // Company Details - Left Side
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('From: Your Company Name', 20, 35);
+  
+  // Note Number Box - Right Side
+  doc.rect(120, 30, 70, 15, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Note Number: ${noteData.noteNumber || 'CN-001'}`, 125, 40);
+  
+  // Company Address
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Your Company Address', 20, 42);
+  doc.text('City, State - PIN Code', 20, 47);
+  
+  // Horizontal line
+  doc.line(20, 55, 190, 55);
+  
+  // Note Details Section - Left Side
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Note Date:', 20, 65);
+  doc.setFont('helvetica', 'normal');
+  doc.text(noteData.noteDate ? new Date(noteData.noteDate).toLocaleDateString() : new Date().toLocaleDateString(), 20, 72);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('Original Invoice:', 20, 82);
+  doc.setFont('helvetica', 'normal');
+  doc.text(noteData.originalInvoiceNumber || 'N/A', 20, 89);
+  
+  // Vendor Details - Right Side
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Vendor Details:', 120, 65);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(noteData.vendorName || 'Vendor Name', 120, 72);
+  
+  if (noteData.vendorGSTIN) {
+    doc.text(`GSTIN: ${noteData.vendorGSTIN}`, 120, 79);
+  }
+  
+  if (noteData.vendorAddress) {
+    const addressLines = doc.splitTextToSize(noteData.vendorAddress, 60);
+    let addressY = 86;
+    addressLines.forEach(line => {
+      doc.text(line, 120, addressY);
+      addressY += 4;
+    });
+  }
+  
+  // Total Items
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(`Total Items: ${noteData.items?.length || 0}`, 20, 120);
+  
+  // Items table
+  const tableData = [];
+  
+  if (noteData.items && noteData.items.length > 0) {
+    noteData.items.forEach(item => {
+      tableData.push([
+        item.product || 'Product Name',
+        item.description || 'Item Description',
+        item.hsnCode || 'HSN/SAC',
+        item.quantity || 0,
+        Number(item.unitPrice || 0).toFixed(2),
+        `${item.discount || 0}%`,
+        `CGST: ${item.cgstRate || 0}%\nSGST: ${item.sgstRate || 0}%\nIGST: ${item.igstRate || 0}%`,
+        Number(item.totalAmount || 0).toFixed(2)
+      ]);
+    });
+  }
+  
+  // Calculate totals
+  const subTotal = Number(noteData.subtotal || 0);
+  const totalDiscount = Number(noteData.totalDiscount || 0);
+  const totalTaxableValue = Number(noteData.totalTaxableValue || 0);
+  const totalCGST = Number(noteData.totalCGST || 0);
+  const totalSGST = Number(noteData.totalSGST || 0);
+  const totalIGST = Number(noteData.totalIGST || 0);
+  const totalCESS = Number(noteData.totalCESS || 0);
+  const tdsAmount = Number(noteData.tdsAmount || 0);
+  const grandTotal = Number(noteData.grandTotal || 0);
+  
+  // Add total row
+  if (tableData.length > 0) {
+    tableData.push([
+      '',
+      'Total',
+      '',
+      noteData.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
+      subTotal.toFixed(2),
+      `-${totalDiscount.toFixed(2)}`,
+      `Tax: ${(totalCGST + totalSGST + totalIGST + totalCESS).toFixed(2)}`,
+      grandTotal.toFixed(2)
+    ]);
+  }
+  
+  doc.autoTable({
+    startY: 130,
+    head: [[
+      'Product',
+      'Description',
+      'HSN/SAC',
+      'Qty',
+      'Rate ₹',
+      'Discount',
+      'Tax Details',
+      'Total ₹'
+    ]],
+    body: tableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontSize: 8,
+      fontStyle: 'bold',
+      halign: 'center',
+      valign: 'middle'
+    },
+    bodyStyles: {
+      fontSize: 8,
+      cellPadding: 2,
+      valign: 'top'
+    },
+    columnStyles: {
+      0: { cellWidth: 35, halign: 'left' },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 20, halign: 'right' },
+      4: { cellWidth: 20, halign: 'center' },
+      5: { cellWidth: 30, halign: 'left' },
+      6: { cellWidth: 25, halign: 'right' }
+    },
+    didParseCell: function(data) {
+      if (data.row.index === tableData.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+    margin: { bottom: 60 }
+  });
+  
+  // Summary section
+  let finalY = doc.lastAutoTable.finalY + 15;
+  
+  if (finalY > 220) {
+    finalY = 220;
+  }
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Summary:', 120, finalY);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Sub Total: ₹${subTotal.toFixed(2)}`, 120, finalY + 8);
+  doc.text(`Total Discount: ₹${totalDiscount.toFixed(2)}`, 120, finalY + 16);
+  doc.text(`Taxable Value: ₹${totalTaxableValue.toFixed(2)}`, 120, finalY + 24);
+  doc.text(`CGST: ₹${totalCGST.toFixed(2)}`, 120, finalY + 32);
+  doc.text(`SGST: ₹${totalSGST.toFixed(2)}`, 120, finalY + 40);
+  
+  let nextLineY = finalY + 48;
+  if (totalIGST > 0) {
+    doc.text(`IGST: ₹${totalIGST.toFixed(2)}`, 120, nextLineY);
+    nextLineY += 8;
+  }
+  
+  if (totalCESS > 0) {
+    doc.text(`CESS: ₹${totalCESS.toFixed(2)}`, 120, nextLineY);
+    nextLineY += 8;
+  }
+  
+  if (tdsAmount > 0) {
+    doc.text(`TDS: ₹${tdsAmount.toFixed(2)}`, 120, nextLineY);
+    nextLineY += 8;
+  }
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(`Grand Total: ₹${grandTotal.toFixed(2)}`, 120, nextLineY);
+  
+  if (tdsAmount > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    const netAmount = grandTotal - tdsAmount;
+    doc.text(`Net Amount: ₹${netAmount.toFixed(2)}`, 120, nextLineY + 10);
+  }
+  
+  // Notes section
+  if (noteData.notes) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Notes:', 20, finalY + 20);
+    const notesLines = doc.splitTextToSize(noteData.notes, 80);
+    let notesY = finalY + 28;
+    notesLines.forEach(line => {
+      doc.text(line, 20, notesY);
+      notesY += 4;
+    });
+  }
+  
+  // Signature area
+  const signatureY = finalY + (tdsAmount > 0 ? 75 : 57);
+  doc.line(20, signatureY, 60, signatureY);
+  doc.line(140, signatureY, 180, signatureY);
+  doc.setFontSize(8);
+  doc.text('Prepared By', 30, signatureY + 8);
+  doc.text('Authorized Signatory', 150, signatureY + 8);
+  
+  // Download PDF
+  const noteType = noteData.type === 'Credit Note' ? 'CreditNote' : 'DebitNote';
+  doc.save(`${noteType}_${noteData.noteNumber || 'NOTE-001'}.pdf`);
 };

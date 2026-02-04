@@ -14,18 +14,26 @@ const TDSPurchases = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch TDS data from bills
+  // Fetch TDS data from bills, payments, and credit/debit notes
   const fetchTDSData = async () => {
     try {
       setLoading(true);
-      const [billsResponse, vendorsResponse] = await Promise.all([
+      const [billsResponse, vendorsResponse, paymentsResponse, creditDebitNotesResponse] = await Promise.all([
         fetch('http://localhost:5001/api/bills'),
-        fetch('http://localhost:5001/api/vendors')
+        fetch('http://localhost:5001/api/vendors'),
+        fetch('http://localhost:5001/api/payments'),
+        fetch('http://localhost:5001/api/credit-debit-notes', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
       ]);
       
-      if (billsResponse.ok && vendorsResponse.ok) {
+      if (billsResponse.ok && vendorsResponse.ok && paymentsResponse.ok && creditDebitNotesResponse.ok) {
         const bills = await billsResponse.json();
         const vendors = await vendorsResponse.json();
+        const payments = await paymentsResponse.json();
+        const creditDebitNotes = await creditDebitNotesResponse.json();
         
         // Create vendor PAN lookup
         const vendorPANMap = {};
@@ -35,11 +43,12 @@ const TDSPurchases = () => {
           }
         });
         
-        // Filter bills that have TDS and are approved
-        const tdsTransactions = bills
+        // Get TDS from bills
+        const billTdsTransactions = bills
           .filter(bill => bill.tdsAmount && bill.tdsAmount > 0 && bill.approvalStatus === 'approved')
           .map(bill => ({
             _id: bill._id,
+            source: 'Bill',
             vendorName: bill.vendorName,
             invoiceNo: bill.billNumber,
             invoiceDate: bill.billDate,
@@ -52,7 +61,50 @@ const TDSPurchases = () => {
             status: 'Payable',
             chalanNo: bill.chalanNo || null,
             chalanDate: bill.chalanDate || null
-          }))
+          }));
+        
+        // Get TDS from payments
+        const paymentTdsTransactions = payments
+          .filter(payment => payment.tdsAmount && payment.tdsAmount > 0 && payment.approvalStatus === 'approved')
+          .map(payment => ({
+            _id: payment._id,
+            source: 'Payment',
+            vendorName: payment.vendor,
+            invoiceNo: payment.invoiceNumber,
+            invoiceDate: payment.paymentDate,
+            panNo: vendorPANMap[payment.vendor] || 'N/A',
+            tdsSection: payment.tdsSection || 'N/A',
+            taxableValue: payment.amount || 0,
+            tdsAmount: payment.tdsAmount || 0,
+            interest: 0,
+            totalTdsPayable: payment.tdsAmount || 0,
+            status: 'Paid',
+            chalanNo: null,
+            chalanDate: null
+          }));
+        
+        // Get TDS from credit/debit notes
+        const creditDebitNoteTdsTransactions = creditDebitNotes
+          .filter(note => note.tdsAmount && note.tdsAmount > 0 && note.approvalStatus === 'approved')
+          .map(note => ({
+            _id: note._id,
+            source: note.type === 'Credit Note' ? 'Credit Note' : 'Debit Note',
+            vendorName: note.vendorName,
+            invoiceNo: note.noteNumber,
+            invoiceDate: note.noteDate,
+            panNo: vendorPANMap[note.vendorName] || 'N/A',
+            tdsSection: note.tdsSection || 'N/A',
+            taxableValue: -(note.totalTaxableValue || 0), // Make taxable value negative for Credit/Debit Notes
+            tdsAmount: -(note.tdsAmount || 0), // Make TDS amount negative for Credit/Debit Notes
+            interest: 0,
+            totalTdsPayable: -(note.tdsAmount || 0), // Make total TDS payable negative
+            status: 'Payable',
+            chalanNo: null,
+            chalanDate: null
+          }));
+        
+        // Combine all sources
+        const allTdsTransactions = [...billTdsTransactions, ...paymentTdsTransactions, ...creditDebitNoteTdsTransactions]
           .filter(transaction => {
             if (!searchTerm) return true;
             const search = searchTerm.toLowerCase();
@@ -61,22 +113,23 @@ const TDSPurchases = () => {
               transaction.invoiceNo.toLowerCase().includes(search) ||
               transaction.panNo.toLowerCase().includes(search)
             );
-          });
+          })
+          .sort((a, b) => new Date(b.invoiceDate) - new Date(a.invoiceDate));
         
-        setTransactionsData(tdsTransactions);
+        setTransactionsData(allTdsTransactions);
         
-        // Calculate summary from the filtered data
-        const totalTds = tdsTransactions.reduce((sum, t) => sum + t.tdsAmount, 0);
-        const paid = tdsTransactions.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.tdsAmount, 0);
-        const payable = tdsTransactions.filter(t => t.status === 'Payable').reduce((sum, t) => sum + t.tdsAmount, 0);
-        const interest = tdsTransactions.reduce((sum, t) => sum + t.interest, 0);
+        // Calculate summary from the combined data
+        const totalTds = allTdsTransactions.reduce((sum, t) => sum + t.tdsAmount, 0);
+        const paid = allTdsTransactions.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.tdsAmount, 0);
+        const payable = allTdsTransactions.filter(t => t.status === 'Payable').reduce((sum, t) => sum + t.tdsAmount, 0);
+        const interest = allTdsTransactions.reduce((sum, t) => sum + t.interest, 0);
         
         setSummaryData({ totalTds, paid, payable, interest });
         setError(null);
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Failed to load TDS data from bills');
+      setError('Failed to load TDS data from bills, payments, and credit/debit notes');
       setTransactionsData([]);
     } finally {
       setLoading(false);
@@ -101,9 +154,10 @@ const TDSPurchases = () => {
     }
     
     const exportData = transactionsData.map(transaction => ({
+      'Source': transaction.source,
       'Vendor Name': transaction.vendorName,
       'Invoice No.': transaction.invoiceNo,
-      'Invoice Date': new Date(transaction.invoiceDate).toLocaleDateString('en-IN'),
+      'Date': new Date(transaction.invoiceDate).toLocaleDateString('en-IN'),
       'PAN No.': transaction.panNo,
       'TDS Section': transaction.tdsSection,
       'Taxable Value': transaction.taxableValue,
@@ -123,6 +177,7 @@ const TDSPurchases = () => {
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
       <h1 className="text-4xl font-bold text-gray-900 mb-8">TDS on Purchases</h1>
+      <p className="text-gray-600 mb-6">Consolidated TDS data from Bills, Payments, and Credit/Debit Notes</p>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -183,9 +238,10 @@ const TDSPurchases = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Source</th>
                   <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Vendor Name</th>
                   <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Invoice No.</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Invoice Date</th>
+                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Date</th>
                   <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">PAN No.</th>
                   <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">TDS Section</th>
                   <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Taxable Value</th>
@@ -200,6 +256,19 @@ const TDSPurchases = () => {
               <tbody>
                 {transactionsData.map((transaction, index) => (
                   <tr key={transaction._id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-3 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        transaction.source === 'Payment' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : transaction.source === 'Credit Note'
+                          ? 'bg-green-100 text-green-800'
+                          : transaction.source === 'Debit Note'
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {transaction.source}
+                      </span>
+                    </td>
                     <td className="py-4 px-3 text-gray-900 font-medium">{transaction.vendorName}</td>
                     <td className="py-4 px-3 text-gray-900">{transaction.invoiceNo}</td>
                     <td className="py-4 px-3 text-gray-900">{new Date(transaction.invoiceDate).toLocaleDateString('en-IN')}</td>
@@ -229,9 +298,9 @@ const TDSPurchases = () => {
         
         {!loading && !error && transactionsData.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No TDS transactions found. TDS data is automatically loaded from bills with TDS amounts.
+            No TDS transactions found. TDS data is automatically loaded from bills, payments, and credit/debit notes with TDS amounts.
             <br />
-            <span className="text-sm">Create bills with TDS sections to see TDS purchase data here.</span>
+            <span className="text-sm">Create bills, payments, or credit/debit notes with TDS sections to see TDS purchase data here.</span>
           </div>
         )}
       </div>

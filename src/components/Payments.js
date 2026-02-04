@@ -101,22 +101,47 @@ const Payments = () => {
           payments = await paymentsResponse.json();
         }
         
-        // Calculate paid amounts for each bill
-        const billsWithPaidAmounts = data.map(bill => {
+        // Fetch credit/debit notes to calculate adjustments
+        const creditDebitResponse = await fetch('http://localhost:5001/api/credit-debit-notes/reconciliation');
+        let creditDebitNotes = [];
+        if (creditDebitResponse.ok) {
+          creditDebitNotes = await creditDebitResponse.json();
+        }
+        
+        // Calculate paid amounts and credit/debit adjustments for each bill
+        const billsWithAdjustments = data.map(bill => {
           const billPayments = payments.filter(payment => 
             payment.billId === bill._id && 
             payment.approvalStatus === 'approved'
           );
           const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
           
+          // Calculate credit/debit note adjustments for this bill
+          const billCreditDebitNotes = creditDebitNotes.filter(note => 
+            note.vendorName === vendorName &&
+            note.originalInvoiceNumber === (bill.billNumber || bill.invoiceNumber) &&
+            note.approvalStatus === 'approved'
+          );
+          
+          const totalCreditAmount = billCreditDebitNotes
+            .filter(note => note.type === 'Credit Note')
+            .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
+          
+          const totalDebitAmount = billCreditDebitNotes
+            .filter(note => note.type === 'Debit Note')
+            .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
+          
+          const netCreditDebitAdjustment = totalCreditAmount - totalDebitAmount;
+          
           return {
             ...bill,
-            paidAmount: totalPaid
+            paidAmount: totalPaid,
+            creditDebitAdjustment: netCreditDebitAdjustment
           };
         });
         
-        console.log('Fetched bills with paid amounts:', billsWithPaidAmounts);
-        setBills(billsWithPaidAmounts);
+        console.log('Fetched bills with adjustments:', billsWithAdjustments);
+        setBills(billsWithAdjustments);
       }
     } catch (error) {
       console.error('Error fetching bills:', error);
@@ -216,13 +241,14 @@ const Payments = () => {
   const handleBillSelect = (bill) => {
     console.log('Selected bill:', bill); // Debug log
     const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
-    const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+    const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
+    const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
     setFormData(prev => ({
       ...prev,
       billId: bill._id, // Store the bill ID
       invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: remainingAmount // Set to net payable remaining amount
+      amount: remainingAmount // Set to adjusted remaining amount
     }));
     setShowBillDropdown(false);
   };
@@ -636,16 +662,19 @@ const Payments = () => {
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                         {bills.filter(bill => {
                           const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
-                          const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+                          const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
+                          const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
                           return bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid' && remainingAmount > 0;
                         }).length > 0 ? (
                           bills.filter(bill => {
                             const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
-                            const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+                            const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
+                            const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
                             return bill.approvalStatus === 'approved' && bill.vendorName === formData.vendor && bill.status !== 'Fully Paid' && remainingAmount > 0;
                           }).map((bill) => {
                             const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
-                            const remainingAmount = netPayableAmount - (bill.paidAmount || 0);
+                            const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
+                            const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
                             return (
                             <div
                               key={bill._id}
@@ -659,6 +688,9 @@ const Payments = () => {
                               <div className="font-medium text-gray-900">{bill.billNumber || 'No Bill Number'}</div>
                               <div className="text-sm text-gray-500">
                                 {new Date(bill.billDate).toLocaleDateString()} | Net Payable: ₹{netPayableAmount.toLocaleString('en-IN')}
+                                {(bill.creditDebitAdjustment || 0) !== 0 && (
+                                  <span className="ml-2 text-blue-600">| Adjusted: ₹{adjustedAmount.toLocaleString('en-IN')}</span>
+                                )}
                               </div>
                               <div className="text-xs text-gray-600">
                                 Status: <span className={`font-medium ${
@@ -701,7 +733,14 @@ const Payments = () => {
                     Payment Amount <span className="text-red-500">*</span>
                     {formData.billId && (
                       <span className="text-xs text-gray-500 ml-2">
-                        (Remaining: ₹{(((bills.find(b => b._id === formData.billId)?.grandTotal || 0) - (bills.find(b => b._id === formData.billId)?.tdsAmount || 0) - (bills.find(b => b._id === formData.billId)?.paidAmount || 0))).toLocaleString('en-IN')})
+                        (Remaining: ₹{(() => {
+                          const selectedBill = bills.find(b => b._id === formData.billId);
+                          if (!selectedBill) return '0';
+                          const netPayableAmount = (selectedBill.grandTotal || 0) - (selectedBill.tdsAmount || 0);
+                          const adjustedAmount = netPayableAmount - (selectedBill.creditDebitAdjustment || 0);
+                          const remainingAmount = adjustedAmount - (selectedBill.paidAmount || 0);
+                          return remainingAmount.toLocaleString('en-IN');
+                        })()})
                       </span>
                     )}
                   </label>

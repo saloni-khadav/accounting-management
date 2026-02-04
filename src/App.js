@@ -54,8 +54,24 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePage, setActivePage] = useState('dashboard');
   const [activationToken, setActivationToken] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check for existing authentication
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    const savedPage = localStorage.getItem('activePage');
+    
+    if (token && user) {
+      setIsAuthenticated(true);
+      setCurrentView('dashboard');
+      // Restore the last active page
+      if (savedPage) {
+        setActivePage(savedPage);
+      }
+      return;
+    }
+
     // Check for set-password token in URL path
     const path = window.location.pathname;
     const setPasswordMatch = path.match(/\/set-password\/(.+)/);
@@ -67,6 +83,24 @@ function App() {
     }
   }, []);
 
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    setCurrentView('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('activePage');
+    setIsAuthenticated(false);
+    setCurrentView('landing');
+  };
+
+  const handlePageChange = (page) => {
+    setActivePage(page);
+    localStorage.setItem('activePage', page);
+  };
+
   const renderPage = () => {
     switch(activePage) {
       case 'settings':
@@ -76,11 +110,11 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'Account Receivable':
-        return <AccountsReceivable setActivePage={setActivePage} />;
+        return <AccountsReceivable setActivePage={handlePageChange} />;
       case 'AR Dashboard':
         return <AccountReceivableDashboard />;
       case 'Accounts Payable':
-        return <AccountsPayable setActivePage={setActivePage} />;
+        return <AccountsPayable setActivePage={handlePageChange} />;
       case 'AP Reconciliation':
         return <APReconciliation />;
       case 'AP Report':
@@ -120,7 +154,7 @@ function App() {
       case 'Create PO':
         return <CreatePO />;
       case 'Credit Note':
-        return <CreditNoteManagement setActivePage={setActivePage} />;
+        return <CreditNoteManagement setActivePage={handlePageChange} />;
       case 'GST Invoice':
         return <GSTInvoice />;
       case 'Client Outstanding':
@@ -150,7 +184,7 @@ function App() {
       case 'Tax Invoice':
         return <TaxInvoice />;
       case 'Invoice Management':
-        return <InvoiceManagement setActivePage={setActivePage} />;
+        return <InvoiceManagement setActivePage={handlePageChange} />;
       case 'Import/Export':
         return <ImportExport />;
       case 'Approvals':
@@ -174,7 +208,7 @@ function App() {
     return (
       <>
         <Login 
-          onLogin={() => setCurrentView('dashboard')}
+          onLogin={handleLogin}
           onSwitchToSignup={() => setCurrentView('signup')}
           onBackToLanding={() => setCurrentView('landing')}
         />
@@ -216,10 +250,10 @@ function App() {
           isCollapsed={sidebarCollapsed} 
           setIsCollapsed={setSidebarCollapsed}
           activePage={activePage}
-          setActivePage={setActivePage}
+          setActivePage={handlePageChange}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header setActivePage={setActivePage} />
+          <Header setActivePage={handlePageChange} onLogout={handleLogout} />
           <main className="flex-1 overflow-y-auto">
             {renderPage()}
           </main>

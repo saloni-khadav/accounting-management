@@ -70,13 +70,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
       label: 'Accounts Payable',
       submenu: [
         { id: 'Accounts Payable', label: 'Overview', icon: LayoutDashboard },
-        { id: 'Bills', label: 'Bills', icon: FileText },
-        { id: 'Payments', label: 'Payments', icon: DollarSign },
+        { id: 'Vendor Master', label: 'Vendor Master', icon: Building },
         { id: 'Purchase Orders', label: 'Purchase Orders', icon: ShoppingCart },
+        { id: 'Bills', label: 'Bills', icon: FileText },
         { id: 'Credit/Debit Notes', label: 'Credit/Debit Notes', icon: Receipt },
         { id: 'TDS on Purchases', label: 'TDS on Purchases', icon: Percent },
+        { id: 'Payments', label: 'Payments', icon: DollarSign },
         { id: 'Vendors Aging', label: 'Vendors Aging', icon: Clock },
-        { id: 'Vendor Master', label: 'Vendor Master', icon: Building },
         { id: 'AP Reconciliation', label: 'AP Reconciliation', icon: FileCheck },
         { id: 'AP Report', label: 'AP Report', icon: BarChart3 }
       ]

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronDown, Edit, Eye, Download, FileText, Search, Filter, Calendar } from 'lucide-react';
 import DatePicker from './ui/DatePicker';
 import { generatePONumber } from '../utils/numberGenerator';
+import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 
 const CreatePO = () => {
   const [showForm, setShowForm] = useState(false);
@@ -25,6 +26,7 @@ const CreatePO = () => {
     email: '',
     contactDetails: ''
   });
+  const [companyGST, setCompanyGST] = useState('');
   const getCurrentDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -73,10 +75,11 @@ const CreatePO = () => {
     client.clientName.toLowerCase().includes(supplierSearch.toLowerCase())
   );
 
-  // Fetch POs on component mount
+  // Fetch POs and company profile on component mount
   useEffect(() => {
     fetchPOs();
     fetchClients();
+    fetchCompanyProfile();
   }, []);
 
   useEffect(() => {
@@ -154,17 +157,58 @@ const CreatePO = () => {
     }
   };
 
+  const fetchCompanyProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.user && result.user.profile && result.user.profile.gstNumber) {
+          setCompanyGST(result.user.profile.gstNumber);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching company profile:', error);
+    }
+  };
+
   const handleClientSelect = (client) => {
     setSelectedClient(client._id);
     setSupplierSearch(client.clientName);
     setShowDropdown(false);
+    const vendorGST = client.gstNumber || '';
     setSupplierData({
-      gstNumber: client.gstNumber || '',
+      gstNumber: vendorGST,
       billingAddress: client.billingAddress || '',
       contactPerson: client.contactPerson || '',
       email: client.email || '',
       contactDetails: client.contactDetails || ''
     });
+
+    // Apply GST logic when vendor is selected
+    if (companyGST && vendorGST) {
+      const gstType = determineGSTType(companyGST, vendorGST);
+      const updatedItems = applyGSTRates(items, gstType);
+      setItems(updatedItems);
+    }
+  };
+
+  const handleSupplierGSTChange = (gstNumber) => {
+    setSupplierData({...supplierData, gstNumber});
+    
+    // Apply GST logic when GST number is changed
+    if (companyGST && gstNumber && gstNumber.length >= 2) {
+      const gstType = determineGSTType(companyGST, gstNumber);
+      const updatedItems = applyGSTRates(items, gstType);
+      setItems(updatedItems);
+    }
   };
 
   const handleSupplierSearchChange = (e) => {
@@ -624,7 +668,7 @@ const CreatePO = () => {
           <input 
             type="text" 
             value={supplierData.gstNumber} 
-            onChange={(e) => setSupplierData({...supplierData, gstNumber: e.target.value})}
+            onChange={(e) => handleSupplierGSTChange(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg" 
             placeholder="Enter GST Number"
           />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, Download } from 'lucide-react';
+import { Users, Plus, Edit, Search, Eye, Download } from 'lucide-react';
 import VendorForm from './VendorForm';
 import VendorDetails from './VendorDetails';
 import { exportToExcel } from '../utils/excelExport';
@@ -27,6 +27,34 @@ const VendorMaster = () => {
       console.error('Error fetching vendors:', error);
     }
     setLoading(false);
+  };
+
+  const handleExportSingleVendor = (vendor) => {
+    const exportData = {
+      'Vendor Code': vendor.vendorCode || '',
+      'Vendor Name': vendor.vendorName || '',
+      'Contact Person': vendor.contactPerson || '',
+      'Contact Details': vendor.contactDetails || '',
+      'Email': vendor.email || '',
+      'Website': vendor.website || '',
+      'Billing Address': vendor.billingAddress || '',
+      'GST Number': vendor.gstNumber || 'N/A',
+      'PAN Number': vendor.panNumber || '',
+      'Aadhaar Number': vendor.aadharNumber || '',
+      'Payment Terms': vendor.paymentTerms || '',
+      'Credit Limit': vendor.creditLimit || '',
+      'Account Number': vendor.accountNumber || '',
+      'IFSC Code': vendor.ifscCode || '',
+      'Bank Name': vendor.bankName || '',
+      'Industry Type': vendor.industryType || '',
+      'Vendor Category': vendor.vendorCategory || '',
+      'Contract Start Date': vendor.contractStartDate || '',
+      'Contract End Date': vendor.contractEndDate || '',
+      'Currency': vendor.currency || '',
+      'Status': vendor.status || '',
+      'Account Manager': vendor.accountManager || ''
+    };
+    exportToExcel([exportData], 'vendor_' + vendor.vendorCode);
   };
 
   const handleAddVendor = async (vendorData) => {
@@ -62,23 +90,6 @@ const VendorMaster = () => {
       }
     } catch (error) {
       alert('Network error. Please check if backend is running.');
-    }
-  };
-
-  const handleDeleteVendor = async (vendorId) => {
-    if (window.confirm('Are you sure you want to delete this vendor?')) {
-      try {
-        const response = await fetch(`http://localhost:5001/api/vendors/${vendorId}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          setVendors(vendors.filter(vendor => vendor._id !== vendorId));
-          alert('Vendor deleted successfully!');
-        }
-      } catch (error) {
-        alert('Error deleting vendor');
-      }
     }
   };
 
@@ -230,26 +241,13 @@ const VendorMaster = () => {
                         <Edit size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteVendor(vendor._id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                      <button 
                         onClick={() => handleViewDetails(vendor)}
                         className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs hover:bg-green-200"
                       >
                         View Details
                       </button>
                       <button 
-                        onClick={() => exportToExcel([{
-                          'Vendor Code': vendor.vendorCode,
-                          'Vendor Name': vendor.vendorName,
-                          'Contact Person': vendor.contactPerson,
-                          'Email': vendor.email,
-                          'Status': vendor.status
-                        }], `vendor_${vendor.vendorCode}`)}
+                        onClick={() => handleExportSingleVendor(vendor)}
                         className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 ml-1"
                         title="Export this vendor"
                       >

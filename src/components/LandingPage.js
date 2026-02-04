@@ -37,7 +37,7 @@ const LandingPage = ({ onGetStarted }) => {
       icon: '/fast and efficient.jpeg',
       title: 'Fast & Efficient',
       description: 'Lightning-fast performance with cloud-based infrastructure',
-      color: 'bg-yellow-50 border-yellow-200'
+      color: 'bg-indigo-50 border-yellow-200'
     }
   ];
 
@@ -73,7 +73,7 @@ const LandingPage = ({ onGetStarted }) => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-48 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <section className="pt-16 pb-24 bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -262,52 +262,53 @@ const LandingPage = ({ onGetStarted }) => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="text-white" size={16} />
-                </div>
-                <span className="text-lg font-bold text-white">Accounting</span>
-              </div>
-              <p className="text-gray-400">Modern accounting made simple for businesses of all sizes.</p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Docs</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              </ul>
-            </div>
+     <footer className="bg-gray-900 py-12 sm:py-16 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          {/* Left - Main Text */}
+          <div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+              Innovate. Build.<br/>
+              Transform. Together.
+            </h2>
+            <p className="text-gray-400 text-base sm:text-lg mt-4 sm:mt-6">
+              info@nextsphere.co.in<br/>
+              +91 9078027948
+            </p>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 NextBook Cloud. All rights reserved.</p>
+          {/* Right - Social Links */}
+          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 lg:space-x-8">
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">
+              WhatsApp
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">
+              Instagram
+            </a>
+            <a href="https://www.linkedin.com/company/nsptai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm sm:text-base">
+              LinkedIn
+            </a>
           </div>
         </div>
-      </footer>
+        
+        {/* Copyright */}
+       
+<div className="border-t border-gray-800 mt-8 pt-6 text-center">
+  <p className="text-gray-400 text-sm">
+    © 2026 NextBook Cloud. All rights reserved. Developed by{" "}
+    <a
+      href="https://nextsphere.co.in/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-white transition-colors"
+    >
+      NextSphere
+    </a>
+  </p>
+</div>
+
+      </div>
+    </footer>
     </div>
   );
 };

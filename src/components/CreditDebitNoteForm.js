@@ -92,7 +92,6 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     type: 'Credit Note',
     referenceNumber: '',
     originalInvoiceNumber: '',
-    reason: '',
     
     // TDS Details
     tdsSection: '',
@@ -137,30 +136,68 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   useEffect(() => {
     if (editingNote) {
+      // Properly map existing items to ensure all fields are preserved
+      const mappedItems = editingNote.items && editingNote.items.length > 0 
+        ? editingNote.items.map(item => ({
+            product: item.product || item.description || '',
+            description: item.description || '',
+            hsnCode: item.hsnCode || '',
+            quantity: item.quantity || 1,
+            unit: item.unit || 'Nos',
+            unitPrice: item.unitPrice || 0,
+            discount: item.discount || 0,
+            discountAmount: item.discountAmount || 0,
+            taxableValue: item.taxableValue || 0,
+            cgstRate: item.cgstRate !== undefined ? item.cgstRate : 0,
+            sgstRate: item.sgstRate !== undefined ? item.sgstRate : 0,
+            igstRate: item.igstRate !== undefined ? item.igstRate : 0,
+            cessRate: item.cessRate !== undefined ? item.cessRate : 0,
+            cgstAmount: item.cgstAmount || 0,
+            sgstAmount: item.sgstAmount || 0,
+            igstAmount: item.igstAmount || 0,
+            cessAmount: item.cessAmount || 0,
+            totalAmount: item.totalAmount || 0
+          }))
+        : [{
+            product: '',
+            description: '',
+            hsnCode: '',
+            quantity: 1,
+            unit: 'Nos',
+            unitPrice: 0,
+            discount: 0,
+            discountAmount: 0,
+            taxableValue: 0,
+            cgstRate: 9,
+            sgstRate: 9,
+            igstRate: 0,
+            cessRate: 0,
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 0,
+            cessAmount: 0,
+            totalAmount: 0
+          }];
+
       setNoteData({
         ...editingNote,
-        noteDate: editingNote.date ? new Date(editingNote.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        invoiceDate: editingNote.invoiceDate || '',
+        noteDate: editingNote.noteDate ? new Date(editingNote.noteDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        invoiceDate: editingNote.invoiceDate ? new Date(editingNote.invoiceDate).toISOString().split('T')[0] : '',
         noteNumber: editingNote.noteNumber || '',
-        items: editingNote.items || [{
-          product: '',
-          description: '',
-          hsnCode: '',
-          quantity: 1,
-          unit: 'Nos',
-          unitPrice: 0,
-          discount: 0,
-          taxableValue: 0,
-          cgstRate: 9,
-          sgstRate: 9,
-          igstRate: 0,
-          cessRate: 0,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          igstAmount: 0,
-          cessAmount: 0,
-          totalAmount: 0
-        }]
+        items: mappedItems,
+        // Preserve all other fields
+        tdsSection: editingNote.tdsSection || '',
+        tdsPercentage: editingNote.tdsPercentage || 0,
+        tdsAmount: editingNote.tdsAmount || 0,
+        subtotal: editingNote.subtotal || 0,
+        totalDiscount: editingNote.totalDiscount || 0,
+        totalTaxableValue: editingNote.totalTaxableValue || 0,
+        totalCGST: editingNote.totalCGST || 0,
+        totalSGST: editingNote.totalSGST || 0,
+        totalIGST: editingNote.totalIGST || 0,
+        totalCESS: editingNote.totalCESS || 0,
+        grandTotal: editingNote.grandTotal || 0,
+        notes: editingNote.notes || ''
       });
       
       // Load existing attachments for edit mode
@@ -187,7 +224,6 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
           type: 'Credit Note',
           referenceNumber: '',
           originalInvoiceNumber: '',
-          reason: '',
           vendorName: '',
           vendorAddress: '',
           vendorGSTIN: '',
@@ -199,6 +235,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
             unit: 'Nos',
             unitPrice: 0,
             discount: 0,
+            discountAmount: 0,
             taxableValue: 0,
             cgstRate: 9,
             sgstRate: 9,
@@ -289,13 +326,17 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     const discountPercent = Math.max(0, Number(item.discount) || 0);
     const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
     const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
+    const igstRate = Math.max(0, Number(item.igstRate) || 0);
+    const cessRate = Math.max(0, Number(item.cessRate) || 0);
     
     const grossAmount = quantity * unitPrice;
     const discountAmount = (grossAmount * discountPercent) / 100;
     const taxableValue = grossAmount - discountAmount;
     const cgstAmount = (taxableValue * cgstRate) / 100;
     const sgstAmount = (taxableValue * sgstRate) / 100;
-    const totalAmount = taxableValue + cgstAmount + sgstAmount;
+    const igstAmount = (taxableValue * igstRate) / 100;
+    const cessAmount = (taxableValue * cessRate) / 100;
+    const totalAmount = taxableValue + cgstAmount + sgstAmount + igstAmount + cessAmount;
 
     return {
       ...item,
@@ -303,6 +344,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       taxableValue,
       cgstAmount,
       sgstAmount,
+      igstAmount,
+      cessAmount,
       totalAmount
     };
   };
@@ -317,7 +360,9 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     const totalTaxableValue = updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0);
     const totalCGST = updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0);
     const totalSGST = updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0);
-    const grandTotal = totalTaxableValue + totalCGST + totalSGST;
+    const totalIGST = updatedItems.reduce((sum, item) => sum + Number(item.igstAmount), 0);
+    const totalCESS = updatedItems.reduce((sum, item) => sum + Number(item.cessAmount), 0);
+    const grandTotal = totalTaxableValue + totalCGST + totalSGST + totalIGST + totalCESS;
 
     setNoteData(prev => {
       const newData = {
@@ -328,6 +373,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         totalTaxableValue,
         totalCGST,
         totalSGST,
+        totalIGST,
+        totalCESS,
         grandTotal
       };
       
@@ -424,15 +471,22 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
           bill.approvalStatus === 'approved'
         );
         
-        const availableInvoices = vendorBills.filter(bill => {
+        const availableInvoices = vendorBills.map(bill => {
           const billPayments = payments.filter(payment => 
             payment.billId === bill._id && 
             payment.approvalStatus === 'approved'
           );
           const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
           const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
-          return totalPaid < netPayable; // Show invoices that are NOT fully paid
-        });
+          const remainingAmount = netPayable - totalPaid;
+          
+          return {
+            ...bill,
+            totalPaid,
+            netPayable,
+            remainingAmount
+          };
+        }).filter(bill => bill.remainingAmount > 0); // Show only invoices with remaining amount
         
         setVendorInvoices(availableInvoices);
       }
@@ -469,6 +523,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       unit: 'Nos',
       unitPrice: 0,
       discount: 0,
+      discountAmount: 0,
       taxableValue: 0,
       cgstRate: 9,
       sgstRate: 9,
@@ -733,23 +788,37 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             handleInputChange('originalInvoiceNumber', invoice.billNumber);
                             handleInputChange('invoiceDate', new Date(invoice.billDate).toISOString().split('T')[0]);
                             
-                            // Populate items from selected invoice
+                            // Populate items from selected invoice - copy exact data
                             if (invoice.items && invoice.items.length > 0) {
-                              const invoiceItems = invoice.items.map(item => ({
-                                description: item.description || '',
-                                hsnCode: item.hsnCode || '',
-                                quantity: item.quantity || 1,
-                                unitPrice: item.unitPrice || 0,
-                                discount: item.discount || 0,
-                                cgstRate: item.cgstRate || 9,
-                                sgstRate: item.sgstRate || 9,
-                                cgstAmount: item.cgstAmount || 0,
-                                sgstAmount: item.sgstAmount || 0,
-                                totalAmount: item.totalAmount || 0
-                              }));
+                              const invoiceItems = invoice.items.map(item => {
+                                return {
+                                  product: item.product || item.itemName || item.name || '',
+                                  description: item.description || '',
+                                  hsnCode: item.hsnCode || '',
+                                  quantity: item.quantity || 0,
+                                  unit: item.unit || 'Nos',
+                                  unitPrice: item.unitPrice || 0,
+                                  discount: item.discount || 0,
+                                  discountAmount: item.discountAmount || 0,
+                                  taxableValue: item.taxableValue || 0,
+                                  cgstRate: item.cgstRate || 0,
+                                  sgstRate: item.sgstRate || 0,
+                                  igstRate: item.igstRate || 0,
+                                  cessRate: item.cessRate || 0,
+                                  cgstAmount: item.cgstAmount || 0,
+                                  sgstAmount: item.sgstAmount || 0,
+                                  igstAmount: item.igstAmount || 0,
+                                  cessAmount: item.cessAmount || 0,
+                                  totalAmount: item.totalAmount || 0
+                                };
+                              });
+                              
                               setNoteData(prev => ({
                                 ...prev,
-                                items: invoiceItems
+                                items: invoiceItems,
+                                tdsSection: invoice.tdsSection || '',
+                                tdsPercentage: invoice.tdsPercentage || 0,
+                                tdsAmount: invoice.tdsAmount || 0
                               }));
                             }
                             
@@ -760,7 +829,11 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                           <div className="font-medium text-gray-900">{invoice.billNumber}</div>
                           <div className="text-sm text-gray-500">
                             Date: {new Date(invoice.billDate).toLocaleDateString()} | 
-                            Amount: ₹{(invoice.grandTotal || 0).toLocaleString()}
+                            Total: ₹{(invoice.grandTotal || 0).toLocaleString()}
+                          </div>
+                          <div className="text-sm text-blue-600">
+                            Paid: ₹{(invoice.totalPaid || 0).toLocaleString()} | 
+                            Remaining: ₹{(invoice.remainingAmount || 0).toLocaleString()}
                           </div>
                         </div>
                       ))}
@@ -770,17 +843,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
               </div>
             </div>
 
-            {/* Reason */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <input
-                type="text"
-                value={noteData.reason}
-                onChange={(e) => handleInputChange('reason', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Reason for credit/debit note"
-              />
-            </div>
+
 
             {/* Items Table */}
             <div className="mb-6">
@@ -799,6 +862,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                 <table className="w-full border border-gray-200 rounded-lg">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item *</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
@@ -806,6 +870,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount %</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>
+                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">IGST %</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Total</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Action</th>
                     </tr>
@@ -813,6 +878,15 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <tbody>
                     {noteData.items.map((item, index) => (
                       <tr key={index} className="border-b">
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={item.product}
+                            onChange={(e) => handleItemChange(index, 'product', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            placeholder="Product/Item Name"
+                          />
+                        </td>
                         <td className="px-3 py-2">
                           <input
                             type="text"
@@ -881,6 +955,16 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             max="28"
                           />
                         </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            value={item.igstRate}
+                            onChange={(e) => handleItemChange(index, 'igstRate', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            min="0"
+                            max="28"
+                          />
+                        </td>
                         <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
                         <td className="px-3 py-2">
                           <button
@@ -932,6 +1016,16 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <span className="text-gray-600">SGST:</span>
                   <span className="font-medium">₹{(noteData.totalSGST || 0).toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">IGST:</span>
+                  <span className="font-medium">₹{(noteData.totalIGST || 0).toFixed(2)}</span>
+                </div>
+                {(noteData.totalCESS || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">CESS:</span>
+                    <span className="font-medium">₹{(noteData.totalCESS || 0).toFixed(2)}</span>
+                  </div>
+                )}
                 <hr className="my-2" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Grand Total:</span>

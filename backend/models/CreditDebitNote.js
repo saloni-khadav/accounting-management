@@ -40,6 +40,7 @@ const creditDebitNoteSchema = new mongoose.Schema({
   
   // Items
   items: [{
+    product: String,
     description: String,
     hsnCode: String,
     quantity: {
@@ -70,11 +71,27 @@ const creditDebitNoteSchema = new mongoose.Schema({
       type: Number,
       default: 9
     },
+    igstRate: {
+      type: Number,
+      default: 0
+    },
+    cessRate: {
+      type: Number,
+      default: 0
+    },
     cgstAmount: {
       type: Number,
       default: 0
     },
     sgstAmount: {
+      type: Number,
+      default: 0
+    },
+    igstAmount: {
+      type: Number,
+      default: 0
+    },
+    cessAmount: {
       type: Number,
       default: 0
     },
@@ -102,6 +119,14 @@ const creditDebitNoteSchema = new mongoose.Schema({
     default: 0
   },
   totalSGST: {
+    type: Number,
+    default: 0
+  },
+  totalIGST: {
+    type: Number,
+    default: 0
+  },
+  totalCESS: {
     type: Number,
     default: 0
   },

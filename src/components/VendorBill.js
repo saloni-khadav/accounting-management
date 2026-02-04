@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, Download, Plus, Trash2, ChevronDown, FileText, Upload, X, Paperclip } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
+import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 
 const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -15,6 +16,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const [availablePOs, setAvailablePOs] = useState([]);
   const [showPODropdown, setShowPODropdown] = useState(false);
   const [poSearchTerm, setPOSearchTerm] = useState('');
+  const [companyGST, setCompanyGST] = useState('');
+  const [isPOSelected, setIsPOSelected] = useState(false);
 
   // GST code to state mapping function
   const getStateFromGST = (gstNumber) => {
@@ -160,9 +163,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           const profile = userData.user.profile || {};
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
+          setCompanyGST(profile.gstNumber || '');
+          
           setBillData(prev => ({
             ...prev,
-            supplierName: userData.user.companyName || profile.tradeName || 'Your Company',
+            supplierName: profile.tradeName || userData.user.companyName || 'Your Company',
             supplierAddress: profile.address || 'Your Address',
             supplierGSTIN: profile.gstNumber || '',
             supplierPAN: profile.panNumber || '',
@@ -505,16 +510,25 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const selectedGSTNumber = defaultGST ? defaultGST.gstNumber : (vendor.gstNumber || '');
     const vendorPlace = getStateFromGST(selectedGSTNumber);
     
+    // Apply GST logic based on company and vendor GST
+    let updatedItems = billData.items;
+    if (companyGST && selectedGSTNumber) {
+      const gstType = determineGSTType(companyGST, selectedGSTNumber);
+      updatedItems = applyGSTRates(billData.items, gstType);
+    }
+    
+    // Fill all vendor details including GST number and billing address
     setBillData(prev => ({
       ...prev,
       vendorName: vendor.vendorName,
       vendorAddress: vendor.billingAddress || '',
       vendorGSTIN: selectedGSTNumber,
       vendorPlace: vendorPlace,
-      vendorPAN: vendor.panNumber || '', // Map panNumber to vendorPAN
+      vendorPAN: vendor.panNumber || '',
       contactPerson: vendor.contactPerson || '',
       contactDetails: vendor.contactDetails || '',
-      paymentTerms: vendor.paymentTerms || '30 Days'
+      paymentTerms: vendor.paymentTerms || '30 Days',
+      items: updatedItems
     }));
     setShowVendorDropdown(false);
     setVendorSearchTerm(vendor.vendorName);
@@ -527,10 +541,39 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       return;
     }
     
+    // Get GST number and billing address from PO, not from vendor master
+    const poGSTNumber = po.gstNumber || '';
+    const poDeliveryAddress = po.deliveryAddress || '';
+    const vendorPlace = getStateFromGST(poGSTNumber);
+    
+    // Determine GST type based on company and PO GST
+    let gstType = { cgstRate: 9, sgstRate: 9, igstRate: 0 }; // default
+    if (companyGST && poGSTNumber) {
+      gstType = determineGSTType(companyGST, poGSTNumber);
+    }
+    
+    // Find vendor for basic details (not GST/address)
+    const vendor = vendors.find(v => v.vendorName === po.supplier);
+    if (vendor) {
+      setSelectedVendor(vendor);
+    }
+    
+    // Mark that PO is selected to disable GST dropdown
+    setIsPOSelected(true);
+    
     setBillData(prev => ({
       ...prev,
       referenceNumber: po.poNumber,
       vendorName: po.supplier,
+      // GST number and billing address from PO
+      vendorGSTIN: poGSTNumber,
+      vendorAddress: poDeliveryAddress,
+      vendorPlace: vendorPlace,
+      // Basic vendor details from vendor master (if available)
+      vendorPAN: vendor ? (vendor.panNumber || '') : prev.vendorPAN,
+      contactPerson: vendor ? (vendor.contactPerson || '') : prev.contactPerson,
+      contactDetails: vendor ? (vendor.contactDetails || '') : prev.contactDetails,
+      paymentTerms: vendor ? (vendor.paymentTerms || '30 Days') : prev.paymentTerms,
       items: po.items ? po.items.map(item => ({
         product: item.name || '',
         description: item.name || '',
@@ -540,9 +583,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         unitPrice: item.rate || 0,
         discount: item.discount || 0,
         taxableValue: 0,
-        cgstRate: item.cgstRate || 9,
-        sgstRate: item.sgstRate || 9,
-        igstRate: item.igstRate || 0,
+        cgstRate: gstType.cgstRate,
+        sgstRate: gstType.sgstRate,
+        igstRate: gstType.igstRate,
         cessRate: 0,
         cgstAmount: 0,
         sgstAmount: 0,
@@ -552,29 +595,6 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       })) : prev.items
     }));
     
-    // Find and auto-fill vendor details
-    const vendor = vendors.find(v => v.vendorName === po.supplier);
-    if (vendor) {
-      setSelectedVendor(vendor);
-      const defaultGST = vendor.gstNumbers && vendor.gstNumbers.length > 0 
-        ? vendor.gstNumbers.find(gst => gst.isDefault) || vendor.gstNumbers[0]
-        : null;
-      
-      const selectedGSTNumber = defaultGST ? defaultGST.gstNumber : (vendor.gstNumber || '');
-      const vendorPlace = getStateFromGST(selectedGSTNumber);
-      
-      setBillData(prev => ({
-        ...prev,
-        vendorAddress: vendor.billingAddress || '',
-        vendorGSTIN: selectedGSTNumber,
-        vendorPlace: vendorPlace,
-        vendorPAN: vendor.panNumber || '',
-        contactPerson: vendor.contactPerson || '',
-        contactDetails: vendor.contactDetails || '',
-        paymentTerms: vendor.paymentTerms || '30 Days'
-      }));
-    }
-    
     setShowPODropdown(false);
     setPOSearchTerm(po.poNumber);
     setVendorSearchTerm(po.supplier);
@@ -583,18 +603,45 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   const handleGSTSelect = (gstNumber) => {
     const vendorPlace = getStateFromGST(gstNumber);
     
+    // Find the billing address for this GST number from vendor master
+    let billingAddress = '';
+    if (selectedVendor && selectedVendor.gstNumbers) {
+      const gstEntry = selectedVendor.gstNumbers.find(gst => gst.gstNumber === gstNumber);
+      if (gstEntry && gstEntry.billingAddress) {
+        billingAddress = gstEntry.billingAddress;
+      } else {
+        // Fallback to vendor's default billing address
+        billingAddress = selectedVendor.billingAddress || '';
+      }
+    }
+    
+    // Apply GST logic based on company and selected GST
+    let updatedItems = billData.items;
+    if (companyGST && gstNumber) {
+      const gstType = determineGSTType(companyGST, gstNumber);
+      updatedItems = applyGSTRates(billData.items, gstType);
+    }
+    
     setBillData(prev => ({
       ...prev,
       vendorGSTIN: gstNumber,
-      vendorPlace: vendorPlace
+      vendorPlace: vendorPlace,
+      vendorAddress: billingAddress,
+      items: updatedItems
     }));
     setShowGSTDropdown(false);
   };
 
-  const filteredPOs = availablePOs.filter(po =>
-    po.poNumber.toLowerCase().includes(poSearchTerm.toLowerCase()) ||
-    po.supplier.toLowerCase().includes(poSearchTerm.toLowerCase())
-  );
+  const filteredPOs = availablePOs.filter(po => {
+    // First filter by selected vendor
+    const matchesVendor = billData.vendorName ? po.supplier === billData.vendorName : true;
+    
+    // Then filter by search term
+    const matchesSearch = po.poNumber.toLowerCase().includes(poSearchTerm.toLowerCase()) ||
+      po.supplier.toLowerCase().includes(poSearchTerm.toLowerCase());
+    
+    return matchesVendor && matchesSearch;
+  });
 
   const filteredVendors = vendors.filter(vendor =>
     vendor.vendorName.toLowerCase().includes(vendorSearchTerm.toLowerCase()) ||
@@ -951,6 +998,10 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                     setPOSearchTerm(e.target.value);
                     setShowPODropdown(true);
                     handleInputChange('referenceNumber', e.target.value);
+                    // Reset PO selection flag when manually typing
+                    if (e.target.value === '') {
+                      setIsPOSelected(false);
+                    }
                   }}
                   onFocus={() => setShowPODropdown(true)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -960,37 +1011,43 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 
                 {showPODropdown && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {filteredPOs.length > 0 ? (
-                      filteredPOs.map((po) => (
-                        <div
-                          key={po._id}
-                          onClick={() => handlePOSelect(po)}
-                          className={`px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                            po.remainingAmount <= 0 ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          <div className="font-medium text-gray-900">{po.poNumber}</div>
-                          <div className="text-sm text-gray-500">{po.supplier}</div>
-                          <div className="flex justify-between items-center mt-1">
-                            <div className="text-xs text-blue-600">Total: ₹{po.totalAmount?.toLocaleString() || '0'}</div>
-                            <div className={`text-xs font-medium ${
-                              po.remainingAmount > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              Available: ₹{po.remainingAmount?.toLocaleString() || '0'}
+                    {billData.vendorName ? (
+                      filteredPOs.length > 0 ? (
+                        filteredPOs.map((po) => (
+                          <div
+                            key={po._id}
+                            onClick={() => handlePOSelect(po)}
+                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                              po.remainingAmount <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            <div className="font-medium text-gray-900">{po.poNumber}</div>
+                            <div className="text-sm text-gray-500">{po.supplier}</div>
+                            <div className="flex justify-between items-center mt-1">
+                              <div className="text-xs text-blue-600">Total: ₹{po.totalAmount?.toLocaleString() || '0'}</div>
+                              <div className={`text-xs font-medium ${
+                                po.remainingAmount > 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                Available: ₹{po.remainingAmount?.toLocaleString() || '0'}
+                              </div>
                             </div>
+                            <div className="text-xs text-gray-400">{po.items?.length || 0} items</div>
+                            {po.usedAmount > 0 && (
+                              <div className="text-xs text-orange-600">Used: ₹{po.usedAmount?.toLocaleString() || '0'}</div>
+                            )}
+                            {po.remainingAmount <= 0 && (
+                              <div className="text-xs text-red-600 font-medium">Fully Utilized</div>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-400">{po.items?.length || 0} items</div>
-                          {po.usedAmount > 0 && (
-                            <div className="text-xs text-orange-600">Used: ₹{po.usedAmount?.toLocaleString() || '0'}</div>
-                          )}
-                          {po.remainingAmount <= 0 && (
-                            <div className="text-xs text-red-600 font-medium">Fully Utilized</div>
-                          )}
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-gray-500">
+                          {poSearchTerm ? `No matching POs found for ${billData.vendorName}` : `No available POs for ${billData.vendorName}`}
                         </div>
-                      ))
+                      )
                     ) : (
                       <div className="px-3 py-4 text-center text-gray-500">
-                        {poSearchTerm ? 'No matching POs found' : 'No available POs with remaining amount'}
+                        Please select a vendor first to see their POs
                       </div>
                     )}
                   </div>
@@ -1059,22 +1116,25 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                     value={billData.vendorGSTIN}
                     onChange={(e) => handleInputChange('vendorGSTIN', e.target.value)}
                     onFocus={() => {
-                      if (selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0) {
+                      if (!isPOSelected && selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0) {
                         setShowGSTDropdown(true);
                       }
                     }}
                     maxLength="15"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Select from dropdown or enter manually"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isPOSelected ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                    placeholder={isPOSelected ? "GST from PO (cannot change)" : "Select from dropdown or enter manually"}
+                    disabled={isPOSelected}
                   />
-                  {selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
+                  {!isPOSelected && selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
                     <ChevronDown 
                       className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
                       onClick={() => setShowGSTDropdown(!showGSTDropdown)}
                     />
                   )}
                   
-                  {showGSTDropdown && selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
+                  {showGSTDropdown && !isPOSelected && selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {selectedVendor.gstNumbers.map((gst, index) => (
                         <div

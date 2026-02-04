@@ -39,6 +39,10 @@ const vendorSchema = new mongoose.Schema({
       trim: true,
       maxlength: 15
     },
+    billingAddress: {
+      type: String,
+      trim: true
+    },
     isDefault: {
       type: Boolean,
       default: false
