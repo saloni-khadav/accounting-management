@@ -106,14 +106,16 @@ const Approvals = () => {
         const data = await response.json();
         console.log('Approvals data received:', data);
         
-        // Separate bills, payments, and purchase orders from the response
+        // Separate bills, payments, purchase orders, and proforma invoices from the response
         const allApprovals = data.approvals || [];
-        const bills = allApprovals.filter(item => item.type !== 'Payment' && item.type !== 'Purchase Order');
+        const bills = allApprovals.filter(item => item.type !== 'Payment' && item.type !== 'Purchase Order' && item.type !== 'Proforma Invoice' && item.type !== 'Tax Invoice');
         const payments = allApprovals.filter(item => item.type === 'Payment');
         const purchaseOrders = allApprovals.filter(item => item.type === 'Purchase Order');
+        const proformaInvoices = allApprovals.filter(item => item.type === 'Proforma Invoice');
+        const taxInvoices = allApprovals.filter(item => item.type === 'Tax Invoice');
         
         // Combine all approvals for display
-        setPendingApprovals([...bills, ...purchaseOrders]);
+        setPendingApprovals([...bills, ...purchaseOrders, ...proformaInvoices, ...taxInvoices]);
         setPendingPayments(payments);
       } else {
         const errorData = await response.json();
@@ -150,6 +152,50 @@ const Approvals = () => {
         } else {
           const errorData = await response.json();
           alert('Error approving payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (type === 'Proforma Invoice') {
+        // Handle Proforma Invoice approval
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Proforma Invoice' })
+        });
+        
+        if (response.ok) {
+          alert('Proforma Invoice approved successfully!');
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error approving Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (type === 'Tax Invoice') {
+        // Handle Tax Invoice approval
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Tax Invoice' })
+        });
+        
+        if (response.ok) {
+          alert('Tax Invoice approved successfully!');
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error approving Tax Invoice: ' + (errorData.message || 'Unknown error'));
           return;
         }
       }
@@ -239,6 +285,66 @@ const Approvals = () => {
         } else {
           const errorData = await response.json();
           alert('Error rejecting payment: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (rejectItem.type === 'Proforma Invoice') {
+        // Handle Proforma Invoice rejection
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            itemId: rejectItem.id, 
+            action: 'reject', 
+            type: 'Proforma Invoice',
+            rejectionReason: rejectionReason.trim()
+          })
+        });
+        
+        if (response.ok) {
+          alert('Proforma Invoice rejected successfully!');
+          setShowRejectModal(false);
+          setRejectionReason('');
+          setRejectItem(null);
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error rejecting Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
+      if (rejectItem.type === 'Tax Invoice') {
+        // Handle Tax Invoice rejection
+        const response = await fetch('http://localhost:5001/api/manager/action', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            itemId: rejectItem.id, 
+            action: 'reject', 
+            type: 'Tax Invoice',
+            rejectionReason: rejectionReason.trim()
+          })
+        });
+        
+        if (response.ok) {
+          alert('Tax Invoice rejected successfully!');
+          setShowRejectModal(false);
+          setRejectionReason('');
+          setRejectItem(null);
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error rejecting Tax Invoice: ' + (errorData.message || 'Unknown error'));
           return;
         }
       }

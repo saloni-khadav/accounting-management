@@ -104,7 +104,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       });
     } else {
       setCreditNoteData({
-        creditNoteNumber: '',
+        creditNoteNumber: generateCreditNoteNumber(),
         creditNoteDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         originalInvoiceNumber: '',
@@ -351,12 +351,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     }
   };
 
-  const handleNewEntry = () => {
-    setCreditNoteData(prev => ({
-      ...prev,
-      creditNoteNumber: generateCreditNoteNumber()
-    }));
-  };
+
 
   const handleAutoFillFromReturn = (returnReq) => {
     setCreditNoteData(prev => ({
@@ -483,16 +478,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         </div>
         
         <div className="p-6">
-          {/* Generate Number Button */}
-          <div className="flex justify-end mb-6">
-            <button 
-              onClick={handleNewEntry}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Generate Credit Note Number
-            </button>
-          </div>
-
       {/* Supplier Details */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Supplier Details</h2>

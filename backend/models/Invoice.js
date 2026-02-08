@@ -104,9 +104,21 @@ const invoiceSchema = new mongoose.Schema({
     default: 'INV',
     trim: true
   },
+  piNumber: {
+    type: String,
+    trim: true
+  },
+  // Legacy field for backward compatibility
   referenceNumber: {
     type: String,
     trim: true
+  },
+  piDate: {
+    type: Date
+  },
+  // Legacy field for backward compatibility
+  poDate: {
+    type: Date
   },
   placeOfSupply: {
     type: String,
@@ -253,6 +265,14 @@ const invoiceSchema = new mongoose.Schema({
     default: 'INR'
   },
   
+  // Attachments
+  attachments: [{
+    fileName: String,
+    fileSize: Number,
+    fileUrl: String,
+    uploadedAt: Date
+  }],
+  
   // E-Invoice Details
   eInvoiceIRN: {
     type: String,
@@ -266,8 +286,13 @@ const invoiceSchema = new mongoose.Schema({
   // Status
   status: {
     type: String,
-    enum: ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled', 'Approved', 'Rejected'],
-    default: 'Draft'
+    enum: ['Not Received', 'Partially Received', 'Fully Received'],
+    default: 'Not Received'
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending'
   },
   rejectionReason: {
     type: String,
@@ -312,6 +337,20 @@ invoiceSchema.index({ status: 1 });
 
 // Pre-save middleware to calculate totals
 invoiceSchema.pre('save', function(next) {
+  // Sync referenceNumber and piNumber
+  if (this.referenceNumber && !this.piNumber) {
+    this.piNumber = this.referenceNumber;
+  } else if (this.piNumber && !this.referenceNumber) {
+    this.referenceNumber = this.piNumber;
+  }
+  
+  // Sync poDate and piDate for backward compatibility
+  if (this.poDate && !this.piDate) {
+    this.piDate = this.poDate;
+  } else if (this.piDate && !this.poDate) {
+    this.poDate = this.piDate;
+  }
+  
   // Calculate item totals
   this.items.forEach(item => {
     item.taxableValue = (item.quantity * item.unitPrice) - item.discount;

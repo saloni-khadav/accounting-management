@@ -30,8 +30,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     const pendingApprovals = [];
     
     // Get pending invoices
-    const pendingInvoices = await Invoice.find({ status: 'Draft' })
-      .select('invoiceNumber customerName grandTotal createdAt createdBy status reminderSent approvedAt rejectedAt')
+    const pendingInvoices = await Invoice.find({ approvalStatus: 'Pending' })
+      .select('invoiceNumber customerName grandTotal createdAt createdBy status approvalStatus reminderSent approvedAt rejectedAt')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -40,12 +40,12 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     pendingInvoices.forEach(invoice => {
       pendingApprovals.push({
         id: invoice._id,
-        type: 'Invoice',
+        type: 'Tax Invoice',
         description: `Invoice ${invoice.invoiceNumber} - ${invoice.customerName}`,
         amount: `₹${invoice.grandTotal.toLocaleString()}`,
         requestedBy: invoice.createdBy || 'System',
         requestDate: invoice.createdAt.toISOString().split('T')[0],
-        status: invoice.status === 'Draft' ? 'pending' : invoice.status.toLowerCase(),
+        status: 'pending',
         reminderSent: invoice.reminderSent || false,
         approvedAt: invoice.approvedAt ? invoice.approvedAt.toISOString().split('T')[0] : null,
         rejectedAt: invoice.rejectedAt ? invoice.rejectedAt.toISOString().split('T')[0] : null
@@ -53,9 +53,15 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     });
     
     // Get pending POs (both models)
-    const pendingPOs = await PO.find({ status: 'Draft' })
+    const pendingPOs = await PO.find({ 
+      $or: [
+        { status: 'Draft' },
+        { status: 'Pending Approval' },
+        { approvalStatus: 'pending' }
+      ]
+    })
       .populate('supplier', 'name')
-      .select('poNumber supplierName totalAmount createdAt status reminderSent approvedAt rejectedAt')
+      .select('poNumber supplierName totalAmount createdAt status approvalStatus reminderSent approvedAt rejectedAt createdBy')
       .limit(10)
       .sort({ createdAt: -1 });
     
@@ -71,12 +77,12 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     pendingPOs.forEach(po => {
       pendingApprovals.push({
         id: po._id,
-        type: 'Purchase Order',
-        description: `PO ${po.poNumber} - ${po.supplierName}`,
+        type: 'Proforma Invoice',
+        description: `Proforma Invoice ${po.poNumber} - ${po.supplierName}`,
         amount: `₹${po.totalAmount.toLocaleString()}`,
-        requestedBy: 'Purchase Team',
+        requestedBy: po.createdBy || 'User',
         requestDate: po.createdAt.toISOString().split('T')[0],
-        status: po.status === 'Draft' ? 'pending' : po.status.toLowerCase(),
+        status: po.approvalStatus === 'pending' || po.status === 'Pending Approval' ? 'pending' : po.status.toLowerCase(),
         reminderSent: po.reminderSent || false,
         approvedAt: po.approvedAt ? po.approvedAt.toISOString().split('T')[0] : null,
         rejectedAt: po.rejectedAt ? po.rejectedAt.toISOString().split('T')[0] : null
@@ -205,7 +211,23 @@ router.post('/action', auth, requireManager, async (req, res) => {
     const newStatus = action === 'approve' ? 'Approved' : 'Rejected';
     
     // Update based on item type
-    if (type === 'Invoice') {
+    if (type === 'Tax Invoice') {
+      const updateData = {
+        approvalStatus: action === 'approve' ? 'Approved' : 'Rejected',
+        updatedBy: req.user._id,
+        updatedAt: new Date(),
+        reminderSent: false
+      };
+      if (action === 'approve') {
+        updateData.approvedAt = new Date();
+      } else if (action === 'reject') {
+        updateData.rejectedAt = new Date();
+        if (rejectionReason) {
+          updateData.rejectionReason = rejectionReason;
+        }
+      }
+      updateResult = await Invoice.findByIdAndUpdate(itemId, updateData, { new: true });
+    } else if (type === 'Invoice') {
       const updateData = {
         status: newStatus,
         updatedBy: req.user._id,
@@ -221,6 +243,16 @@ router.post('/action', auth, requireManager, async (req, res) => {
         }
       }
       updateResult = await Invoice.findByIdAndUpdate(itemId, updateData, { new: true });
+    } else if (type === 'Proforma Invoice') {
+      // Handle Proforma Invoice (PO model)
+      updateResult = await PO.findByIdAndUpdate(itemId, {
+        status: newStatus,
+        approvalStatus: action === 'approve' ? 'approved' : 'rejected',
+        approvedAt: action === 'approve' ? new Date() : undefined,
+        rejectedAt: action === 'reject' ? new Date() : undefined,
+        rejectionReason: action === 'reject' && rejectionReason ? rejectionReason : undefined,
+        reminderSent: false
+      }, { new: true });
     } else if (type === 'Purchase Order') {
       // Try PurchaseOrder model first
       updateResult = await PurchaseOrder.findByIdAndUpdate(itemId, {

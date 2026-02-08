@@ -8,7 +8,6 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [creditNotes, setCreditNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
 
@@ -35,15 +34,13 @@ const CreditNoteManagement = ({ setActivePage }) => {
     setLoading(false);
   };
 
-  // Filter credit notes based on search and status
+  // Filter credit notes based on search
   const filteredCreditNotes = creditNotes.filter(creditNote => {
     const matchesSearch = creditNote.creditNoteNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          creditNote.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          creditNote.originalInvoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = !statusFilter || creditNote.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
 
@@ -139,8 +136,8 @@ const CreditNoteManagement = ({ setActivePage }) => {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="relative">
+      <div className="mb-6">
+        <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
@@ -150,18 +147,6 @@ const CreditNoteManagement = ({ setActivePage }) => {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Status</option>
-          <option value="Draft">Draft</option>
-          <option value="Issued">Issued</option>
-          <option value="Applied">Applied</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
       </div>
 
       {/* Credit Notes List */}
@@ -174,14 +159,13 @@ const CreditNoteManagement = ({ setActivePage }) => {
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Customer</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Original Invoice</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Amount</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Status</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredCreditNotes.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                   {creditNotes.length === 0 ? 'No credit notes found' : 'No credit notes match your filters'}
                 </td>
               </tr>
@@ -202,11 +186,6 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
                     ₹{creditNote.grandTotal?.toLocaleString() || '0'}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(creditNote.status || 'Draft')}`}>
-                      {creditNote.status || 'Draft'}
-                    </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">

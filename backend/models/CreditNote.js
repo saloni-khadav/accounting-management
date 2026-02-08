@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const creditNoteSchema = new mongoose.Schema({
   creditNoteNumber: {
     type: String,
-    required: true,
     unique: true
   },
   creditNoteDate: {
@@ -142,6 +141,28 @@ const creditNoteSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+// Pre-save hook to generate credit note number
+creditNoteSchema.pre('save', async function(next) {
+  if (!this.creditNoteNumber) {
+    const lastCreditNote = await this.constructor.findOne({ userId: this.userId })
+      .sort({ createdAt: -1 })
+      .select('creditNoteNumber');
+    
+    if (lastCreditNote && lastCreditNote.creditNoteNumber) {
+      const match = lastCreditNote.creditNoteNumber.match(/CN-(\d+)/);
+      if (match) {
+        const nextNumber = parseInt(match[1]) + 1;
+        this.creditNoteNumber = `CN-${String(nextNumber).padStart(5, '0')}`;
+      } else {
+        this.creditNoteNumber = 'CN-00001';
+      }
+    } else {
+      this.creditNoteNumber = 'CN-00001';
+    }
+  }
+  next();
 });
 
 module.exports = mongoose.model('CreditNote', creditNoteSchema);

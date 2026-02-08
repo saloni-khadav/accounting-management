@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Phone, Mail, MapPin, Building, CreditCard } from 'lucide-react';
+import { X, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Calendar, Download } from 'lucide-react';
 
 const ClientDetails = ({ client, isOpen, onClose }) => {
   if (!isOpen || !client) return null;
@@ -92,18 +92,43 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
             </div>
           </div>
 
+          {/* GST Numbers */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">GST Information</h3>
+            {client.gstNumbers && client.gstNumbers.length > 0 ? (
+              <div className="space-y-3">
+                {client.gstNumbers.map((gst, index) => (
+                  <div key={index} className="border border-gray-200 p-3 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-mono text-sm">{gst.gstNumber || 'N/A'}</span>
+                      {gst.isDefault && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Default</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{gst.billingAddress || 'No address provided'}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium text-gray-600">GST Number</label>
+                <p className="text-gray-900 font-mono">{client.gstNumber || 'N/A'}</p>
+              </div>
+            )}
+          </div>
+
           {/* Legal & Financial */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-4">Legal Information</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">GST Number</label>
-                  <p className="text-gray-900 font-mono">{client.gstNumber || 'N/A'}</p>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-600">PAN Number</label>
                   <p className="text-gray-900 font-mono">{client.panNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Aadhar Number</label>
+                  <p className="text-gray-900 font-mono">{client.aadharNumber || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -133,20 +158,149 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
           {/* Bank Details */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Bank Information</label>
-              <p className="text-gray-900 whitespace-pre-line">{client.bankDetails || 'N/A'}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Account Number</label>
+                <p className="text-gray-900 font-mono">{client.accountNumber || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">IFSC Code</label>
+                <p className="text-gray-900 font-mono">{client.ifscCode || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Bank Name</label>
+                <p className="text-gray-900">{client.bankName || 'N/A'}</p>
+              </div>
             </div>
+            {client.bankDetails && (
+              <div className="mt-3">
+                <label className="text-sm font-medium text-gray-600">Additional Bank Information</label>
+                <p className="text-gray-900 whitespace-pre-line">{client.bankDetails}</p>
+              </div>
+            )}
           </div>
 
-          {/* Contract */}
+          {/* Contract Information */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Contract Information</h3>
-            <div>
-              <label className="text-sm font-medium text-gray-600">Contract Period</label>
-              <p className="text-gray-900">{client.contractDates || 'N/A'}</p>
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <Calendar className="mr-2" size={20} />
+              Contract Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Contract Start Date</label>
+                <p className="text-gray-900">
+                  {client.contractStartDate ? new Date(client.contractStartDate).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Contract End Date</label>
+                <p className="text-gray-900">
+                  {client.contractEndDate ? new Date(client.contractEndDate).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
             </div>
+            {client.contractDates && (
+              <div className="mt-3">
+                <label className="text-sm font-medium text-gray-600">Contract Period</label>
+                <p className="text-gray-900">{client.contractDates}</p>
+              </div>
+            )}
           </div>
+
+          {/* Documents */}
+          {client.documents && (client.documents.panCard || client.documents.aadharCard || client.documents.gstCertificate || client.documents.bankStatement || (client.documents.otherDocuments && client.documents.otherDocuments.length > 0)) && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <FileText className="mr-2" size={20} />
+                Documents
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {client.documents.panCard && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">PAN Card</p>
+                      <p className="text-xs text-green-600">✓ Uploaded</p>
+                    </div>
+                    <button
+                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.panCard}`, '_blank')}
+                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                    >
+                      <Download size={16} className="mr-1" />
+                      Download
+                    </button>
+                  </div>
+                )}
+                {client.documents.aadharCard && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Aadhar Card</p>
+                      <p className="text-xs text-green-600">✓ Uploaded</p>
+                    </div>
+                    <button
+                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.aadharCard}`, '_blank')}
+                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                    >
+                      <Download size={16} className="mr-1" />
+                      Download
+                    </button>
+                  </div>
+                )}
+                {client.documents.gstCertificate && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">GST Certificate</p>
+                      <p className="text-xs text-green-600">✓ Uploaded</p>
+                    </div>
+                    <button
+                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.gstCertificate}`, '_blank')}
+                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                    >
+                      <Download size={16} className="mr-1" />
+                      Download
+                    </button>
+                  </div>
+                )}
+                {client.documents.bankStatement && (
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Bank Statement</p>
+                      <p className="text-xs text-green-600">✓ Uploaded</p>
+                    </div>
+                    <button
+                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.bankStatement}`, '_blank')}
+                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                    >
+                      <Download size={16} className="mr-1" />
+                      Download
+                    </button>
+                  </div>
+                )}
+              </div>
+              {client.documents.otherDocuments && client.documents.otherDocuments.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Other Documents</p>
+                  <div className="space-y-2">
+                    {client.documents.otherDocuments.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                        <div>
+                          <p className="text-sm text-gray-700">{typeof doc === 'string' ? `Document ${index + 1}` : doc.name || `Document ${index + 1}`}</p>
+                          <p className="text-xs text-green-600">✓ Uploaded</p>
+                        </div>
+                        <button
+                          onClick={() => window.open(`http://localhost:5001/api/clients/download/${doc}`, '_blank')}
+                          className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                        >
+                          <Download size={16} className="mr-1" />
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end p-6 border-t">
