@@ -18,8 +18,30 @@ router.get('/', auth, async (req, res) => {
 // Create new credit note
 router.post('/', auth, async (req, res) => {
   try {
+    // Generate credit note number if not provided
+    let creditNoteNumber = req.body.creditNoteNumber;
+    
+    if (!creditNoteNumber) {
+      const lastCreditNote = await CreditNote.findOne({ userId: req.user.id })
+        .sort({ createdAt: -1 })
+        .select('creditNoteNumber');
+      
+      if (lastCreditNote && lastCreditNote.creditNoteNumber) {
+        const match = lastCreditNote.creditNoteNumber.match(/CN-(\d+)/);
+        if (match) {
+          const nextNumber = parseInt(match[1]) + 1;
+          creditNoteNumber = `CN-${String(nextNumber).padStart(5, '0')}`;
+        } else {
+          creditNoteNumber = 'CN-00001';
+        }
+      } else {
+        creditNoteNumber = 'CN-00001';
+      }
+    }
+    
     const creditNoteData = {
       ...req.body,
+      creditNoteNumber,
       userId: req.user.id
     };
     

@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
 const clientSchema = new mongoose.Schema({
-  clientName: {
-    type: String,
-    required: true,
-    trim: true
-  },
   clientCode: {
     type: String,
     required: true,
     unique: true,
+    trim: true
+  },
+  clientName: {
+    type: String,
+    required: true,
     trim: true
   },
   contactPerson: {
@@ -33,17 +33,31 @@ const clientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  gstNumbers: [{
+    gstNumber: {
+      type: String,
+      trim: true,
+      maxlength: 15
+    },
+    billingAddress: {
+      type: String,
+      trim: true
+    },
+    isDefault: {
+      type: Boolean,
+      default: false
+    }
+  }],
   gstNumber: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 15
   },
   panNumber: {
     type: String,
-    trim: true
-  },
-  aadharNumber: {
-    type: String,
-    trim: true
+    trim: true,
+    maxlength: 10,
+    uppercase: true
   },
   paymentTerms: {
     type: String,
@@ -51,7 +65,7 @@ const clientSchema = new mongoose.Schema({
   },
   creditLimit: {
     type: Number,
-    default: 0
+    min: 0
   },
   accountNumber: {
     type: String,
@@ -59,13 +73,11 @@ const clientSchema = new mongoose.Schema({
   },
   ifscCode: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 11,
+    uppercase: true
   },
   bankName: {
-    type: String,
-    trim: true
-  },
-  bankDetails: {
     type: String,
     trim: true
   },
@@ -76,10 +88,6 @@ const clientSchema = new mongoose.Schema({
   clientCategory: {
     type: String,
     enum: ['Retail', 'Corporate', '']
-  },
-  contractDates: {
-    type: String,
-    trim: true
   },
   contractStartDate: {
     type: Date
@@ -101,30 +109,38 @@ const clientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  aadharNumber: {
+    type: String,
+    trim: true,
+    maxlength: 12
+  },
   documents: {
     panCard: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null
+      type: String,
+      trim: true
     },
     aadharCard: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null
+      type: String,
+      trim: true
     },
     gstCertificate: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null
+      type: String,
+      trim: true
     },
     bankStatement: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null
+      type: String,
+      trim: true
     },
-    otherDocuments: {
-      type: [mongoose.Schema.Types.Mixed],
-      default: []
-    }
+    otherDocuments: [{
+      type: String,
+      trim: true
+    }]
   }
 }, {
   timestamps: true
 });
+
+// Index for faster searches
+clientSchema.index({ clientName: 'text', clientCode: 'text' });
 
 module.exports = mongoose.model('Client', clientSchema);

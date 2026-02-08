@@ -22,6 +22,7 @@ const assetRoutes = require('./routes/assets');
 const paymentRoutes = require('./routes/payments');
 const collectionRoutes = require('./routes/collections');
 const tdsRoutes = require('./routes/tds');
+const proformaInvoiceRoutes = require('./routes/proformaInvoices');
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use('/api/assets', assetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/tds', tdsRoutes);
+app.use('/api/proforma-invoices', proformaInvoiceRoutes);
 
 // test route 
 app.get('/api/test', (req, res) => {

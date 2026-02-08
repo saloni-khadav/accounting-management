@@ -21,31 +21,32 @@ export const exportToExcel = (data, filename = 'export') => {
   }
 };
 
-export const exportClientsToExcel = (clients) => {
+export const exportClientsToExcel = (clients, filename) => {
   const exportData = clients.map(client => ({
-    'Client Name': client.clientName,
-    'Client Code': client.clientCode,
-    'Contact Person': client.contactPerson,
-    'Contact Details': client.contactDetails,
-    'Email': client.email,
-    'Website': client.website,
-    'Billing Address': client.billingAddress,
-    'GST Number': client.gstNumber,
-    'PAN Number': client.panNumber,
-    'Aadhar Number': client.aadharNumber,
-    'Payment Terms': client.paymentTerms,
-    'Credit Limit': client.creditLimit,
-    'Account Number': client.accountNumber || client.bankDetails,
-    'IFSC Code': client.ifscCode,
-    'Bank Name': client.bankName,
-    'Industry Type': client.industryType,
-    'Client Category': client.clientCategory,
-    'Contract Start Date': client.contractStartDate ? new Date(client.contractStartDate).toLocaleDateString() : '',
-    'Contract End Date': client.contractEndDate ? new Date(client.contractEndDate).toLocaleDateString() : '',
-    'Currency': client.currency,
-    'Status': client.status,
-    'Account Manager': client.accountManager
+    'Client Code': client['Client Code'] || client.clientCode || '',
+    'Client Name': client['Client Name'] || client.clientName || '',
+    'Contact Person': client['Contact Person'] || client.contactPerson || '',
+    'Contact Details': client['Contact Details'] || client.contactDetails || '',
+    'Email': client['Email'] || client.email || '',
+    'Website': client['Website'] || client.website || '',
+    'Billing Address': client['Billing Address'] || client.billingAddress || '',
+    'GST Number': client['GST Number'] || client.gstNumber || '',
+    'PAN Number': client['PAN Number'] || client.panNumber || '',
+    'Aadhar Number': client['Aadhar Number'] || client.aadharNumber || '',
+    'Payment Terms': client['Payment Terms'] || client.paymentTerms || '',
+    'Credit Limit': client['Credit Limit'] || client.creditLimit || '',
+    'Account Number': client['Account Number'] || client.accountNumber || client.bankDetails || '',
+    'IFSC Code': client['IFSC Code'] || client.ifscCode || '',
+    'Bank Name': client['Bank Name'] || client.bankName || '',
+    'Industry Type': client['Industry Type'] || client.industryType || '',
+    'Client Category': client['Client Category'] || client.clientCategory || '',
+    'Contract Start Date': client['Contract Start Date'] || (client.contractStartDate ? new Date(client.contractStartDate).toLocaleDateString() : ''),
+    'Contract End Date': client['Contract End Date'] || (client.contractEndDate ? new Date(client.contractEndDate).toLocaleDateString() : ''),
+    'Currency': client['Currency'] || client.currency || '',
+    'Status': client['Status'] || client.status || '',
+    'Account Manager': client['Account Manager'] || client.accountManager || '',
+    ...(client.REMARKS || client.remarks ? { 'REMARKS': client.REMARKS || client.remarks } : {})
   }));
   
-  exportToExcel(exportData, `clients_${new Date().toISOString().split('T')[0]}`);
+  exportToExcel(exportData, filename || `clients_${new Date().toISOString().split('T')[0]}`);
 };
