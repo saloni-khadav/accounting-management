@@ -14,10 +14,23 @@ const Depreciation = () => {
     accumulatedTotal: 0,
     netBookValue: 0
   });
+  const [depreciationSchedule, setDepreciationSchedule] = useState([]);
+  const [monthlyDepreciation, setMonthlyDepreciation] = useState([]);
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
   useEffect(() => {
     fetchAssets();
+    fetchDepreciationSummary();
+    fetchMonthlyTrend();
   }, []);
+
+  useEffect(() => {
+    if (selectedAsset) {
+      fetchDepreciationSchedule(selectedAsset);
+    } else {
+      setDepreciationSchedule([]);
+    }
+  }, [selectedAsset]);
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -25,29 +38,46 @@ const Depreciation = () => {
       const response = await fetch('http://localhost:5001/api/assets');
       const data = await response.json();
       setAssets(data);
-      calculateDepreciationSummary(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
+      showNotification('Error fetching assets', 'error');
     }
     setLoading(false);
   };
 
-  const calculateDepreciationSummary = (assetsData) => {
-    const totalValue = assetsData.reduce((sum, asset) => sum + asset.purchaseValue, 0);
-    const totalAccumulated = assetsData.reduce((sum, asset) => sum + (asset.accumulatedDepreciation || 0), 0);
-    const monthlyTotal = assetsData.reduce((sum, asset) => {
-      if (asset.usefulLife && asset.purchaseValue) {
-        return sum + (asset.purchaseValue / (asset.usefulLife * 12));
-      }
-      return sum;
-    }, 0);
-    
-    setDepreciationData({
-      monthlyTotal: Math.round(monthlyTotal),
-      ytdTotal: Math.round(monthlyTotal * 6), // Assuming 6 months YTD
-      accumulatedTotal: totalAccumulated,
-      netBookValue: totalValue - totalAccumulated
-    });
+  const fetchDepreciationSummary = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/depreciation/summary');
+      const data = await response.json();
+      setDepreciationData(data);
+    } catch (error) {
+      console.error('Error fetching depreciation summary:', error);
+    }
+  };
+
+  const fetchMonthlyTrend = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/depreciation/trend');
+      const data = await response.json();
+      setMonthlyDepreciation(data);
+    } catch (error) {
+      console.error('Error fetching monthly trend:', error);
+    }
+  };
+
+  const fetchDepreciationSchedule = async (assetId) => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/depreciation/schedule/${assetId}`);
+      const data = await response.json();
+      setDepreciationSchedule(data.schedule || []);
+    } catch (error) {
+      console.error('Error fetching depreciation schedule:', error);
+    }
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
   };
 
   const depreciationMethods = [
@@ -57,44 +87,72 @@ const Depreciation = () => {
     { value: 'units-of-production', label: 'Units of Production' }
   ];
 
-  // Sample depreciation schedule data
-  const depreciationSchedule = [
-    { year: 'Year 1', opening: 500000, depreciation: 25000, accumulated: 25000, closing: 475000 },
-    { year: 'Year 2', opening: 475000, depreciation: 25000, accumulated: 50000, closing: 450000 },
-    { year: 'Year 3', opening: 450000, depreciation: 25000, accumulated: 75000, closing: 425000 },
-    { year: 'Year 4', opening: 425000, depreciation: 25000, accumulated: 100000, closing: 400000 },
-    { year: 'Year 5', opening: 400000, depreciation: 25000, accumulated: 125000, closing: 375000 }
+  const sampleSchedule = [
+    { year: 'Year 1', opening: 500000, depreciation: 25000, accumulated: 25000, closing: 475000, rate: '5.00' },
+    { year: 'Year 2', opening: 475000, depreciation: 25000, accumulated: 50000, closing: 450000, rate: '5.00' },
+    { year: 'Year 3', opening: 450000, depreciation: 25000, accumulated: 75000, closing: 425000, rate: '5.00' },
+    { year: 'Year 4', opening: 425000, depreciation: 25000, accumulated: 100000, closing: 400000, rate: '5.00' },
+    { year: 'Year 5', opening: 400000, depreciation: 25000, accumulated: 125000, closing: 375000, rate: '5.00' }
   ];
 
-  const monthlyDepreciation = [
-    { month: 'Jan', amount: 8333 },
-    { month: 'Feb', amount: 8333 },
-    { month: 'Mar', amount: 8333 },
-    { month: 'Apr', amount: 8333 },
-    { month: 'May', amount: 8333 },
-    { month: 'Jun', amount: 8333 },
-    { month: 'Jul', amount: 8333 },
-    { month: 'Aug', amount: 8333 },
-    { month: 'Sep', amount: 8333 },
-    { month: 'Oct', amount: 8333 },
-    { month: 'Nov', amount: 8333 },
-    { month: 'Dec', amount: 8333 }
-  ];
+  const displaySchedule = depreciationSchedule.length > 0 ? depreciationSchedule : sampleSchedule;
 
-  const handleCalculateDepreciation = () => {
+  const handleCalculateDepreciation = async () => {
     setIsCalculating(true);
-    setTimeout(() => {
-      setIsCalculating(false);
-      alert('Depreciation calculated successfully!');
-    }, 2000);
+    try {
+      const response = await fetch('http://localhost:5001/api/depreciation/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetId: selectedAsset || null,
+          method: calculationMethod
+        })
+      });
+      const data = await response.json();
+      showNotification(`Depreciation calculated for ${data.count} asset(s)`, 'success');
+      await fetchDepreciationSummary();
+      await fetchAssets();
+    } catch (error) {
+      console.error('Error calculating depreciation:', error);
+      showNotification('Error calculating depreciation', 'error');
+    }
+    setIsCalculating(false);
   };
 
-  const handleRunMonthlyDepreciation = () => {
-    alert('Running monthly depreciation process...');
+  const handleRunMonthlyDepreciation = async () => {
+    if (!window.confirm('Are you sure you want to run monthly depreciation for all active assets?')) {
+      return;
+    }
+    
+    setIsCalculating(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/depreciation/run-monthly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await response.json();
+      showNotification(`Monthly depreciation completed: ${data.processed} assets processed`, 'success');
+      await fetchDepreciationSummary();
+      await fetchAssets();
+      await fetchMonthlyTrend();
+    } catch (error) {
+      console.error('Error running monthly depreciation:', error);
+      showNotification('Error running monthly depreciation', 'error');
+    }
+    setIsCalculating(false);
   };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {notification.show && (
+        <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {notification.message}
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center">
           <Calculator className="mr-2 text-blue-600" />
@@ -203,7 +261,7 @@ const Depreciation = () => {
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
                 <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Depreciation']} />
-                <Bar dataKey="amount" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="depreciation" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -214,7 +272,7 @@ const Depreciation = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Accumulated Depreciation Trend</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={depreciationSchedule}>
+              <LineChart data={displaySchedule}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="year" />
                 <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
@@ -243,14 +301,14 @@ const Depreciation = () => {
               </tr>
             </thead>
             <tbody>
-              {depreciationSchedule.map((item, index) => (
+              {displaySchedule.map((item, index) => (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 font-medium text-gray-900">{item.year}</td>
                   <td className="py-3 px-4 text-gray-600">₹{item.opening.toLocaleString()}</td>
                   <td className="py-3 px-4 text-red-600 font-medium">₹{item.depreciation.toLocaleString()}</td>
                   <td className="py-3 px-4 text-orange-600 font-medium">₹{item.accumulated.toLocaleString()}</td>
                   <td className="py-3 px-4 text-green-600 font-medium">₹{item.closing.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-gray-600">5.00%</td>
+                  <td className="py-3 px-4 text-gray-600">{item.rate}%</td>
                 </tr>
               ))}
             </tbody>

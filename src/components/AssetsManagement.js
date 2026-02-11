@@ -31,11 +31,20 @@ const AssetsManagement = () => {
     setLoading(false);
   };
 
-  const calculateSummary = (assetsData) => {
+  const calculateSummary = async (assetsData) => {
     const totalValue = assetsData.reduce((sum, asset) => sum + asset.purchaseValue, 0);
     const totalDepreciation = assetsData.reduce((sum, asset) => sum + (asset.accumulatedDepreciation || 0), 0);
     const netValue = totalValue - totalDepreciation;
-    const monthlyDepreciation = 2000; // This would need proper calculation based on depreciation method
+    
+    // Fetch real monthly depreciation from API
+    let monthlyDepreciation = 0;
+    try {
+      const response = await fetch('http://localhost:5001/api/depreciation/summary');
+      const data = await response.json();
+      monthlyDepreciation = data.monthlyTotal || 0;
+    } catch (error) {
+      console.error('Error fetching depreciation summary:', error);
+    }
     
     setSummary({
       totalValue,

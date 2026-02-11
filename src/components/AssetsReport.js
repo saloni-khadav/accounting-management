@@ -4,10 +4,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const AssetsReport = () => {
   const [assets, setAssets] = useState([]);
+  const [filteredAssets, setFilteredAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState('summary');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [reportData, setReportData] = useState({
     categoryData: [],
     locationData: [],
@@ -23,12 +24,35 @@ const AssetsReport = () => {
     fetchAssets();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [assets, dateRange, selectedCategory]);
+
+  const applyFilters = () => {
+    let filtered = [...assets];
+
+    if (selectedCategory && selectedCategory !== 'All Categories') {
+      filtered = filtered.filter(asset => asset.category === selectedCategory);
+    }
+
+    if (dateRange.start) {
+      filtered = filtered.filter(asset => new Date(asset.purchaseDate) >= new Date(dateRange.start));
+    }
+    if (dateRange.end) {
+      filtered = filtered.filter(asset => new Date(asset.purchaseDate) <= new Date(dateRange.end));
+    }
+
+    setFilteredAssets(filtered);
+    generateReportData(filtered);
+  };
+
   const fetchAssets = async () => {
     setLoading(true);
     try {
       const response = await fetch('http://localhost:5001/api/assets');
       const data = await response.json();
       setAssets(data);
+      setFilteredAssets(data);
       generateReportData(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
@@ -37,7 +61,6 @@ const AssetsReport = () => {
   };
 
   const generateReportData = (assetsData) => {
-    // Category-wise data
     const categoryTotals = assetsData.reduce((acc, asset) => {
       if (!acc[asset.category]) {
         acc[asset.category] = { count: 0, value: 0, active: 0, disposed: 0 };
@@ -62,7 +85,6 @@ const AssetsReport = () => {
       color: colors[index % colors.length]
     }));
 
-    // Location-wise data
     const locationTotals = assetsData.reduce((acc, asset) => {
       const location = asset.location || 'Unknown';
       if (!acc[location]) {
@@ -104,7 +126,6 @@ const AssetsReport = () => {
 
   const categories = ['All Categories', 'IT Equipment', 'Furniture', 'Vehicles', 'Machinery', 'Buildings'];
 
-  // Sample depreciation trend data (would need proper calculation)
   const depreciationTrend = [
     { month: 'Jan', depreciation: 8000, accumulated: 50000 },
     { month: 'Feb', depreciation: 8200, accumulated: 58200 },
@@ -115,7 +136,18 @@ const AssetsReport = () => {
   ];
 
   const handleExportReport = () => {
-    alert(`Exporting ${reportTypes.find(r => r.value === reportType)?.label}...`);
+    const reportName = reportTypes.find(r => r.value === reportType)?.label;
+    let csv = 'Asset Name,Asset Code,Category,Purchase Date,Purchase Value,Status,Accumulated Depreciation,Net Value\n';
+    filteredAssets.forEach(asset => {
+      const netValue = asset.purchaseValue - (asset.accumulatedDepreciation || 0);
+      csv += `"${asset.assetName}","${asset.assetCode}","${asset.category}","${new Date(asset.purchaseDate).toLocaleDateString()}","${asset.purchaseValue}","${asset.status}","${asset.accumulatedDepreciation || 0}","${netValue}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportName}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
   };
 
   const renderSummaryReport = () => (
@@ -124,7 +156,6 @@ const AssetsReport = () => {
         <div className="text-center py-8 text-gray-500">Loading report data...</div>
       ) : (
         <>
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-blue-50 rounded-lg p-6">
               <h3 className="text-sm font-medium text-blue-600 mb-2">Total Assets</h3>
@@ -148,7 +179,6 @@ const AssetsReport = () => {
             </div>
           </div>
 
-          {/* Category Distribution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg p-6 shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Distribution by Category</h3>
@@ -200,7 +230,6 @@ const AssetsReport = () => {
             </div>
           </div>
 
-          {/* Summary Table */}
           <div className="bg-white rounded-lg p-6 shadow-sm border">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Summary</h3>
             <div className="overflow-x-auto">
@@ -313,7 +342,6 @@ const AssetsReport = () => {
         <p className="text-gray-600">Generate comprehensive reports on your asset portfolio</p>
       </div>
 
-      {/* Report Controls */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
@@ -374,7 +402,6 @@ const AssetsReport = () => {
         </div>
       </div>
 
-      {/* Report Content */}
       {renderReportContent()}
     </div>
   );
