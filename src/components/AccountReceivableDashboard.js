@@ -1,54 +1,186 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AccountReceivableDashboard = () => {
-  const revenueData = [
-    { month: 'Jan', Revenue: 5, Receivables: 3 },
-    { month: 'Feb', Revenue: 7, Receivables: 3.5 },
-    { month: 'Mar', Revenue: 6, Receivables: 3 },
-    { month: 'Apr', Revenue: 8, Receivables: 3.2 },
-    { month: 'May', Revenue: 9, Receivables: 3.5 },
-    { month: 'Jun', Revenue: 10, Receivables: 3.8 },
-    { month: 'Jul', Revenue: 11, Receivables: 4 },
-    { month: 'Aug', Revenue: 13, Receivables: 4.2 },
-    { month: 'Sep', Revenue: 14, Receivables: 4.5 },
-    { month: 'Oct', Revenue: 16, Receivables: 4.8 },
-  ];
+  const [stats, setStats] = useState({
+    totalReceivable: 0,
+    outstanding: 0,
+    overdueAmount: 0,
+    days0to30: 0,
+    days31to60: 0,
+    pendingInvoices: 0,
+    overdueCount: 0,
+    unappliedCredits: 0
+  });
+  const [revenueData, setRevenueData] = useState([]);
+  const [overdueInvoices, setOverdueInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState('This Quarter');
+  const [selectedClient, setSelectedClient] = useState('All Clients');
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clients, setClients] = useState([]);
 
-  const overdueInvoices = [
-    { name: 'Kumar & Co.', due: '4 25,000', amount: '₹ 42,700' },
-    { name: 'Nexa Solutions', due: '6 46,000', amount: '₹ 64,800' },
-    { name: 'Innovation Works', due: '118,500', amount: '₹ 18,500' },
-    { name: 'Star Traders', due: '', amount: '' },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+    fetchClients();
+  }, [selectedPeriod, selectedClient]);
 
-  const salesSummary = [
-    { category: 'B2B Sales', value: 6020000, percentage: 67 },
-    { category: 'B2C Sales', value: 2010500, percentage: 22 },
-    { category: 'Exports', value: 1015000, percentage: 11 },
-  ];
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/clients');
+      if (response.ok) {
+        const data = await response.json();
+        setClients(data);
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedPeriod !== 'This Quarter') params.append('period', selectedPeriod);
+      if (selectedClient !== 'All Clients') params.append('client', selectedClient);
+      
+      const queryString = params.toString();
+      const baseUrl = 'http://localhost:5001/api/ar-dashboard';
+      
+      const [statsRes, revenueRes, overdueRes] = await Promise.all([
+        fetch(`${baseUrl}/stats?${queryString}`),
+        fetch(`${baseUrl}/monthly-revenue?${queryString}`),
+        fetch(`${baseUrl}/overdue-invoices?${queryString}`)
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+
+      if (revenueRes.ok) {
+        const revenueData = await revenueRes.json();
+        setRevenueData(revenueData);
+      }
+
+      if (overdueRes.ok) {
+        const overdueData = await overdueRes.json();
+        setOverdueInvoices(overdueData);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+    setLoading(false);
+  };
+
+  const periods = ['This Month', 'Last Month', 'First Quarter', 'Second Quarter', 'Third Quarter', 'Fourth Quarter', 'Last Quarter', 'This Year', 'Last Year'];
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Accounts Receivable Dashboard</h1>
 
+      {/* Period and Client Filters */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="bg-white p-4 rounded-lg border">
+          <label className="text-gray-600 mb-2 block">Period:</label>
+          <div className="relative">
+            <div 
+              className="flex items-center justify-between bg-white border rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50"
+              onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+            >
+              <span className="font-medium">{selectedPeriod}</span>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {showPeriodDropdown && (
+              <div className="absolute top-full left-0 right-0 bg-white border rounded-lg mt-1 shadow-lg z-10">
+                {periods.map((period) => (
+                  <div
+                    key={period}
+                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      setSelectedPeriod(period);
+                      setShowPeriodDropdown(false);
+                    }}
+                  >
+                    {period}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border">
+          <label className="text-gray-600 mb-2 block">Client:</label>
+          <div className="relative">
+            <div 
+              className="flex items-center justify-between bg-white border rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50"
+              onClick={() => setShowClientDropdown(!showClientDropdown)}
+            >
+              <span className="font-medium">{selectedClient}</span>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {showClientDropdown && (
+              <div className="absolute top-full left-0 right-0 bg-white border rounded-lg mt-1 shadow-lg z-10 max-h-48 overflow-y-auto">
+                <div
+                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => {
+                    setSelectedClient('All Clients');
+                    setShowClientDropdown(false);
+                  }}
+                >
+                  All Clients
+                </div>
+                {clients.map((client) => (
+                  <div
+                    key={client._id}
+                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      setSelectedClient(client.clientName);
+                      setShowClientDropdown(false);
+                    }}
+                  >
+                    {client.clientName}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-500 text-white p-6 rounded-lg">
           <div className="text-sm mb-2">Total Receivable</div>
-          <div className="text-3xl font-bold">₹ 8,45,200</div>
+          <div className="text-3xl font-bold">₹ {stats.totalReceivable.toLocaleString('en-IN')}</div>
         </div>
         <div className="bg-red-400 text-white p-6 rounded-lg">
           <div className="text-sm mb-2">Overdue Receivable</div>
-          <div className="text-3xl font-bold">₹ 3,12,800</div>
+          <div className="text-3xl font-bold">₹ {stats.overdueAmount.toLocaleString('en-IN')}</div>
         </div>
         <div className="bg-gray-200 p-6 rounded-lg">
           <div className="text-sm mb-2 text-gray-600">0-30 Days</div>
-          <div className="text-3xl font-bold">4,25,000</div>
+          <div className="text-3xl font-bold">₹ {stats.days0to30.toLocaleString('en-IN')}</div>
         </div>
         <div className="bg-blue-100 p-6 rounded-lg">
           <div className="text-sm mb-2 text-gray-600">31-60 Days</div>
-          <div className="text-3xl font-bold">1,07,600</div>
+          <div className="text-3xl font-bold">₹ {stats.days31to60.toLocaleString('en-IN')}</div>
         </div>
       </div>
 
@@ -56,7 +188,7 @@ const AccountReceivableDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Revenue vs Receivables Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Revenue vs Receivables</h2>
+          <h2 className="text-lg font-semibold mb-4">Revenue vs Receivables (in Lakhs)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -70,33 +202,23 @@ const AccountReceivableDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Pending & Orenedu Invoices */}
+        {/* Pending & Overdue Invoices */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4">Pending Invoices</h2>
             <div className="flex items-center justify-center">
-              <div className="relative">
-                <svg width="120" height="120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="20" />
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#6366f1" strokeWidth="20" 
-                    strokeDasharray="314" strokeDashoffset="94" transform="rotate(-90 60 60)" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold">18</span>
-                </div>
+              <div className="text-center">
+                <div className="text-6xl font-bold text-indigo-600">{stats.pendingInvoices}</div>
+                <div className="text-sm text-gray-600 mt-2">Invoices Pending</div>
               </div>
             </div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-2">Orenedu Invoices</h2>
-            <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold">18</span>
-              <span className="text-sm">/4</span>
-              <div className="ml-auto">
-                <div className="flex items-center gap-2">
-                  <div className="w-12 h-12 bg-indigo-500 rounded" />
-                  <span className="text-sm">35%</span>
-                </div>
+            <h2 className="text-lg font-semibold mb-4">Overdue Invoices</h2>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-6xl font-bold text-red-600">{stats.overdueCount}</div>
+                <div className="text-sm text-gray-600 mt-2">Invoices Overdue</div>
               </div>
             </div>
           </div>
@@ -111,44 +233,44 @@ const AccountReceivableDashboard = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2"></th>
-                <th className="text-right py-2">Due</th>
+                <th className="text-left py-2">Customer</th>
+                <th className="text-left py-2">Invoice</th>
+                <th className="text-right py-2">Days Overdue</th>
                 <th className="text-right py-2">Amount</th>
               </tr>
             </thead>
             <tbody>
-              {overdueInvoices.map((invoice, idx) => (
-                <tr key={idx} className="border-b">
-                  <td className="py-3">{invoice.name}</td>
-                  <td className="text-right">{invoice.due}</td>
-                  <td className="text-right">{invoice.amount}</td>
+              {overdueInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="py-8 text-center text-gray-500">
+                    No overdue invoices
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                overdueInvoices.map((invoice, idx) => (
+                  <tr key={idx} className="border-b">
+                    <td className="py-3">{invoice.customerName}</td>
+                    <td className="py-3">{invoice.invoiceNumber}</td>
+                    <td className="text-right text-red-600 font-medium">{invoice.daysOverdue} days</td>
+                    <td className="text-right font-semibold">₹ {invoice.amount.toLocaleString('en-IN')}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Sales Summary */}
+        {/* Summary Cards */}
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4">Unapplied Credits</h2>
-            <div className="text-3xl font-bold">₹ 15,000</div>
+            <div className="text-4xl font-bold text-blue-600">₹ {stats.unappliedCredits.toLocaleString('en-IN')}</div>
+            <p className="text-sm text-gray-600 mt-2">Available credit notes</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Sales Summary</h2>
-            <div className="space-y-3">
-              {salesSummary.map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span>{item.category}</span>
-                    <span>{item.value.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${item.percentage}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h2 className="text-lg font-semibold mb-4">Outstanding</h2>
+            <div className="text-4xl font-bold text-orange-600">₹ {Math.abs(stats.outstanding).toLocaleString('en-IN')}</div>
+            <p className="text-sm text-gray-600 mt-2">Total outstanding amount</p>
           </div>
         </div>
       </div>
