@@ -19,6 +19,7 @@ const purchaseOrderRoutes = require('./routes/purchaseOrders');
 const creditNoteRoutes = require('./routes/creditNotes');
 const creditDebitNoteRoutes = require('./routes/creditDebitNotes');
 const assetRoutes = require('./routes/assets');
+const depreciationRoutes = require('./routes/depreciation');
 const paymentRoutes = require('./routes/payments');
 const collectionRoutes = require('./routes/collections');
 const tdsRoutes = require('./routes/tds');
@@ -50,6 +51,7 @@ app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/credit-notes', creditNoteRoutes);
 app.use('/api/credit-debit-notes', creditDebitNoteRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/depreciation', depreciationRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/tds', tdsRoutes);
@@ -67,16 +69,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server error', error: err.message });
 });
 
-// Serve frontend (React build)
-const buildPath = path.join(__dirname, '../build');
-
-// 3. Serve the static files
-app.use(express.static(buildPath));
-
-// 4. The "Catch-all" route for React (MUST be last)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
-});
+// Serve frontend (React build) - Only for production
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../build');
+  app.use(express.static(buildPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
 
 // MongoDB Connection with fallback
 const connectDB = async () => {

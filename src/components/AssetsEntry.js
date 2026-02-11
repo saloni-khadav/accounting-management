@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, DollarSign, Upload, Paperclip } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, DollarSign, Upload, Paperclip, CheckCircle, AlertCircle } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 const AssetsEntry = () => {
   const [assets, setAssets] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [showPODropdown, setShowPODropdown] = useState(false);
+  const [selectedPO, setSelectedPO] = useState('');
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [viewingAsset, setViewingAsset] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -13,6 +18,8 @@ const AssetsEntry = () => {
   const [editingAsset, setEditingAsset] = useState(null);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, assetId: null, assetName: '' });
   const [formData, setFormData] = useState({
     assetName: '',
     assetCode: '',
@@ -30,6 +37,21 @@ const AssetsEntry = () => {
     warrantyPeriod: '',
     status: 'Active'
   });
+  const [vendorData, setVendorData] = useState({
+    vendorName: '',
+    vendorCode: '',
+    contactPerson: '',
+    contactDetails: '',
+    email: '',
+    website: '',
+    billingAddress: '',
+    gstNumber: '',
+    panNumber: '',
+    aadhaarNumber: '',
+    industryType: 'Company',
+    vendorCategory: 'Corporate'
+  });
+  const [showVendorForm, setShowVendorForm] = useState(false);
   const [items, setItems] = useState([
     { name: '', hsn: '', quantity: 1, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }
   ]);
@@ -40,6 +62,26 @@ const AssetsEntry = () => {
     fetchAssets();
     fetchVendors();
   }, [categoryFilter, statusFilter]);
+
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 3000);
+  };
+
+  const fetchPurchaseOrders = async (vendorName) => {
+    try {
+      console.log('Fetching Purchase Orders for vendor:', vendorName);
+      const response = await fetch(`http://localhost:5001/api/purchase-orders/vendor/${encodeURIComponent(vendorName)}`);
+      const data = await response.json();
+      console.log('Purchase Orders received:', data);
+      setPurchaseOrders(data);
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+      setPurchaseOrders([]);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -72,6 +114,21 @@ const AssetsEntry = () => {
     setLoading(false);
   };
 
+  const generateAssetCode = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/assets/next-code');
+      const data = await response.json();
+      // Add random suffix to make it unique even if not saved
+      const randomSuffix = Math.floor(Math.random() * 100);
+      setFormData(prev => ({
+        ...prev,
+        assetCode: `${data.assetCode}-${randomSuffix}`
+      }));
+    } catch (error) {
+      console.error('Error generating asset code:', error);
+    }
+  };
+
   const handleSearch = () => {
     fetchAssets();
   };
@@ -96,6 +153,11 @@ const AssetsEntry = () => {
     if (name === 'vendor') {
       setVendorSearchTerm(value);
       setShowVendorDropdown(true);
+      
+      // Fetch POs when vendor name is typed
+      if (value.length > 2) {
+        fetchPurchaseOrders(value);
+      }
     }
     
     if (errors[name]) {
@@ -107,11 +169,57 @@ const AssetsEntry = () => {
   };
 
   const handleVendorSelect = (vendorName) => {
+    const selectedVendor = vendors.find(v => v.vendorName === vendorName);
+    
     setFormData(prev => ({
       ...prev,
       vendor: vendorName
     }));
+    
+    if (selectedVendor) {
+      setVendorData({
+        vendorName: selectedVendor.vendorName || '',
+        vendorCode: selectedVendor.vendorCode || '',
+        contactPerson: selectedVendor.contactPerson || '',
+        contactDetails: selectedVendor.contactDetails || '',
+        email: selectedVendor.email || '',
+        website: selectedVendor.website || '',
+        billingAddress: selectedVendor.billingAddress || '',
+        gstNumber: selectedVendor.gstNumber || '',
+        panNumber: selectedVendor.panNumber || '',
+        aadhaarNumber: selectedVendor.aadharNumber || '',
+        industryType: selectedVendor.industryType || 'Company',
+        vendorCategory: selectedVendor.vendorCategory || 'Corporate'
+      });
+    }
+    
+    // Fetch POs for selected vendor
+    console.log('Fetching POs for vendor:', vendorName);
+    fetchPurchaseOrders(vendorName);
+    
     setShowVendorDropdown(false);
+  };
+
+  const handlePOSelect = (poNumber) => {
+    const selectedPOData = purchaseOrders.find(po => po.poNumber === poNumber);
+    
+    if (selectedPOData) {
+      setSelectedPO(poNumber);
+      
+      // Fill purchase information from Purchase Order
+      setFormData(prev => ({
+        ...prev,
+        purchaseDate: selectedPOData.poDate ? selectedPOData.poDate.split('T')[0] : prev.purchaseDate,
+        purchaseValue: selectedPOData.totalAmount || prev.purchaseValue
+      }));
+      
+      // Fill items from Purchase Order
+      if (selectedPOData.items && selectedPOData.items.length > 0) {
+        setItems(selectedPOData.items);
+      }
+    }
+    
+    setShowPODropdown(false);
   };
 
   const handleFileUpload = (e) => {
@@ -211,6 +319,9 @@ const AssetsEntry = () => {
         
         const totalAmount = calculateTotal();
         
+        console.log('Form Data before submit:', formData);
+        console.log('Submitting asset:', { method, url, totalAmount, status: formData.status });
+        
         // Create FormData for file upload
         const formDataToSend = new FormData();
         formDataToSend.append('assetName', formData.assetName);
@@ -220,6 +331,7 @@ const AssetsEntry = () => {
         formDataToSend.append('purchaseDate', formData.purchaseDate);
         formDataToSend.append('purchaseValue', totalAmount);
         formDataToSend.append('vendor', formData.vendor);
+        formDataToSend.append('vendorDetails', JSON.stringify(vendorData));
         formDataToSend.append('location', formData.location);
         formDataToSend.append('depreciationMethod', formData.depreciationMethod);
         formDataToSend.append('usefulLife', formData.usefulLife);
@@ -240,26 +352,31 @@ const AssetsEntry = () => {
           body: formDataToSend,
         });
         
+        console.log('Response status:', response.status);
+        
         if (response.ok) {
           const savedAsset = await response.json();
+          console.log('Asset saved successfully:', savedAsset);
+          console.log('Saved asset status:', savedAsset.status);
+          
+          // Refresh the entire list from server
+          await fetchAssets();
+          
           if (editingAsset) {
-            setAssets(assets.map(asset => 
-              asset._id === editingAsset._id ? savedAsset : asset
-            ));
-            alert('Asset updated successfully!');
+            showNotification('success', 'Asset updated successfully!');
           } else {
-            setAssets([savedAsset, ...assets]);
-            alert('Asset added successfully!');
+            showNotification('success', 'Asset added successfully!');
           }
           setIsFormOpen(false);
           resetForm();
         } else {
           const errorData = await response.json();
-          alert(errorData.message || 'Error saving asset');
+          console.error('Error response:', errorData);
+          showNotification('error', errorData.message || 'Error saving asset');
         }
       } catch (error) {
         console.error('Error saving asset:', error);
-        alert('Error saving asset');
+        showNotification('error', 'Error saving asset: ' + error.message);
       }
     }
   };
@@ -283,37 +400,61 @@ const AssetsEntry = () => {
       warrantyPeriod: asset.warrantyPeriod || '',
       status: asset.status
     });
+    
+    if (asset.vendorDetails) {
+      setVendorData({
+        vendorName: asset.vendorDetails.vendorName || '',
+        vendorCode: asset.vendorDetails.vendorCode || '',
+        contactPerson: asset.vendorDetails.contactPerson || '',
+        contactDetails: asset.vendorDetails.contactDetails || '',
+        email: asset.vendorDetails.email || '',
+        website: asset.vendorDetails.website || '',
+        billingAddress: asset.vendorDetails.billingAddress || '',
+        gstNumber: asset.vendorDetails.gstNumber || '',
+        panNumber: asset.vendorDetails.panNumber || '',
+        aadhaarNumber: asset.vendorDetails.aadhaarNumber || '',
+        industryType: asset.vendorDetails.industryType || 'Company',
+        vendorCategory: asset.vendorDetails.vendorCategory || 'Corporate'
+      });
+    }
+    
     if (asset.items && asset.items.length > 0) {
       setItems(asset.items);
     }
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (assetId) => {
-    if (window.confirm('Are you sure you want to delete this asset?')) {
-      try {
-        const response = await fetch(`http://localhost:5001/api/assets/${assetId}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          setAssets(assets.filter(asset => asset._id !== assetId));
-          alert('Asset deleted successfully!');
-        } else {
-          alert('Error deleting asset');
-        }
-      } catch (error) {
-        console.error('Error deleting asset:', error);
-        alert('Error deleting asset');
+  const handleDelete = (asset) => {
+    setDeleteConfirm({ show: true, assetId: asset._id, assetName: asset.assetName });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`http://localhost:5001/api/assets/${deleteConfirm.assetId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setAssets(assets.filter(asset => asset._id !== deleteConfirm.assetId));
+        showNotification('success', 'Asset deleted successfully!');
+      } else {
+        showNotification('error', 'Error deleting asset');
       }
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      showNotification('error', 'Error deleting asset');
     }
+    setDeleteConfirm({ show: false, assetId: null, assetName: '' });
   };
 
   const handleCloseForm = () => {
-    if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
-      setIsFormOpen(false);
-      resetForm();
-    }
+    setShowCloseConfirm(true);
+  };
+
+  const confirmClose = () => {
+    setIsFormOpen(false);
+    setShowCloseConfirm(false);
+    resetForm();
   };
 
   const getTodayDate = () => {
@@ -350,11 +491,69 @@ const AssetsEntry = () => {
     setShowVendorDropdown(false);
     setVendorSearchTerm('');
     setAttachments([]);
+    setPurchaseOrders([]);
+    setSelectedPO('');
+    setShowPODropdown(false);
+    setVendorData({
+      vendorName: '',
+      vendorCode: '',
+      contactPerson: '',
+      contactDetails: '',
+      email: '',
+      website: '',
+      billingAddress: '',
+      gstNumber: '',
+      panNumber: '',
+      aadhaarNumber: '',
+      industryType: 'Company',
+      vendorCategory: 'Corporate'
+    });
+    setShowVendorForm(false);
+    
+    // Auto-generate asset code for new asset
+    if (!editingAsset) {
+      generateAssetCode();
+    }
+  };
+
+  const handleVendorInputChange = (e) => {
+    const { name, value } = e.target;
+    setVendorData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleVendorSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5001/api/vendors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vendorData),
+      });
+      
+      if (response.ok) {
+        const savedVendor = await response.json();
+        setVendors([savedVendor, ...vendors]);
+        setFormData(prev => ({ ...prev, vendor: savedVendor.vendorName }));
+        setShowVendorForm(false);
+        alert('Vendor added successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Error saving vendor');
+      }
+    } catch (error) {
+      console.error('Error saving vendor:', error);
+      alert('Error saving vendor');
+    }
   };
 
   const handleExportToExcel = () => {
     if (filteredAssets.length === 0) {
-      alert('No asset data to export');
+      showNotification('error', 'No asset data to export');
       return;
     }
     
@@ -374,7 +573,7 @@ const AssetsEntry = () => {
     }));
     
     exportToExcel(exportData, `assets_${new Date().toISOString().split('T')[0]}`);
-    alert('Asset data exported successfully!');
+    showNotification('success', 'Asset data exported successfully!');
   };
 
   const getCategoryIcon = (category) => {
@@ -410,35 +609,63 @@ const AssetsEntry = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Assets Entry</h1>
-        <p className="text-gray-600">Manage and track all your company assets</p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Assets Entry</h1>
+        <p className="text-gray-600 text-base">Manage and track all your company assets</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Assets</h3>
-          <p className="text-2xl font-bold text-blue-600">{filteredAssets.length}</p>
+        <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-blue-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">Total Assets</h3>
+              <p className="text-3xl font-bold text-blue-900">{filteredAssets.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-300 rounded-lg flex items-center justify-center">
+              <Building className="w-6 h-6 text-blue-700" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Value</h3>
-          <p className="text-2xl font-bold text-green-600">₹{totalValue.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-green-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-green-800 mb-2">Total Value</h3>
+              <p className="text-3xl font-bold text-green-900">₹{(totalValue/100000).toFixed(1)}L</p>
+            </div>
+            <div className="w-12 h-12 bg-green-300 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-green-700" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Active Assets</h3>
-          <p className="text-2xl font-bold text-purple-600">{filteredAssets.filter(a => a.status === 'Active').length}</p>
+        <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-purple-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-purple-800 mb-2">Active Assets</h3>
+              <p className="text-3xl font-bold text-purple-900">{filteredAssets.filter(a => a.status === 'Active').length}</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-300 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-purple-700" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Categories</h3>
-          <p className="text-2xl font-bold text-orange-600">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
+        <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-orange-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-orange-800 mb-2">Categories</h3>
+              <p className="text-3xl font-bold text-orange-900">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-300 rounded-lg flex items-center justify-center">
+              <Monitor className="w-6 h-6 text-orange-700" />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Filters and Actions */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
@@ -446,67 +673,68 @@ const AssetsEntry = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
           
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-blue-400 cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md min-w-[180px]"
           >
-            <option value="">All Categories</option>
+            <option value="" className="py-2">All Categories</option>
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category} value={category} className="py-2">{category}</option>
             ))}
           </select>
           
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-blue-400 cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md min-w-[150px]"
           >
-            <option value="">All Status</option>
+            <option value="" className="py-2">All Status</option>
             {statuses.map(status => (
-              <option key={status} value={status}>{status}</option>
+              <option key={status} value={status} className="py-2">{status}</option>
             ))}
           </select>
 
           <div className="flex gap-2">
             <button 
               onClick={() => {
+                setEditingAsset(null);
                 resetForm();
+                generateAssetCode();
                 setIsFormOpen(true);
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+              className="bg-blue-500 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg text-sm whitespace-nowrap"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-1.5" />
               Add Asset
             </button>
             <button 
               onClick={handleExportToExcel}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+              className="bg-green-500 text-white px-3 py-2.5 rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export
+              <Download className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Assets Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Asset Details</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Category</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Purchase Info</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Vendor</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Location</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Actions</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Asset Details</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Category</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Purchase Info</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Vendor</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Location</th>
+                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Status</th>
+                <th className="text-center py-4 px-4 font-semibold text-gray-700 text-sm">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -517,7 +745,7 @@ const AssetsEntry = () => {
                   </td>
                 </tr>
               ) : filteredAssets.map((asset) => (
-                <tr key={asset._id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={asset._id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-200">
                   <td className="py-4 px-4">
                     <div>
                       <div className="font-medium text-gray-900">{asset.assetName}</div>
@@ -550,19 +778,25 @@ const AssetsEntry = () => {
                     </span>
                   </td>
                   <td className="py-4 px-4">
-                    <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-800">
-                        <Eye className="w-4 h-4" />
+                    <div className="flex space-x-2 justify-center">
+                      <button 
+                        onClick={() => setViewingAsset(asset)}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" onClick={() => setViewingAsset(asset)} />
                       </button>
                       <button 
                         onClick={() => handleEdit(asset)}
-                        className="text-green-600 hover:text-green-800"
+                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                        title="Edit Asset"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => handleDelete(asset._id)}
-                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDelete(asset)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                        title="Delete Asset"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -622,15 +856,15 @@ const AssetsEntry = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Asset Code
+                        Asset Code (Auto-generated)
                       </label>
                       <input
                         type="text"
                         name="assetCode"
                         value={formData.assetCode}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Auto-generated or manual"
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                        placeholder="Auto-generated"
                       />
                     </div>
 
@@ -706,23 +940,6 @@ const AssetsEntry = () => {
                     Purchase Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Purchase Date *
-                      </label>
-                      <input
-                        type="date"
-                        name="purchaseDate"
-                        value={formData.purchaseDate}
-                        onChange={handleInputChange}
-                        max={getTodayDate()}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.purchaseDate ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.purchaseDate && <p className="text-red-500 text-sm mt-1">{errors.purchaseDate}</p>}
-                    </div>
-
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Vendor
@@ -753,6 +970,99 @@ const AssetsEntry = () => {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        GST Number
+                      </label>
+                      <input
+                        type="text"
+                        name="gstNumber"
+                        value={vendorData.gstNumber}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="GST registration number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        PAN Number
+                      </label>
+                      <input
+                        type="text"
+                        name="panNumber"
+                        value={vendorData.panNumber}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="PAN number"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Billing Address
+                      </label>
+                      <input
+                        type="text"
+                        name="billingAddress"
+                        value={vendorData.billingAddress}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Complete billing address"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Purchase Order (PO)
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedPO}
+                        onChange={(e) => setSelectedPO(e.target.value)}
+                        onFocus={() => setShowPODropdown(true)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Select PO Number"
+                        autoComplete="off"
+                      />
+                      {showPODropdown && purchaseOrders.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {purchaseOrders.map(po => (
+                            <div
+                              key={po._id}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handlePOSelect(po.poNumber);
+                              }}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
+                            >
+                              <div className="font-medium">{po.poNumber}</div>
+                              <div className="text-xs text-gray-500">₹{po.totalAmount?.toLocaleString()} - {new Date(po.poDate).toLocaleDateString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Purchase Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="purchaseDate"
+                        value={formData.purchaseDate}
+                        onChange={handleInputChange}
+                        max={getTodayDate()}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.purchaseDate ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {errors.purchaseDate && <p className="text-red-500 text-sm mt-1">{errors.purchaseDate}</p>}
                     </div>
 
                     <div>
@@ -1104,6 +1414,496 @@ const AssetsEntry = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vendor Form Modal */}
+      {showVendorForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">Add New Vendor</h2>
+                <button
+                  onClick={() => setShowVendorForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleVendorSubmit} className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vendor Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="vendorName"
+                        value={vendorData.vendorName}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter vendor name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vendor Code
+                      </label>
+                      <input
+                        type="text"
+                        name="vendorCode"
+                        value={vendorData.vendorCode}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Auto-generated or manual"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Contact Person
+                      </label>
+                      <input
+                        type="text"
+                        name="contactPerson"
+                        value={vendorData.contactPerson}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Contact person name"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Details */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Contact Details
+                      </label>
+                      <input
+                        type="text"
+                        name="contactDetails"
+                        value={vendorData.contactDetails}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Phone number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={vendorData.email}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="vendor@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Website
+                      </label>
+                      <input
+                        type="url"
+                        name="website"
+                        value={vendorData.website}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address & Legal */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Address & Legal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Billing Address
+                      </label>
+                      <textarea
+                        name="billingAddress"
+                        value={vendorData.billingAddress}
+                        onChange={handleVendorInputChange}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Complete billing address"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        GST Number
+                      </label>
+                      <input
+                        type="text"
+                        name="gstNumber"
+                        value={vendorData.gstNumber}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="GST registration number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        PAN Number
+                      </label>
+                      <input
+                        type="text"
+                        name="panNumber"
+                        value={vendorData.panNumber}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="PAN number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Aadhaar Number
+                      </label>
+                      <input
+                        type="text"
+                        name="aadhaarNumber"
+                        value={vendorData.aadhaarNumber}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Aadhaar number (optional)"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Industry Type
+                      </label>
+                      <select
+                        name="industryType"
+                        value={vendorData.industryType}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Company">Company</option>
+                        <option value="Individual">Individual</option>
+                        <option value="Partnership">Partnership</option>
+                        <option value="LLP">LLP</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vendor Category
+                      </label>
+                      <select
+                        name="vendorCategory"
+                        value={vendorData.vendorCategory}
+                        onChange={handleVendorInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Corporate">Corporate</option>
+                        <option value="SME">SME</option>
+                        <option value="Startup">Startup</option>
+                        <option value="Government">Government</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-6 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowVendorForm(false)}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Vendor
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification.show && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 backdrop-blur-sm ${
+            notification.type === 'success' 
+              ? 'bg-white border-green-500' 
+              : 'bg-white border-red-500'
+          }`}>
+            <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+              notification.type === 'success' 
+                ? 'bg-green-100' 
+                : 'bg-red-100'
+            }`}>
+              {notification.type === 'success' ? (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className={`font-semibold text-sm ${
+                notification.type === 'success' ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {notification.type === 'success' ? 'Success!' : 'Error!'}
+              </p>
+              <p className="text-gray-700 text-sm">{notification.message}</p>
+            </div>
+            <button
+              onClick={() => setNotification({ show: false, type: '', message: '' })}
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Close Confirmation Modal */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-scale-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-yellow-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Unsaved Changes</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to close? Any unsaved changes will be lost.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowCloseConfirm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClose}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Close Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Delete Asset</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to delete <strong>{deleteConfirm.assetName}</strong>?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm({ show: false, assetId: null, assetName: '' })}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Asset Details Modal */}
+      {viewingAsset && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">Asset Details</h2>
+                <button
+                  onClick={() => setViewingAsset(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Asset Name</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.assetName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Asset Code</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.assetCode}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Category</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Serial Number</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.serialNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Location</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.location || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Status</p>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(viewingAsset.status)}`}>
+                        {viewingAsset.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Purchase Information */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Purchase Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Purchase Date</p>
+                      <p className="text-base font-medium text-gray-900">{new Date(viewingAsset.purchaseDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Purchase Value</p>
+                      <p className="text-base font-medium text-gray-900">₹{viewingAsset.purchaseValue.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Vendor</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.vendor || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Warranty Period</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.warrantyPeriod || 0} Months</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Depreciation Information */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Depreciation Information</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Method</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.depreciationMethod}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Useful Life</p>
+                      <p className="text-base font-medium text-gray-900">{viewingAsset.usefulLife || 'N/A'} Years</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Salvage Value</p>
+                      <p className="text-base font-medium text-gray-900">₹{viewingAsset.salvageValue || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vendor Details */}
+                {viewingAsset.vendorDetails && (
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Vendor Details</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Vendor Name</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.vendorName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Vendor Code</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.vendorCode || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Contact Person</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.contactPerson || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Contact Details</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.contactDetails || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">GST Number</p>
+                        <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.gstNumber || 'N/A'}</p>
+                      </div>
+                      {viewingAsset.vendorDetails.billingAddress && (
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-600">Billing Address</p>
+                          <p className="text-base font-medium text-gray-900">{viewingAsset.vendorDetails.billingAddress}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                {viewingAsset.description && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{viewingAsset.description}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-6 border-t">
+                  <button
+                    onClick={() => setViewingAsset(null)}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleEdit(viewingAsset);
+                      setViewingAsset(null);
+                    }}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Asset
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

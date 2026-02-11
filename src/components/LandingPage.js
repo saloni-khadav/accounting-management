@@ -22,7 +22,7 @@ const LandingPage = ({ onGetStarted }) => {
       color: 'bg-purple-50 border-purple-200'
     },
     {
-      icon: '/secure and reliable.jpeg',
+      icon: '/secure%20and%20reliable.jpeg',
       title: 'Secure & Reliable',
       description: 'Bank-level security with automated backups and data protection',
       color: 'bg-orange-50 border-orange-200'
@@ -34,7 +34,7 @@ const LandingPage = ({ onGetStarted }) => {
       color: 'bg-indigo-50 border-indigo-200'
     },
     {
-      icon: '/fast and efficient.jpeg',
+      icon: '/fast%20and%20efficient.jpeg',
       title: 'Fast & Efficient',
       description: 'Lightning-fast performance with cloud-based infrastructure',
       color: 'bg-indigo-50 border-yellow-200'
