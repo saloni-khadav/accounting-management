@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Edit, Trash2, Download, FileText, Bell, CheckCircle, RotateCcw } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, Download, FileText, Bell, CheckCircle, RotateCcw, X } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import { generateCreditNotePDF } from '../utils/pdfGenerator';
 import CreditNote from './CreditNote';
@@ -10,10 +10,29 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     fetchCreditNotes();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUserRole(userData.user.role || '');
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
 
   const fetchCreditNotes = async () => {
     setLoading(true);
@@ -64,7 +83,8 @@ const CreditNoteManagement = ({ setActivePage }) => {
       'Taxable Value': creditNote.totalTaxableValue || 0,
       'Total Tax': creditNote.totalTax || 0,
       'Grand Total': creditNote.grandTotal || 0,
-      'Status': creditNote.status || 'Draft'
+      'Status': creditNote.status || 'Draft',
+      'Approval': creditNote.approvalStatus || 'Pending'
     }));
     
     exportToExcel(exportData, `credit_notes_${new Date().toISOString().split('T')[0]}`);
@@ -88,12 +108,48 @@ const CreditNoteManagement = ({ setActivePage }) => {
         });
         if (response.ok) {
           setCreditNotes(creditNotes.filter(cn => cn._id !== creditNoteId));
+          window.dispatchEvent(new Event('invoicesUpdated'));
           alert('Credit Note deleted successfully!');
         }
       } catch (error) {
         console.error('Error deleting credit note:', error);
         alert('Error deleting credit note');
       }
+    }
+  };
+
+  const handleApprovalChange = async (creditNoteId, approvalStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/credit-notes/${creditNoteId}/approval`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ approvalStatus })
+      });
+      if (response.ok) {
+        const updatedCreditNote = await response.json();
+        setCreditNotes(creditNotes.map(cn => 
+          cn._id === creditNoteId ? updatedCreditNote : cn
+        ));
+        console.log('Triggering invoicesUpdated event from credit note approval');
+        window.dispatchEvent(new Event('invoicesUpdated'));
+        alert(`Credit Note ${approvalStatus} successfully!`);
+      }
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+      alert('Error updating approval status');
+    }
+  };
+
+  const getApprovalColor = (approval) => {
+    switch (approval) {
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Approved': return 'bg-green-100 text-green-800';
+      case 'Rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-yellow-100 text-yellow-800';
     }
   };
 
@@ -159,13 +215,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Customer</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Original Invoice</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Amount</th>
+              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Approval</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredCreditNotes.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
                   {creditNotes.length === 0 ? 'No credit notes found' : 'No credit notes match your filters'}
                 </td>
               </tr>
@@ -186,6 +243,31 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   </td>
                   <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
                     ₹{creditNote.grandTotal?.toLocaleString() || '0'}
+                  </td>
+                  <td className="px-4 py-3 border-b text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(creditNote.approvalStatus || 'Pending')}`}>
+                        {creditNote.approvalStatus || 'Pending'}
+                      </span>
+                      {userRole === 'manager' && creditNote.approvalStatus === 'Pending' && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleApprovalChange(creditNote._id, 'Approved')}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            title="Approve"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleApprovalChange(creditNote._id, 'Rejected')}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Reject"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">
@@ -260,7 +342,10 @@ const CreditNoteManagement = ({ setActivePage }) => {
             }
             setIsFormOpen(false);
             setEditingCreditNote(null);
+            console.log('Triggering invoicesUpdated event from credit note save');
+            window.dispatchEvent(new Event('invoicesUpdated'));
             alert('Credit Note saved successfully!');
+            fetchCreditNotes();
           } catch (error) {
             console.error('Error saving credit note:', error);
             alert('Error saving credit note');

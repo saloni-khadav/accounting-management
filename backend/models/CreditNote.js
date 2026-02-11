@@ -132,6 +132,16 @@ const creditNoteSchema = new mongoose.Schema({
     enum: ['Draft', 'Issued', 'Applied', 'Cancelled'],
     default: 'Draft'
   },
+  approvalStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  approvedAt: Date,
   
   // User reference
   userId: {
@@ -163,6 +173,49 @@ creditNoteSchema.pre('save', async function(next) {
     }
   }
   next();
+});
+
+// Post-save hook to update invoice status
+creditNoteSchema.post('save', async function(doc) {
+  if (doc.approvalStatus === 'Approved' && doc.originalInvoiceNumber) {
+    try {
+      const Invoice = require('./Invoice');
+      const Collection = require('./Collection');
+      
+      const invoice = await Invoice.findOne({ invoiceNumber: doc.originalInvoiceNumber });
+      if (!invoice) return;
+
+      const collections = await Collection.find({ 
+        invoiceNumber: { $regex: doc.originalInvoiceNumber },
+        approvalStatus: 'Approved'
+      });
+      
+      const creditNotes = await this.constructor.find({ 
+        originalInvoiceNumber: doc.originalInvoiceNumber,
+        approvalStatus: 'Approved'
+      });
+
+      const totalCollected = collections.reduce((sum, col) => sum + (parseFloat(col.netAmount) || 0), 0);
+      const totalCredited = creditNotes.reduce((sum, cn) => sum + (parseFloat(cn.grandTotal) || 0), 0);
+      const totalReceived = totalCollected + totalCredited;
+
+      const grandTotal = invoice.grandTotal || 0;
+      let newStatus = 'Not Received';
+      
+      if (totalReceived >= grandTotal) {
+        newStatus = 'Fully Received';
+      } else if (totalReceived > 0) {
+        newStatus = 'Partially Received';
+      }
+
+      if (invoice.status !== newStatus) {
+        invoice.status = newStatus;
+        await invoice.save();
+      }
+    } catch (error) {
+      console.error('Error updating invoice status:', error);
+    }
+  }
 });
 
 module.exports = mongoose.model('CreditNote', creditNoteSchema);
