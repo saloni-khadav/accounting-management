@@ -225,7 +225,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       };
       
       setBillData({
-        billNumber: generateInvoiceNumber(),
+        billNumber: '',
         billDate: new Date().toISOString().split('T')[0],
         billSeries: 'BILL',
         referenceNumber: '',
