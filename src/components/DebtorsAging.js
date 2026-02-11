@@ -12,10 +12,20 @@ const DebtorsAging = () => {
 
   const fetchInvoicesAging = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/invoices');
-      if (response.ok) {
-        const invoices = await response.json();
-        const agingData = calculateAging(invoices);
+      const token = localStorage.getItem('token');
+      const [invoicesRes, collectionsRes, creditNotesRes] = await Promise.all([
+        fetch('http://localhost:5001/api/invoices'),
+        fetch('http://localhost:5001/api/collections'),
+        fetch('http://localhost:5001/api/credit-notes', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      if (invoicesRes.ok) {
+        const invoices = await invoicesRes.json();
+        const collections = collectionsRes.ok ? await collectionsRes.json() : [];
+        const creditNotes = creditNotesRes.ok ? await creditNotesRes.json() : [];
+        const agingData = calculateAging(invoices, collections, creditNotes);
         setInvoicesData(agingData);
       }
     } catch (error) {
@@ -25,26 +35,58 @@ const DebtorsAging = () => {
     }
   };
 
-  const calculateAging = (invoices) => {
+  const calculateAging = (invoices, collections, creditNotes) => {
     const today = new Date();
-    return invoices.map(invoice => {
-      const invoiceDate = new Date(invoice.invoiceDate);
-      const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
-      const amount = invoice.grandTotal || 0;
-      
-      return {
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceDate: invoice.invoiceDate,
-        customerName: invoice.customerName,
-        totalAmount: amount,
-        daysDiff,
-        lessThan30: daysDiff < 30 ? amount : 0,
-        days30to60: daysDiff >= 30 && daysDiff < 60 ? amount : 0,
-        days60to90: daysDiff >= 60 && daysDiff < 90 ? amount : 0,
-        days90to180: daysDiff >= 90 && daysDiff < 180 ? amount : 0,
-        moreThan180: daysDiff >= 180 ? amount : 0
-      };
-    }).filter(invoice => invoice.daysDiff >= 0);
+    const approvedCollections = collections.filter(col => col.approvalStatus === 'Approved');
+    const approvedCreditNotes = creditNotes.filter(cn => cn.approvalStatus === 'Approved');
+
+    return invoices
+      .filter(inv => inv.approvalStatus === 'Approved')
+      .map(invoice => {
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+        const invoiceAmount = invoice.grandTotal || 0;
+        
+        // Calculate total collected
+        const invoiceCollections = approvedCollections.filter(col => 
+          col.invoiceNumber?.includes(invoice.invoiceNumber)
+        );
+        const totalCollected = invoiceCollections.reduce((sum, col) => 
+          sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
+        );
+        
+        // Calculate total credit notes
+        const invoiceCreditNotes = approvedCreditNotes.filter(cn => 
+          cn.originalInvoiceNumber === invoice.invoiceNumber
+        );
+        const totalCredited = invoiceCreditNotes.reduce((sum, cn) => 
+          sum + (parseFloat(cn.grandTotal) || 0), 0
+        );
+        
+        // Calculate TDS
+        const totalTDS = invoiceCollections.reduce((sum, col) => 
+          sum + (parseFloat(col.tdsAmount) || 0), 0
+        );
+        
+        const remainingAmount = invoiceAmount - totalCollected - totalCredited - totalTDS;
+        
+        // Only show invoices with remaining amount
+        if (remainingAmount <= 0) return null;
+        
+        return {
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceDate: invoice.invoiceDate,
+          customerName: invoice.customerName,
+          totalAmount: remainingAmount,
+          daysDiff,
+          lessThan30: daysDiff < 30 ? remainingAmount : 0,
+          days30to60: daysDiff >= 30 && daysDiff < 60 ? remainingAmount : 0,
+          days60to90: daysDiff >= 60 && daysDiff < 90 ? remainingAmount : 0,
+          days90to180: daysDiff >= 90 && daysDiff < 180 ? remainingAmount : 0,
+          moreThan180: daysDiff >= 180 ? remainingAmount : 0
+        };
+      })
+      .filter(invoice => invoice !== null && invoice.daysDiff >= 0);
   };
 
   const formatDate = (dateString) => {

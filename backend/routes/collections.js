@@ -85,8 +85,8 @@ router.post('/', async (req, res) => {
 // Get statistics
 router.get('/stats/summary', async (req, res) => {
   try {
-    const totalCollections = await Collection.countDocuments();
-    const pendingInvoices = await Collection.countDocuments({ status: 'Pending' });
+    const totalCollections = await Collection.countDocuments({ approvalStatus: 'Approved' });
+    const pendingInvoices = await Collection.countDocuments({ approvalStatus: 'Pending' });
     
     const currentMonth = new Date();
     currentMonth.setDate(1);
@@ -96,10 +96,10 @@ router.get('/stats/summary', async (req, res) => {
       { 
         $match: { 
           collectionDate: { $gte: currentMonth },
-          status: 'Collected'
+          approvalStatus: 'Approved'
         } 
       },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
+      { $group: { _id: null, total: { $sum: '$netAmount' } } }
     ]);
 
     res.json({
