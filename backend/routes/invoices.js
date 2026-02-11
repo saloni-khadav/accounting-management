@@ -323,4 +323,49 @@ router.get('/reports/debtors-aging', async (req, res) => {
   }
 });
 
+// Get remaining amount for an invoice
+router.get('/:invoiceNumber/remaining-amount', async (req, res) => {
+  try {
+    const { invoiceNumber } = req.params;
+    const Invoice = require('../models/Invoice');
+    const Collection = require('../models/Collection');
+    const CreditNote = require('../models/CreditNote');
+    
+    const invoice = await Invoice.findOne({ invoiceNumber });
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Get all approved collections for this invoice
+    const collections = await Collection.find({ 
+      invoiceNumber: { $regex: invoiceNumber },
+      approvalStatus: 'Approved'
+    });
+    
+    // Get all approved credit notes for this invoice
+    const creditNotes = await CreditNote.find({ 
+      originalInvoiceNumber: invoiceNumber,
+      approvalStatus: 'Approved'
+    });
+
+    // Calculate total collected and credited amounts
+    const totalCollected = collections.reduce((sum, col) => sum + (parseFloat(col.netAmount) || 0), 0);
+    const totalCredited = creditNotes.reduce((sum, cn) => sum + (parseFloat(cn.grandTotal) || 0), 0);
+    const totalReceived = totalCollected + totalCredited;
+    const remainingAmount = Math.max(0, invoice.grandTotal - totalReceived);
+
+    res.json({
+      invoiceNumber,
+      grandTotal: invoice.grandTotal,
+      totalCollected,
+      totalCredited,
+      totalReceived,
+      remainingAmount,
+      status: invoice.status
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

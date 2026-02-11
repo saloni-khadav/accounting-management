@@ -19,9 +19,26 @@ const InvoiceManagement = ({ setActivePage }) => {
     fetchInvoices();
   }, [statusFilter, dateFilter]);
 
+  useEffect(() => {
+    const handleInvoicesUpdate = () => {
+      console.log('invoicesUpdated event received!');
+      fetchInvoices();
+    };
+    
+    window.addEventListener('invoicesUpdated', handleInvoicesUpdate);
+    window.addEventListener('focus', handleInvoicesUpdate);
+    
+    return () => {
+      window.removeEventListener('invoicesUpdated', handleInvoicesUpdate);
+      window.removeEventListener('focus', handleInvoicesUpdate);
+    };
+  }, []);
+
   const fetchInvoices = async () => {
     setLoading(true);
+    console.log('Fetching invoices...');
     try {
+      const token = localStorage.getItem('token');
       let url = 'http://localhost:5001/api/invoices';
       const params = new URLSearchParams();
       
@@ -33,7 +50,57 @@ const InvoiceManagement = ({ setActivePage }) => {
       
       const response = await fetch(url);
       const data = await response.json();
-      setInvoices(data);
+      console.log('Invoices fetched:', data.length);
+      
+      // Fetch collections and credit notes to calculate received amounts
+      const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+      let collections = [];
+      if (collectionsResponse.ok) {
+        collections = await collectionsResponse.json();
+        console.log('Collections fetched:', collections.length);
+      }
+      
+      const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      let creditNotes = [];
+      if (creditNotesResponse.ok) {
+        creditNotes = await creditNotesResponse.json();
+        console.log('Credit notes fetched:', creditNotes.length);
+      }
+      
+      // Calculate received amounts for each invoice
+      const invoicesWithReceivedAmounts = data.map(invoice => {
+        // Calculate total received from collections
+        const invoiceCollections = collections.filter(collection => 
+          collection.invoiceNumber?.includes(invoice.invoiceNumber) && 
+          collection.approvalStatus === 'Approved'
+        );
+        const totalReceived = invoiceCollections.reduce((sum, collection) => 
+          sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
+        );
+        
+        // Calculate total credit notes
+        const invoiceCreditNotes = creditNotes.filter(cn => 
+          cn.originalInvoiceNumber === invoice.invoiceNumber && 
+          cn.approvalStatus === 'Approved'
+        );
+        const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
+          sum + (cn.grandTotal || 0), 0
+        );
+        
+        console.log(`Invoice ${invoice.invoiceNumber}: GrandTotal=${invoice.grandTotal}, Received=${totalReceived}, CreditNotes=${totalCreditNotes}, TotalSettled=${totalReceived + totalCreditNotes}`);
+        
+        return {
+          ...invoice,
+          receivedAmount: totalReceived,
+          creditNoteAmount: totalCreditNotes
+        };
+      });
+      
+      setInvoices(invoicesWithReceivedAmounts);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     }
@@ -93,26 +160,32 @@ const InvoiceManagement = ({ setActivePage }) => {
     }
   };
 
-  const handleStatusChange = async (invoiceId, newStatus) => {
-    try {
-      const response = await fetch(`http://localhost:5001/api/invoices/${invoiceId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (response.ok) {
-        const updatedInvoice = await response.json();
-        setInvoices(invoices.map(invoice => 
-          invoice._id === invoiceId ? updatedInvoice : invoice
-        ));
-        alert('Invoice status updated successfully!');
-      }
-    } catch (error) {
-      alert('Error updating invoice status');
+  // Calculate invoice status based on collections and credit notes
+  const calculateInvoiceStatus = (invoice) => {
+    // If invoice is not approved, show hyphen
+    if (invoice.approvalStatus !== 'Approved') {
+      return '-';
     }
+    
+    const grandTotal = invoice.grandTotal || 0;
+    const receivedAmount = invoice.receivedAmount || 0;
+    const creditNoteAmount = invoice.creditNoteAmount || 0;
+    
+    // Total settled amount = collections + credit notes
+    const totalSettled = receivedAmount + creditNoteAmount;
+    
+    // Check if fully settled
+    if (totalSettled >= grandTotal) {
+      return 'Fully Received';
+    }
+    
+    // Check if partially settled
+    if (totalSettled > 0 && totalSettled < grandTotal) {
+      return 'Partially Received';
+    }
+    
+    // Default status when nothing is settled
+    return 'Not Received';
   };
 
   const handleExportToExcel = () => {
@@ -129,7 +202,7 @@ const InvoiceManagement = ({ setActivePage }) => {
       'Taxable Value': invoice.totalTaxableValue,
       'Total Tax': invoice.totalTax,
       'Grand Total': invoice.grandTotal,
-      'Status': invoice.status,
+      'Status': calculateInvoiceStatus(invoice),
       'Due Date': invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : ''
     }));
     
@@ -137,17 +210,23 @@ const InvoiceManagement = ({ setActivePage }) => {
     alert('Invoice data exported successfully!');
   };
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (invoice.referenceNumber && invoice.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredInvoices = invoices.filter(invoice => {
+    const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.referenceNumber && invoice.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const calculatedStatus = calculateInvoiceStatus(invoice);
+    const matchesStatus = statusFilter === '' || calculatedStatus === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'Not Received': return 'bg-red-100 text-red-800';
       case 'Partially Received': return 'bg-yellow-100 text-yellow-800';
       case 'Fully Received': return 'bg-green-100 text-green-800';
+      case '-': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -185,19 +264,19 @@ const InvoiceManagement = ({ setActivePage }) => {
         <div className="bg-green-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-green-800">Fully Received</h3>
           <p className="text-2xl font-bold text-green-900">
-            {filteredInvoices.filter(inv => inv.status === 'Fully Received').length}
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Fully Received').length}
           </p>
         </div>
         <div className="bg-yellow-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-yellow-800">Partially Received</h3>
           <p className="text-2xl font-bold text-yellow-900">
-            {filteredInvoices.filter(inv => inv.status === 'Partially Received').length}
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Partially Received').length}
           </p>
         </div>
         <div className="bg-red-50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-red-800">Not Received</h3>
           <p className="text-2xl font-bold text-red-900">
-            {filteredInvoices.filter(inv => inv.status === 'Not Received').length}
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Not Received').length}
           </p>
         </div>
       </div>
@@ -305,8 +384,8 @@ const InvoiceManagement = ({ setActivePage }) => {
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
-                      {invoice.status || 'Not Received'}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(calculateInvoiceStatus(invoice))}`}>
+                      {calculateInvoiceStatus(invoice)}
                     </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
@@ -372,8 +451,8 @@ const InvoiceManagement = ({ setActivePage }) => {
                     <p><span className="font-medium">Date:</span> {new Date(viewingInvoice.invoiceDate).toLocaleDateString()}</p>
                     <p><span className="font-medium">Reference:</span> {viewingInvoice.referenceNumber || 'N/A'}</p>
                     <p><span className="font-medium">Status:</span> 
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(viewingInvoice.status)}`}>
-                        {viewingInvoice.status}
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(calculateInvoiceStatus(viewingInvoice))}`}>
+                        {calculateInvoiceStatus(viewingInvoice)}
                       </span>
                     </p>
                   </div>

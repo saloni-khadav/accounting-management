@@ -8,6 +8,8 @@ const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const Client = require('../models/Client');
 const CreditDebitNote = require('../models/CreditDebitNote');
+const CreditNote = require('../models/CreditNote');
+const Collection = require('../models/Collection');
 
 const router = express.Router();
 
@@ -167,6 +169,48 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       });
     });
     
+    // Get pending Credit Notes
+    const pendingCreditNotes = await CreditNote.find({ approvalStatus: 'Pending' })
+      .select('creditNoteNumber customerName grandTotal createdAt approvalStatus reminderSent')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    console.log('Pending Credit Notes:', pendingCreditNotes.length);
+    
+    pendingCreditNotes.forEach(creditNote => {
+      pendingApprovals.push({
+        id: creditNote._id,
+        type: 'Credit Note',
+        description: `Credit Note ${creditNote.creditNoteNumber} - ${creditNote.customerName}`,
+        amount: `₹${creditNote.grandTotal.toLocaleString()}`,
+        requestedBy: 'User',
+        requestDate: creditNote.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: creditNote.reminderSent || false
+      });
+    });
+    
+    // Get pending Collections
+    const pendingCollections = await Collection.find({ approvalStatus: 'Pending' })
+      .select('collectionNumber customer amount netAmount createdAt approvalStatus')
+      .limit(10)
+      .sort({ createdAt: -1 });
+    
+    console.log('Pending Collections:', pendingCollections.length);
+    
+    pendingCollections.forEach(collection => {
+      pendingApprovals.push({
+        id: collection._id,
+        type: 'Collection',
+        description: `Collection ${collection.collectionNumber} - ${collection.customer}`,
+        amount: `₹${(collection.netAmount || collection.amount).toLocaleString()}`,
+        requestedBy: 'User',
+        requestDate: collection.createdAt.toISOString().split('T')[0],
+        status: 'pending',
+        reminderSent: false
+      });
+    });
+    
     console.log('Total Pending Approvals:', pendingApprovals.length);
     
     // Sort by request date (newest first)
@@ -304,6 +348,30 @@ router.post('/action', auth, requireManager, async (req, res) => {
         updateData.rejectionReason = rejectionReason;
       }
       updateResult = await CreditDebitNote.findByIdAndUpdate(itemId, updateData, { new: true });
+      
+      // If not found in CreditDebitNote, try CreditNote model
+      if (!updateResult) {
+        const creditNoteUpdateData = {
+          approvalStatus: action === 'approve' ? 'Approved' : 'Rejected',
+          approvedBy: req.user.id,
+          approvedAt: new Date(),
+          reminderSent: false
+        };
+        if (action === 'reject' && rejectionReason) {
+          creditNoteUpdateData.rejectionReason = rejectionReason;
+        }
+        updateResult = await CreditNote.findByIdAndUpdate(itemId, creditNoteUpdateData, { new: true });
+      }
+    } else if (type === 'Collection') {
+      const collectionUpdateData = {
+        approvalStatus: action === 'approve' ? 'Approved' : 'Rejected',
+        approvedBy: req.user.id,
+        approvedAt: new Date()
+      };
+      if (action === 'reject' && rejectionReason) {
+        collectionUpdateData.rejectionReason = rejectionReason;
+      }
+      updateResult = await Collection.findByIdAndUpdate(itemId, collectionUpdateData, { new: true });
     } else if (type === 'Client Approval') {
       const updateData = {
         approvalStatus: newStatus,
