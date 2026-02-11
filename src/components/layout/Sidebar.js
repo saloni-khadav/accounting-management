@@ -116,13 +116,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
   const receivableItems = [
     { id: 'AR Dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'Client Master', icon: Users, label: 'Client Master' },
-    { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
     { id: 'Create PO', icon: FileText, label: 'Proforma Invoice' },
-    { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
-    { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
-    { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
-    { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
     { id: 'Invoice Management', icon: BarChart3, label: 'Tax Invoice' },
+    { id: 'Credit Note', icon: Settings, label: 'Credit Note' },
+    { id: 'Client Outstanding', icon: Users, label: 'Client Outstanding' },
+    { id: 'Collection Register', icon: CreditCard, label: 'Collection Register' },
+    { id: 'Debtors Aging', icon: BarChart3, label: 'Debtors Aging' },
+    { id: 'AR Reconciliation', icon: FileText, label: 'AR Reconciliation' },
   ];
 
   return (
