@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { X } from 'lucide-react';
+import { X, CheckCircle } from 'lucide-react';
 
 const CollectionRegister = () => {
   const [showModal, setShowModal] = useState(false);
@@ -9,6 +9,9 @@ const CollectionRegister = () => {
   const [invoices, setInvoices] = useState([]);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
+  const [bankSearchTerm, setBankSearchTerm] = useState('');
+  const [userRole, setUserRole] = useState('');
   const [stats, setStats] = useState({
     totalCollections: 0,
     pendingInvoices: 0,
@@ -20,12 +23,24 @@ const CollectionRegister = () => {
     invoiceNumbers: [],
     amount: '',
     paymentMode: 'Online',
+    bankAccount: '',
     referenceNumber: '',
     tdsSection: '',
     tdsPercentage: '',
     tdsAmount: '',
     netAmount: ''
   });
+
+  const bankAccounts = [
+    { name: 'HDFC Bank - Current Account', code: 'HDFC001', accountNumber: '****1234' },
+    { name: 'Axis Bank - Savings Account', code: 'AXIS002', accountNumber: '****5678' },
+    { name: 'ICICI Bank - Current Account', code: 'ICICI003', accountNumber: '****9012' },
+    { name: 'SBI - Current Account', code: 'SBI004', accountNumber: '****3456' },
+    { name: 'Kotak Mahindra Bank', code: 'KOTAK005', accountNumber: '****7890' },
+    { name: 'Punjab National Bank', code: 'PNB006', accountNumber: '****2345' },
+    { name: 'Bank of Baroda', code: 'BOB007', accountNumber: '****6789' },
+    { name: 'Canara Bank', code: 'CANARA008', accountNumber: '****0123' }
+  ];
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
@@ -42,17 +57,36 @@ const CollectionRegister = () => {
     fetchCollections();
     fetchStats();
     fetchClients();
+    fetchUserRole();
     
     const handleClickOutside = (event) => {
       if (!event.target.closest('.dropdown-container')) {
         setShowClientDropdown(false);
         setShowInvoiceDropdown(false);
+        setShowBankDropdown(false);
       }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUserRole(userData.user.role || '');
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
 
   const fetchCollections = async () => {
     try {
@@ -86,32 +120,76 @@ const CollectionRegister = () => {
 
   const fetchInvoices = async (clientName) => {
     try {
-      console.log('Fetching invoices for client:', clientName);
-      // Get all invoices and filter client-side
       const response = await fetch('http://localhost:5001/api/invoices');
       
       if (!response.ok) {
-        console.error('API response not ok:', response.status);
         setInvoices([]);
         return;
       }
       
       const allInvoices = await response.json();
-      console.log('All invoices received:', allInvoices);
       
       if (!Array.isArray(allInvoices)) {
-        console.error('Response is not an array:', allInvoices);
         setInvoices([]);
         return;
       }
       
-      // Filter invoices for the selected client
-      const clientInvoices = allInvoices.filter(invoice => 
-        invoice.customerName?.toLowerCase() === clientName.toLowerCase()
+      // Get token for credit notes API
+      const token = localStorage.getItem('token');
+      
+      // Fetch collections
+      const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+      let collections = [];
+      if (collectionsResponse.ok) {
+        collections = await collectionsResponse.json();
+      }
+      
+      // Fetch credit notes
+      const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let creditNotes = [];
+      if (creditNotesResponse.ok) {
+        creditNotes = await creditNotesResponse.json();
+      }
+      
+      // Filter invoices: same customer, approved, and not fully received
+      const filteredInvoices = allInvoices.filter(invoice => 
+        invoice.customerName?.toLowerCase() === clientName.toLowerCase() &&
+        invoice.approvalStatus === 'Approved'
       );
       
-      console.log('Filtered invoices for client:', clientInvoices);
-      setInvoices(clientInvoices || []);
+      // Calculate remaining amounts for each invoice
+      const invoicesWithRemaining = filteredInvoices.map((invoice) => {
+        // Calculate total received from collections
+        const invoiceCollections = collections.filter(collection => 
+          collection.invoiceNumber?.includes(invoice.invoiceNumber) && 
+          collection.approvalStatus === 'Approved'
+        );
+        const totalReceived = invoiceCollections.reduce((sum, collection) => 
+          sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
+        );
+        
+        // Calculate total credit notes
+        const invoiceCreditNotes = creditNotes.filter(cn => 
+          cn.originalInvoiceNumber === invoice.invoiceNumber && 
+          cn.approvalStatus === 'Approved'
+        );
+        const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
+          sum + (cn.grandTotal || 0), 0
+        );
+        
+        // Calculate remaining amount
+        const totalSettled = totalReceived + totalCreditNotes;
+        const remainingAmount = (invoice.grandTotal || 0) - totalSettled;
+        
+        return { 
+          ...invoice, 
+          remainingAmount: remainingAmount > 0 ? remainingAmount : 0 
+        };
+      }).filter(invoice => invoice.remainingAmount > 0); // Only show invoices with remaining amount
+      
+      setInvoices(invoicesWithRemaining || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       setInvoices([]);
@@ -185,9 +263,11 @@ const CollectionRegister = () => {
       
       if (response.ok) {
         setShowModal(false);
-        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online', referenceNumber: '', tdsSection: '', tdsPercentage: '', tdsAmount: '', netAmount: '' });
+        setFormData({ collectionDate: new Date().toISOString().split('T')[0], customer: '', invoiceNumbers: [], amount: '', paymentMode: 'Online', bankAccount: '', referenceNumber: '', tdsSection: '', tdsPercentage: '', tdsAmount: '', netAmount: '' });
+        setBankSearchTerm('');
         fetchCollections();
         fetchStats();
+        window.dispatchEvent(new Event('invoicesUpdated'));
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);
@@ -209,6 +289,56 @@ const CollectionRegister = () => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
+
+  const handleApprovalChange = async (collectionId, approvalStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/collections/${collectionId}/approval`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ approvalStatus })
+      });
+      if (response.ok) {
+        const updatedCollection = await response.json();
+        setCollections(collections.map(c => 
+          c._id === collectionId ? updatedCollection : c
+        ));
+        window.dispatchEvent(new Event('invoicesUpdated'));
+        alert(`Collection ${approvalStatus} successfully!`);
+      }
+    } catch (error) {
+      console.error('Error updating approval status:', error);
+      alert('Error updating approval status');
+    }
+  };
+
+  const getApprovalColor = (approval) => {
+    switch (approval) {
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Approved': return 'bg-green-100 text-green-800';
+      case 'Rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const handleBankSelect = (bankName) => {
+    setFormData(prev => ({ ...prev, bankAccount: bankName }));
+    setBankSearchTerm(bankName);
+    setShowBankDropdown(false);
+  };
+
+  const filteredBanks = bankAccounts.filter(bank =>
+    bank.name.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
+    bank.code.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase())
+  );
+
+  const filteredClients = clients.filter(client =>
+    client.clientName.toLowerCase().includes(formData.customer.toLowerCase()) ||
+    client.clientCode.toLowerCase().includes(formData.customer.toLowerCase())
+  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -274,8 +404,8 @@ const CollectionRegister = () => {
 
       {/* Add Collection Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 my-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Add Collection</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -284,20 +414,8 @@ const CollectionRegister = () => {
             </div>
             
             <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.collectionDate}
-                    onChange={(e) => setFormData({...formData, collectionDate: e.target.value})}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
                   <div className="relative dropdown-container">
                     <input
@@ -309,9 +427,9 @@ const CollectionRegister = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Select or enter customer name"
                     />
-                    {showClientDropdown && clients.length > 0 && (
+                    {showClientDropdown && filteredClients.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {clients.map((client) => (
+                        {filteredClients.map((client) => (
                           <div
                             key={client._id}
                             onMouseDown={(e) => {
@@ -370,7 +488,7 @@ const CollectionRegister = () => {
                                   <div>
                                     <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
                                     <div className="text-sm text-gray-500">
-                                      {new Date(invoice.invoiceDate).toLocaleDateString()} | ₹{(invoice.grandTotal || 0).toLocaleString('en-IN')}
+                                      {new Date(invoice.invoiceDate).toLocaleDateString()} | Total: ₹{(invoice.grandTotal || 0).toLocaleString('en-IN')} | Remaining: ₹{(invoice.remainingAmount || 0).toLocaleString('en-IN')}
                                     </div>
                                   </div>
                                   {isSelected && (
@@ -391,13 +509,43 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.collectionDate}
+                    onChange={(e) => setFormData({...formData, collectionDate: e.target.value})}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
                   <input
                     type="number"
                     value={formData.amount}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold"
-                    placeholder="Auto-calculated from selected invoices"
+                    onChange={(e) => {
+                      const newAmount = e.target.value;
+                      let tdsAmount = 0;
+                      if (formData.tdsSection) {
+                        const selectedSection = tdsSection.find(s => s.code === formData.tdsSection);
+                        if (selectedSection) {
+                          tdsAmount = (parseFloat(newAmount) * selectedSection.rate) / 100;
+                        }
+                      }
+                      const netAmount = parseFloat(newAmount) - tdsAmount;
+                      setFormData({
+                        ...formData,
+                        amount: newAmount,
+                        tdsAmount: tdsAmount.toString(),
+                        netAmount: netAmount.toString()
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter amount or select invoices"
+                    min="0"
+                    step="0.01"
                   />
                 </div>
 
@@ -479,6 +627,41 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Account</label>
+                  <div className="relative dropdown-container">
+                    <input
+                      type="text"
+                      value={bankSearchTerm || formData.bankAccount}
+                      onChange={(e) => {
+                        setBankSearchTerm(e.target.value);
+                        setFormData({...formData, bankAccount: e.target.value});
+                        setShowBankDropdown(true);
+                      }}
+                      onFocus={() => setShowBankDropdown(true)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Search or select bank account"
+                    />
+                    {showBankDropdown && filteredBanks.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredBanks.map((bank) => (
+                          <div
+                            key={bank.code}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleBankSelect(bank.name);
+                            }}
+                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900">{bank.name}</div>
+                            <div className="text-sm text-gray-500">{bank.code} | {bank.accountNumber}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Reference/Transaction Number</label>
                   <input
                     type="text"
@@ -516,6 +699,7 @@ const CollectionRegister = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">Collection No.</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Customer Name</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Invoice</th>
@@ -524,11 +708,13 @@ const CollectionRegister = () => {
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Net Amount</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Mode</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-900">Approval</th>
               </tr>
             </thead>
             <tbody>
               {collections.map((collection) => (
                 <tr key={collection._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-6 text-gray-900 font-medium">{collection.collectionNumber || '-'}</td>
                   <td className="py-4 px-6 text-gray-900">{formatDate(collection.collectionDate)}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.customer}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.invoiceNumber}</td>
@@ -544,6 +730,31 @@ const CollectionRegister = () => {
                   </td>
                   <td className="py-4 px-6 text-gray-900">{collection.paymentMode}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.referenceNumber || '-'}</td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(collection.approvalStatus || 'Pending')}`}>
+                        {collection.approvalStatus || 'Pending'}
+                      </span>
+                      {userRole === 'manager' && collection.approvalStatus === 'Pending' && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleApprovalChange(collection._id, 'Approved')}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            title="Approve"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleApprovalChange(collection._id, 'Rejected')}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Reject"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
