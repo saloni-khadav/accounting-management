@@ -86,6 +86,28 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Get POs by vendor name
+router.get('/vendor/:vendorName', async (req, res) => {
+  try {
+    const vendorName = req.params.vendorName;
+    console.log('Searching POs for vendor:', vendorName);
+    
+    const pos = await PO.find({ 
+      $or: [
+        { supplierName: { $regex: vendorName, $options: 'i' } },
+        { supplierName: vendorName }
+      ],
+      approvalStatus: 'approved'
+    }).select('piNumber poNumber piDate poDate deliveryDate items subTotal totalAmount supplierName').sort({ createdAt: -1 });
+    
+    console.log('Found POs:', pos.length);
+    res.json(pos);
+  } catch (error) {
+    console.error('Error fetching POs:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all PIs
 router.get('/', async (req, res) => {
   try {

@@ -179,62 +179,35 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
                       }`}
                     >
                       <option value="">Select annual turnover</option>
-                      <option value="<1M">Less than $1M</option>
-                      <option value="1M-5M">$1M - $5M</option>
-                      <option value="5M-10M">$5M - $10M</option>
-                      <option value="10M-50M">$10M - $50M</option>
-                      <option value="50M+">$50M+</option>
+                      <option value="0-1M">₹0 - ₹1 Million</option>
+                      <option value="1M-10M">₹1 - ₹10 Million</option>
+                      <option value="10M-50M">₹10 - ₹50 Million</option>
+                      <option value="50M-100M">₹50 - ₹100 Million</option>
+                      <option value="100M+">₹100 Million+</option>
                     </select>
                     {errors.annualTurnover && <p className="text-red-500 text-sm mt-1">{errors.annualTurnover}</p>}
-                  </div>
-
-                  {/* Account Type */}
-                  <div>
-                    <label className="block text-gray-700 text-sm font-medium mb-2">Account Type</label>
-                    <div className="flex space-x-4">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="role"
-                          value="user"
-                          checked={formData.role === 'user'}
-                          onChange={(e) => setFormData({...formData, role: e.target.value})}
-                          className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">User Account</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="role"
-                          value="manager"
-                          checked={formData.role === 'manager'}
-                          onChange={(e) => setFormData({...formData, role: e.target.value})}
-                          className="w-4 h-4 text-slate-800 bg-white border-gray-300 focus:ring-slate-800"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">Manager Account</span>
-                      </label>
-                    </div>
                   </div>
 
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-slate-800 text-white py-3 rounded-xl font-semibold hover:bg-slate-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    className="w-full bg-slate-800 text-white py-3 px-4 rounded-xl font-medium hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:ring-offset-2 transition-all"
                   >
                     Create Account
                   </button>
                 </form>
 
-                {/* Login Link */}
+                {/* Sign In Link */}
                 <div className="text-center mt-6">
-                  <span className="text-gray-600">Already have an account? </span>
-                  <button 
-                    onClick={onSwitchToLogin}
-                    className="text-slate-800 hover:text-slate-600 font-medium transition-colors"
-                  >
-                    Sign in
-                  </button>
+                  <p className="text-gray-600">
+                    Already have an account?{' '}
+                    <button 
+                      onClick={onSwitchToLogin}
+                      className="text-slate-800 hover:text-slate-600 font-medium transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </p>
                 </div>
               </div>
             )}

@@ -37,6 +37,17 @@ const upload = multer({
   }
 });
 
+// Get next asset code
+router.get('/next-code', async (req, res) => {
+  try {
+    const count = await Asset.countDocuments();
+    const assetCode = `AST${String(count + 1).padStart(3, '0')}`;
+    res.json({ assetCode });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all assets with filtering
 router.get('/', async (req, res) => {
   try {
@@ -82,6 +93,11 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
       assetData.items = JSON.parse(assetData.items);
     }
     
+    // Parse vendor details if it's a string
+    if (typeof assetData.vendorDetails === 'string') {
+      assetData.vendorDetails = JSON.parse(assetData.vendorDetails);
+    }
+    
     // Clean up empty numeric fields
     if (!assetData.usefulLife || assetData.usefulLife === '') delete assetData.usefulLife;
     if (!assetData.salvageValue || assetData.salvageValue === '') delete assetData.salvageValue;
@@ -111,11 +127,43 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
 });
 
 // Update asset
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.array('attachments', 10), async (req, res) => {
   try {
+    const assetData = { ...req.body };
+    
+    // Parse items if it's a string
+    if (typeof assetData.items === 'string') {
+      assetData.items = JSON.parse(assetData.items);
+    }
+    
+    // Parse vendor details if it's a string
+    if (typeof assetData.vendorDetails === 'string') {
+      assetData.vendorDetails = JSON.parse(assetData.vendorDetails);
+    }
+    
+    // Clean up empty numeric fields
+    if (!assetData.usefulLife || assetData.usefulLife === '') delete assetData.usefulLife;
+    if (!assetData.salvageValue || assetData.salvageValue === '') delete assetData.salvageValue;
+    if (!assetData.warrantyPeriod || assetData.warrantyPeriod === '') delete assetData.warrantyPeriod;
+    
+    // Add new attachments if uploaded
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        filename: file.filename,
+        originalName: file.originalname,
+        path: file.path,
+        size: file.size,
+        mimetype: file.mimetype
+      }));
+      
+      // Get existing attachments
+      const existingAsset = await Asset.findById(req.params.id);
+      assetData.attachments = [...(existingAsset.attachments || []), ...newAttachments];
+    }
+    
     const asset = await Asset.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      assetData,
       { new: true, runValidators: true }
     );
     if (!asset) {
