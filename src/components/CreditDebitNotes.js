@@ -124,18 +124,18 @@ const CreditDebitNotes = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-green-50 rounded-xl p-6 border border-green-200">
           <h3 className="text-lg text-green-600 mb-2">Credit Amount</h3>
-          <p className="text-4xl font-bold text-green-700">₹{totalCredit.toLocaleString()}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-700 break-words">₹{totalCredit.toLocaleString()}</p>
         </div>
         <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
           <h3 className="text-lg text-orange-600 mb-2">Debit Amount</h3>
-          <p className="text-4xl font-bold text-orange-700">₹{totalDebit.toLocaleString()}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-orange-700 break-words">₹{totalDebit.toLocaleString()}</p>
         </div>
         <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
           <h3 className="text-lg text-blue-600 mb-2">Net Amount</h3>
-          <p className="text-4xl font-bold text-blue-700">₹{Math.abs(totalCredit - totalDebit).toLocaleString()}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-700 break-words">₹{Math.abs(totalCredit - totalDebit).toLocaleString()}</p>
         </div>
       </div>
 
@@ -202,7 +202,7 @@ const CreditDebitNotes = () => {
                     {note.vendorName}
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(note.type)}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getTypeColor(note.type)}`}>
                       {note.type}
                     </span>
                   </td>
