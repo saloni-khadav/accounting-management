@@ -156,32 +156,51 @@ const AssetsReport = () => {
         <div className="text-center py-8 text-gray-500">Loading report data...</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="text-sm font-medium text-blue-600 mb-2">Total Assets</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-blue-700">Total Assets</h3>
+                <BarChart3 className="w-8 h-8 text-blue-400" />
+              </div>
               <p className="text-3xl font-bold text-blue-900">{reportData.summary.totalAssets}</p>
-              <p className="text-sm text-blue-600 mt-1">Across all categories</p>
+              <p className="text-sm text-blue-600 mt-2">Across all categories</p>
             </div>
-            <div className="bg-green-50 rounded-lg p-6">
-              <h3 className="text-sm font-medium text-green-600 mb-2">Total Value</h3>
+            <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-green-700">Total Value</h3>
+                <TrendingUp className="w-8 h-8 text-green-400" />
+              </div>
               <p className="text-3xl font-bold text-green-900">₹{reportData.summary.totalValue.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-green-600 mt-1">Original purchase value</p>
+              <p className="text-sm text-green-600 mt-2">Original purchase value</p>
             </div>
-            <div className="bg-purple-50 rounded-lg p-6">
-              <h3 className="text-sm font-medium text-purple-600 mb-2">Current Value</h3>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-purple-700">Current Value</h3>
+                <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
               <p className="text-3xl font-bold text-purple-900">₹{reportData.summary.currentValue.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-purple-600 mt-1">After depreciation</p>
+              <p className="text-sm text-purple-600 mt-2">After depreciation</p>
             </div>
-            <div className="bg-red-50 rounded-lg p-6">
-              <h3 className="text-sm font-medium text-red-600 mb-2">Depreciation</h3>
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-red-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-red-700">Depreciation</h3>
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                </svg>
+              </div>
               <p className="text-3xl font-bold text-red-900">₹{reportData.summary.totalDepreciation.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-red-600 mt-1">Accumulated</p>
+              <p className="text-sm text-red-600 mt-2">Accumulated</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg p-6 shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Distribution by Category</h3>
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center mb-6">
+                <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+                <h3 className="text-xl font-bold text-gray-900">Asset Distribution by Category</h3>
+              </div>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
@@ -204,18 +223,24 @@ const AssetsReport = () => {
                   </RechartsPieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-wrap justify-center gap-4 mt-4">
+              <div className="grid grid-cols-2 gap-3 mt-6">
                 {reportData.categoryData.map((item, index) => (
-                  <div key={index} className="flex items-center">
-                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: item.color }}></div>
-                    <span className="text-sm text-gray-700">{item.name} ({item.value}%)</span>
+                  <div key={index} className="flex items-center bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                    <div className="w-4 h-4 rounded-full mr-3 flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-700 block truncate">{item.name}</span>
+                      <span className="text-xs text-gray-500">{item.value}%</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Value by Category</h3>
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center mb-6">
+                <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+                <h3 className="text-xl font-bold text-gray-900">Asset Value by Category</h3>
+              </div>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={reportData.categoryData}>
@@ -230,27 +255,46 @@ const AssetsReport = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Category Summary</h3>
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+                <h3 className="text-xl font-bold text-gray-900">Category Summary</h3>
+              </div>
+              <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{reportData.categoryData.length} Categories</span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Total Assets</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Active</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Disposed</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Total Value</th>
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Category</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Total Assets</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Active</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Disposed</th>
+                    <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Total Value</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {reportData.categoryData.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100">
-                      <td className="py-3 px-4 font-medium text-gray-900">{item.name}</td>
-                      <td className="py-3 px-4 text-gray-600">{item.count}</td>
-                      <td className="py-3 px-4 text-green-600">{item.active}</td>
-                      <td className="py-3 px-4 text-red-600">{item.disposed}</td>
-                      <td className="py-3 px-4 font-medium text-gray-900">₹{item.amount.toLocaleString()}</td>
+                    <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: item.color }}></div>
+                          <span className="font-semibold text-gray-900">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-gray-700 font-medium">{item.count}</td>
+                      <td className="py-4 px-6">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                          {item.active}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                          {item.disposed}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 font-bold text-gray-900">₹{item.amount.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -333,16 +377,23 @@ const AssetsReport = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center">
-          <FileText className="mr-2 text-blue-600" />
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center tracking-tight">
+          <FileText className="mr-3 text-blue-600" size={32} />
           Assets Report
         </h1>
-        <p className="text-gray-600">Generate comprehensive reports on your asset portfolio</p>
+        <p className="text-gray-600 text-lg">Generate comprehensive reports on your asset portfolio</p>
       </div>
 
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900 flex items-center">
+            <Filter className="mr-2 text-blue-600" />
+            Report Filters
+          </h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
@@ -393,7 +444,7 @@ const AssetsReport = () => {
           <div className="flex items-end">
             <button
               onClick={handleExportReport}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-medium"
             >
               <Download className="w-4 h-4 mr-2" />
               Export
