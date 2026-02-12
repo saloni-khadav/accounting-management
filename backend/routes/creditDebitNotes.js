@@ -98,6 +98,14 @@ router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
       userId: req.user.id
     };
     
+    // Check if note number already exists
+    if (noteData.noteNumber) {
+      const existingNote = await CreditDebitNote.findOne({ noteNumber: noteData.noteNumber });
+      if (existingNote) {
+        return res.status(400).json({ message: 'Note number already exists' });
+      }
+    }
+    
     // Parse JSON fields that were stringified in FormData
     if (typeof noteData.items === 'string') {
       noteData.items = JSON.parse(noteData.items);
@@ -146,6 +154,14 @@ router.put('/:id', auth, upload.array('attachments', 10), async (req, res) => {
     
     if (!existingNote) {
       return res.status(404).json({ message: 'Note not found' });
+    }
+    
+    // Check if note number is being changed and if it already exists
+    if (req.body.noteNumber && req.body.noteNumber !== existingNote.noteNumber) {
+      const duplicateNote = await CreditDebitNote.findOne({ noteNumber: req.body.noteNumber });
+      if (duplicateNote) {
+        return res.status(400).json({ message: 'Note number already exists' });
+      }
     }
     
     const updateData = { ...req.body };

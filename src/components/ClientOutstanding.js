@@ -114,12 +114,48 @@ const ClientOutstanding = () => {
     setOverdueOutstanding(overdueOutstandingAmount);
   };
 
+  const handleExportToExcel = () => {
+    if (clientData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const exportData = clientData.map(client => ({
+      'Client Name': client.clientName,
+      'Invoice No': client.invoiceNo,
+      'Invoice Date': client.invoiceDate,
+      'Invoice Amount': client.invoiceAmount.replace('₹', '').replace(/,/g, ''),
+      'TDS Amount': client.tdsAmount.replace('₹', '').replace(/,/g, ''),
+      'Total Received': client.totalReceived.replace('₹', '').replace(/,/g, ''),
+      'Total Outstanding': client.totalOutstanding.replace('₹', '').replace(/,/g, '')
+    }));
+
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => headers.map(header => `"${row[header]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `client_outstanding_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Client Outstanding</h1>
-        <button className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <button 
+          onClick={handleExportToExcel}
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
           <Download size={18} />
           Export
         </button>
