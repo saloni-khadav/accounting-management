@@ -20,9 +20,14 @@ const Depreciation = () => {
 
   useEffect(() => {
     fetchAssets();
-    fetchDepreciationSummary();
-    fetchMonthlyTrend();
   }, []);
+
+  useEffect(() => {
+    if (assets.length > 0) {
+      fetchDepreciationSummary();
+      fetchMonthlyTrend();
+    }
+  }, [assets, selectedAsset]);
 
   useEffect(() => {
     if (selectedAsset) {
@@ -45,11 +50,56 @@ const Depreciation = () => {
     setLoading(false);
   };
 
+  const calculateRealTimeDepreciation = (asset) => {
+    const purchaseValue = asset.purchaseValue;
+    const salvageValue = asset.salvageValue || 0;
+    const usefulLife = asset.usefulLife || 5;
+    const depreciableAmount = purchaseValue - salvageValue;
+    
+    const purchaseDate = new Date(asset.purchaseDate);
+    const currentDate = new Date();
+    const monthsElapsed = (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 + 
+                          (currentDate.getMonth() - purchaseDate.getMonth());
+    
+    const monthlyDepreciation = depreciableAmount / (usefulLife * 12);
+    const calculatedDepreciation = Math.min(monthlyDepreciation * monthsElapsed, depreciableAmount);
+    
+    return Math.max(0, calculatedDepreciation);
+  };
+
   const fetchDepreciationSummary = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/depreciation/summary');
-      const data = await response.json();
-      setDepreciationData(data);
+      const response = await fetch('http://localhost:5001/api/assets');
+      const assetsData = await response.json();
+      
+      // Filter assets based on selection
+      const filteredAssets = selectedAsset 
+        ? assetsData.filter(a => a._id === selectedAsset)
+        : assetsData.filter(a => a.status === 'Active');
+      
+      let monthlyTotal = 0;
+      let accumulatedTotal = 0;
+      let totalValue = 0;
+      
+      filteredAssets.forEach(asset => {
+        const purchaseValue = asset.purchaseValue;
+        const salvageValue = asset.salvageValue || 0;
+        const usefulLife = asset.usefulLife || 5;
+        const depreciableAmount = purchaseValue - salvageValue;
+        monthlyTotal += depreciableAmount / (usefulLife * 12);
+        accumulatedTotal += calculateRealTimeDepreciation(asset);
+        totalValue += purchaseValue;
+      });
+      
+      const currentMonth = new Date().getMonth() + 1;
+      const ytdTotal = monthlyTotal * currentMonth;
+      
+      setDepreciationData({
+        monthlyTotal: Math.round(monthlyTotal),
+        ytdTotal: Math.round(ytdTotal),
+        accumulatedTotal: Math.round(accumulatedTotal),
+        netBookValue: Math.round(totalValue - accumulatedTotal)
+      });
     } catch (error) {
       console.error('Error fetching depreciation summary:', error);
     }
@@ -100,18 +150,13 @@ const Depreciation = () => {
   const handleCalculateDepreciation = async () => {
     setIsCalculating(true);
     try {
-      const response = await fetch('http://localhost:5001/api/depreciation/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assetId: selectedAsset || null,
-          method: calculationMethod
-        })
-      });
-      const data = await response.json();
-      showNotification(`Depreciation calculated for ${data.count} asset(s)`, 'success');
+      // Recalculate and refresh the summary
       await fetchDepreciationSummary();
       await fetchAssets();
+      if (selectedAsset) {
+        await fetchDepreciationSchedule(selectedAsset);
+      }
+      showNotification('Depreciation calculated successfully', 'success');
     } catch (error) {
       console.error('Error calculating depreciation:', error);
       showNotification('Error calculating depreciation', 'error');
@@ -120,7 +165,7 @@ const Depreciation = () => {
   };
 
   const handleRunMonthlyDepreciation = async () => {
-    if (!window.confirm('Are you sure you want to run monthly depreciation for all active assets?')) {
+    if (!window.confirm('Run monthly depreciation for all active assets? This will update accumulated depreciation values.')) {
       return;
     }
     
@@ -131,8 +176,15 @@ const Depreciation = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to run monthly depreciation');
+      }
+      
       const data = await response.json();
       showNotification(`Monthly depreciation completed: ${data.processed} assets processed`, 'success');
+      
+      // Refresh all data
       await fetchDepreciationSummary();
       await fetchAssets();
       await fetchMonthlyTrend();
@@ -144,7 +196,7 @@ const Depreciation = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {notification.show && (
         <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
           notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
@@ -153,20 +205,23 @@ const Depreciation = () => {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center">
-          <Calculator className="mr-2 text-blue-600" />
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center tracking-tight">
+          <Calculator className="mr-3 text-blue-600" size={32} />
           Depreciation Management
         </h1>
-        <p className="text-gray-600">Calculate and manage asset depreciation schedules</p>
+        <p className="text-gray-600 text-lg">Calculate and manage asset depreciation schedules</p>
       </div>
 
       {/* Control Panel */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Settings className="mr-2 text-blue-600" />
-          Depreciation Controls
-        </h3>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900 flex items-center">
+            <Settings className="mr-2 text-blue-600" />
+            Depreciation Controls
+          </h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Asset</label>
@@ -199,7 +254,7 @@ const Depreciation = () => {
             <button
               onClick={handleCalculateDepreciation}
               disabled={isCalculating}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
             >
               {isCalculating ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -213,7 +268,8 @@ const Depreciation = () => {
           <div className="flex items-end">
             <button
               onClick={handleRunMonthlyDepreciation}
-              className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center"
+              disabled={isCalculating}
+              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2.5 rounded-lg hover:from-green-700 hover:to-green-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
             >
               <Play className="w-4 h-4 mr-2" />
               Run Monthly
@@ -223,37 +279,56 @@ const Depreciation = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Monthly Depreciation</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{depreciationData.monthlyTotal.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1">Current month</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-blue-700">Monthly Depreciation</h3>
+            <TrendingDown className="w-8 h-8 text-blue-400" />
+          </div>
+          <p className="text-3xl font-bold text-blue-900">₹{depreciationData.monthlyTotal.toLocaleString()}</p>
+          <p className="text-sm text-blue-600 mt-2">Current month</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">YTD Depreciation</h3>
-          <p className="text-2xl font-bold text-green-600">₹{depreciationData.ytdTotal.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1">Year to date</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-green-700">YTD Depreciation</h3>
+            <Calendar className="w-8 h-8 text-green-400" />
+          </div>
+          <p className="text-3xl font-bold text-green-900">₹{depreciationData.ytdTotal.toLocaleString()}</p>
+          <p className="text-sm text-green-600 mt-2">Year to date</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Accumulated</h3>
-          <p className="text-2xl font-bold text-purple-600">₹{depreciationData.accumulatedTotal.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1">Total accumulated</p>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-purple-700">Accumulated</h3>
+            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-purple-900">₹{depreciationData.accumulatedTotal.toLocaleString()}</p>
+          <p className="text-sm text-purple-600 mt-2">Total accumulated</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Net Book Value</h3>
-          <p className="text-2xl font-bold text-orange-600">₹{depreciationData.netBookValue.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1">Current value</p>
+        <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-orange-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-orange-700">Net Book Value</h3>
+            <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-orange-900">₹{depreciationData.netBookValue.toLocaleString()}</p>
+          <p className="text-sm text-orange-600 mt-2">Current value</p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Monthly Depreciation Chart */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingDown className="mr-2 text-red-600" />
-            Monthly Depreciation
-          </h3>
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+          <div className="flex items-center mb-6">
+            <div className="w-1 h-6 bg-red-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900 flex items-center">
+              <TrendingDown className="mr-2 text-red-600" />
+              Monthly Depreciation
+            </h3>
+          </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyDepreciation}>
@@ -268,8 +343,11 @@ const Depreciation = () => {
         </div>
 
         {/* Depreciation Trend */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Accumulated Depreciation Trend</h3>
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+          <div className="flex items-center mb-6">
+            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900">Accumulated Depreciation Trend</h3>
+          </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={displaySchedule}>
@@ -286,29 +364,32 @@ const Depreciation = () => {
       </div>
 
       {/* Depreciation Schedule Table */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Depreciation Schedule</h3>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900">Depreciation Schedule</h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Period</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Opening Value</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Depreciation</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Accumulated</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Closing Value</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Rate %</th>
+            <thead>
+              <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Period</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Opening Value</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Depreciation</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Accumulated</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Closing Value</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Rate %</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {displaySchedule.map((item, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900">{item.year}</td>
-                  <td className="py-3 px-4 text-gray-600">₹{item.opening.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-red-600 font-medium">₹{item.depreciation.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-orange-600 font-medium">₹{item.accumulated.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-green-600 font-medium">₹{item.closing.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-gray-600">{item.rate}%</td>
+                <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
+                  <td className="py-4 px-6 font-semibold text-gray-900">{item.year}</td>
+                  <td className="py-4 px-6 text-gray-700 font-medium">₹{item.opening.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-red-600 font-bold">₹{item.depreciation.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-orange-600 font-bold">₹{item.accumulated.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-green-600 font-bold">₹{item.closing.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-gray-700 font-medium">{item.rate}%</td>
                 </tr>
               ))}
             </tbody>
@@ -317,41 +398,55 @@ const Depreciation = () => {
       </div>
 
       {/* Asset-wise Depreciation */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset-wise Depreciation Summary</h3>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900">Asset-wise Depreciation Summary</h3>
+          </div>
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{assets.length} Assets</span>
+        </div>
         {loading ? (
           <div className="text-center py-8 text-gray-500">Loading assets...</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Asset Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Asset Code</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Original Value</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Method</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Useful Life</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Monthly Dep.</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Accumulated</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Net Value</th>
+              <thead>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Asset Name</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Asset Code</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Original Value</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Method</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Useful Life</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Monthly Dep.</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Accumulated</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Net Value</th>
                 </tr>
               </thead>
-              <tbody>
-                {assets.map((asset) => {
-                  const monthlyDep = asset.usefulLife ? Math.round(asset.purchaseValue / (asset.usefulLife * 12)) : 0;
-                  const accumulated = asset.accumulatedDepreciation || 0;
+              <tbody className="divide-y divide-gray-100">
+                {assets
+                  .filter(asset => selectedAsset ? asset._id === selectedAsset : true)
+                  .map((asset) => {
+                  const salvageValue = asset.salvageValue || 0;
+                  const depreciableAmount = asset.purchaseValue - salvageValue;
+                  const monthlyDep = asset.usefulLife ? Math.round(depreciableAmount / (asset.usefulLife * 12)) : 0;
+                  const accumulated = Math.round(calculateRealTimeDepreciation(asset));
                   const netValue = asset.purchaseValue - accumulated;
                   
                   return (
-                    <tr key={asset._id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{asset.assetName}</td>
-                      <td className="py-3 px-4 text-gray-600">{asset.assetCode}</td>
-                      <td className="py-3 px-4 text-gray-900">₹{asset.purchaseValue.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-gray-600 capitalize">{asset.depreciationMethod?.replace('-', ' ') || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-600">{asset.usefulLife ? `${asset.usefulLife} years` : 'N/A'}</td>
-                      <td className="py-3 px-4 text-red-600">₹{monthlyDep.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-orange-600">₹{accumulated.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-green-600 font-medium">₹{netValue.toLocaleString()}</td>
+                    <tr key={asset._id} className="hover:bg-blue-50 transition-colors duration-150">
+                      <td className="py-4 px-6 font-semibold text-gray-900">{asset.assetName}</td>
+                      <td className="py-4 px-6">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {asset.assetCode}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-gray-900 font-bold">₹{asset.purchaseValue.toLocaleString()}</td>
+                      <td className="py-4 px-6 text-gray-700 capitalize">{asset.depreciationMethod?.replace('-', ' ') || 'straight line'}</td>
+                      <td className="py-4 px-6 text-gray-700 font-medium">{asset.usefulLife ? `${asset.usefulLife} years` : '5 years'}</td>
+                      <td className="py-4 px-6 text-red-600 font-bold">₹{monthlyDep.toLocaleString()}</td>
+                      <td className="py-4 px-6 text-orange-600 font-bold">₹{accumulated.toLocaleString()}</td>
+                      <td className="py-4 px-6 text-green-600 font-bold">₹{netValue.toLocaleString()}</td>
                     </tr>
                   );
                 })}
