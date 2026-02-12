@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight, Edit, Trash2, Download, Eye, X } from 'lucide-react';
+import { Search, Edit, Trash2, Download, Eye, X } from 'lucide-react';
 import VendorBill from './VendorBill';
 
 const Bills = () => {
@@ -369,8 +369,8 @@ const Bills = () => {
       </div>
 
       {/* Bills Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">
@@ -471,21 +471,6 @@ const Bills = () => {
             })}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <button className="p-2 rounded-lg hover:bg-gray-100">
-          <ChevronLeft size={20} className="text-gray-600" />
-        </button>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">1</button>
-        <button className="px-4 py-2 hover:bg-gray-100 rounded-lg text-gray-700">2</button>
-        <button className="px-4 py-2 hover:bg-gray-100 rounded-lg text-gray-700">3</button>
-        <button className="px-4 py-2 hover:bg-gray-100 rounded-lg text-gray-700">4</button>
-        <button className="px-4 py-2 hover:bg-gray-100 rounded-lg text-gray-700">5</button>
-        <button className="p-2 rounded-lg hover:bg-gray-100">
-          <ChevronRight size={20} className="text-gray-600" />
-        </button>
       </div>
 
       {/* Vendor Bill Form Modal */}
