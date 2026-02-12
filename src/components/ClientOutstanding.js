@@ -9,76 +9,102 @@ const ClientOutstanding = () => {
   const [overdueOutstanding, setOverdueOutstanding] = useState(0);
 
   useEffect(() => {
-    fetchInvoiceData();
+    fetchOutstandingData();
   }, []);
 
-  const fetchInvoiceData = async () => {
+  const fetchOutstandingData = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/invoices');
-      if (response.ok) {
-        const invoices = await response.json();
-        processInvoiceData(invoices);
+      const token = localStorage.getItem('token');
+      const [invoicesRes, collectionsRes, creditNotesRes] = await Promise.all([
+        fetch('http://localhost:5001/api/invoices'),
+        fetch('http://localhost:5001/api/collections'),
+        fetch('http://localhost:5001/api/credit-notes', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      if (invoicesRes.ok && collectionsRes.ok) {
+        const invoices = await invoicesRes.json();
+        const collections = await collectionsRes.json();
+        const creditNotes = creditNotesRes.ok ? await creditNotesRes.json() : [];
+        processOutstandingData(invoices, collections, creditNotes);
       }
     } catch (error) {
-      console.error('Error fetching invoice data:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const processInvoiceData = (invoices) => {
-    // Filter unpaid invoices (Sent, Overdue status)
-    const unpaidInvoices = invoices.filter(invoice => 
-      ['Sent', 'Overdue'].includes(invoice.status)
-    );
+  const processOutstandingData = (invoices, collections, creditNotes) => {
+    const approvedInvoices = invoices.filter(inv => inv.approvalStatus === 'Approved');
+    const approvedCollections = collections.filter(col => col.approvalStatus === 'Approved');
+    const approvedCreditNotes = creditNotes.filter(cn => cn.approvalStatus === 'Approved');
 
-    // Group by client and calculate outstanding amounts
     const clientMap = {};
     let totalOutstandingAmount = 0;
     let currentOutstandingAmount = 0;
     let overdueOutstandingAmount = 0;
 
-    unpaidInvoices.forEach(invoice => {
+    approvedInvoices.forEach(invoice => {
       const clientName = invoice.customerName;
       const invoiceAmount = invoice.grandTotal || 0;
-      const tdsAmount = invoice.totalTax || 0; // Using total tax as TDS for now
-      const totalReceivable = invoiceAmount;
-      const totalOutstanding = invoiceAmount; // Assuming full amount is outstanding
-
-      if (!clientMap[clientName]) {
-        clientMap[clientName] = {
-          clientName,
-          invoices: []
-        };
-      }
-
-      clientMap[clientName].invoices.push({
-        invoiceNo: invoice.invoiceNumber,
-        invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
-        invoiceAmount: `₹${invoiceAmount.toLocaleString('en-IN')}`,
-        tdsAmount: `₹${tdsAmount.toLocaleString('en-IN')}`,
-        totalReceivable: `₹${totalReceivable.toLocaleString('en-IN')}`,
-        totalOutstanding: `₹${totalOutstanding.toLocaleString('en-IN')}`,
-        status: invoice.status
-      });
-
-      totalOutstandingAmount += totalOutstanding;
       
-      if (invoice.status === 'Overdue') {
-        overdueOutstandingAmount += totalOutstanding;
-      } else {
-        currentOutstandingAmount += totalOutstanding;
+      // Calculate total collected for this invoice
+      const invoiceCollections = approvedCollections.filter(col => 
+        col.invoiceNumber?.includes(invoice.invoiceNumber)
+      );
+      const totalCollected = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
+      );
+      
+      // Calculate total credit notes for this invoice
+      const invoiceCreditNotes = approvedCreditNotes.filter(cn => 
+        cn.originalInvoiceNumber === invoice.invoiceNumber
+      );
+      const totalCredited = invoiceCreditNotes.reduce((sum, cn) => 
+        sum + (parseFloat(cn.grandTotal) || 0), 0
+      );
+      
+      // Calculate TDS from collections
+      const totalTDS = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.tdsAmount) || 0), 0
+      );
+      
+      const totalSettled = totalCollected + totalCredited;
+      const totalOutstanding = invoiceAmount - totalSettled - totalTDS;
+
+      // Only show if there's outstanding amount
+      if (totalOutstanding > 0) {
+        if (!clientMap[clientName]) {
+          clientMap[clientName] = { clientName, invoices: [] };
+        }
+
+        clientMap[clientName].invoices.push({
+          invoiceNo: invoice.invoiceNumber,
+          invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
+          invoiceAmount: `₹${invoiceAmount.toLocaleString('en-IN')}`,
+          tdsAmount: `₹${totalTDS.toLocaleString('en-IN')}`,
+          totalReceived: `₹${totalSettled.toLocaleString('en-IN')}`,
+          totalOutstanding: `₹${totalOutstanding.toLocaleString('en-IN')}`,
+          status: invoice.status
+        });
+
+        totalOutstandingAmount += totalOutstanding;
+        
+        const daysOverdue = Math.floor((new Date() - new Date(invoice.invoiceDate)) / (1000 * 60 * 60 * 24));
+        if (daysOverdue > 60) {
+          overdueOutstandingAmount += totalOutstanding;
+        } else {
+          currentOutstandingAmount += totalOutstanding;
+        }
       }
     });
 
-    // Convert to array format for table display
     const processedData = [];
     Object.values(clientMap).forEach(client => {
       client.invoices.forEach(invoice => {
-        processedData.push({
-          clientName: client.clientName,
-          ...invoice
-        });
+        processedData.push({ clientName: client.clientName, ...invoice });
       });
     });
 
@@ -88,12 +114,48 @@ const ClientOutstanding = () => {
     setOverdueOutstanding(overdueOutstandingAmount);
   };
 
+  const handleExportToExcel = () => {
+    if (clientData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const exportData = clientData.map(client => ({
+      'Client Name': client.clientName,
+      'Invoice No': client.invoiceNo,
+      'Invoice Date': client.invoiceDate,
+      'Invoice Amount': client.invoiceAmount.replace('₹', '').replace(/,/g, ''),
+      'TDS Amount': client.tdsAmount.replace('₹', '').replace(/,/g, ''),
+      'Total Received': client.totalReceived.replace('₹', '').replace(/,/g, ''),
+      'Total Outstanding': client.totalOutstanding.replace('₹', '').replace(/,/g, '')
+    }));
+
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => headers.map(header => `"${row[header]}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `client_outstanding_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Client Outstanding</h1>
-        <button className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <button 
+          onClick={handleExportToExcel}
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
           <Download size={18} />
           Export
         </button>
@@ -132,7 +194,7 @@ const ClientOutstanding = () => {
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice Date</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice Amount</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">TDS Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Total Receivable</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Total Received</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Total Outstanding</th>
               </tr>
             </thead>
@@ -157,7 +219,7 @@ const ClientOutstanding = () => {
                     <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceDate}</td>
                     <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceAmount}</td>
                     <td className="py-4 px-6 text-sm text-gray-700">{client.tdsAmount}</td>
-                    <td className="py-4 px-6 text-sm text-gray-700">{client.totalReceivable}</td>
+                    <td className="py-4 px-6 text-sm text-green-600 font-medium">{client.totalReceived}</td>
                     <td className="py-4 px-6 text-sm font-semibold text-gray-900">{client.totalOutstanding}</td>
                   </tr>
                 ))

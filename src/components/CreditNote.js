@@ -34,7 +34,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       description: '',
       hsnCode: '',
       quantity: 1,
-      unit: 'Nos',
       unitPrice: 0,
       discount: 0,
       taxableValue: 0,
@@ -78,6 +77,8 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const [clients, setClients] = useState([]);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [invoices, setInvoices] = useState([]);
+  const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
 
   useEffect(() => {
     if (editingCreditNote) {
@@ -89,7 +90,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           description: '',
           hsnCode: '',
           quantity: 1,
-          unit: 'Nos',
           unitPrice: 0,
           discount: 0,
           taxableValue: 0,
@@ -104,7 +104,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       });
     } else {
       setCreditNoteData({
-        creditNoteNumber: '',
+        creditNoteNumber: generateCreditNoteNumber(),
         creditNoteDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         originalInvoiceNumber: '',
@@ -123,7 +123,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           description: '',
           hsnCode: '',
           quantity: 1,
-          unit: 'Nos',
           unitPrice: 0,
           discount: 0,
           taxableValue: 0,
@@ -264,10 +263,123 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       customerName: client.clientName,
       customerAddress: client.billingAddress || '',
       customerGSTIN: client.gstNumber || '',
-      customerPlace: client.customerPlace || ''
+      customerPlace: client.customerPlace || '',
+      originalInvoiceNumber: '',
+      originalInvoiceDate: ''
     }));
     setShowClientDropdown(false);
     setClientSearchTerm(client.clientName);
+    fetchInvoicesForClient(client.clientName);
+  };
+
+  const fetchInvoicesForClient = async (clientName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5001/api/invoices');
+      if (response.ok) {
+        const allInvoices = await response.json();
+        
+        // Fetch collections
+        const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+        let collections = [];
+        if (collectionsResponse.ok) {
+          collections = await collectionsResponse.json();
+        }
+        
+        // Fetch credit notes
+        const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        let creditNotes = [];
+        if (creditNotesResponse.ok) {
+          creditNotes = await creditNotesResponse.json();
+        }
+        
+        // Filter invoices: same customer and approved
+        const filteredInvoices = allInvoices.filter(invoice => 
+          invoice.customerName === clientName &&
+          invoice.approvalStatus === 'Approved'
+        );
+        
+        // Calculate remaining amounts for each invoice
+        const invoicesWithRemaining = filteredInvoices.map((invoice) => {
+          // Calculate total received from collections
+          const invoiceCollections = collections.filter(collection => 
+            collection.invoiceNumber?.includes(invoice.invoiceNumber) && 
+            collection.approvalStatus === 'Approved'
+          );
+          const totalReceived = invoiceCollections.reduce((sum, collection) => 
+            sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
+          );
+          
+          // Calculate total credit notes
+          const invoiceCreditNotes = creditNotes.filter(cn => 
+            cn.originalInvoiceNumber === invoice.invoiceNumber && 
+            cn.approvalStatus === 'Approved'
+          );
+          const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
+            sum + (cn.grandTotal || 0), 0
+          );
+          
+          // Calculate remaining amount
+          const totalSettled = totalReceived + totalCreditNotes;
+          const remainingAmount = (invoice.grandTotal || 0) - totalSettled;
+          
+          return { 
+            ...invoice, 
+            remainingAmount: remainingAmount > 0 ? remainingAmount : 0 
+          };
+        }).filter(invoice => invoice.remainingAmount > 0); // Only show invoices with remaining amount
+        
+        setInvoices(invoicesWithRemaining);
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      setInvoices([]);
+    }
+  };
+
+  const handleInvoiceSelect = (invoice) => {
+    // Map invoice items to credit note items format
+    const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => ({
+      product: item.product || item.description || '',
+      description: item.description || '',
+      hsnCode: item.hsnCode || '',
+      quantity: item.quantity || 0,
+      unitPrice: item.unitPrice || 0,
+      discount: item.discount || 0,
+      taxableValue: item.taxableValue || 0,
+      cgstRate: item.cgstRate || 0,
+      sgstRate: item.sgstRate || 0,
+      igstRate: item.igstRate || 0,
+      cgstAmount: item.cgstAmount || 0,
+      sgstAmount: item.sgstAmount || 0,
+      igstAmount: item.igstAmount || 0,
+      totalAmount: item.totalAmount || 0
+    })) : [{
+      product: '',
+      description: '',
+      hsnCode: '',
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0,
+      taxableValue: 0,
+      cgstRate: 9,
+      sgstRate: 9,
+      igstRate: 0,
+      cgstAmount: 0,
+      sgstAmount: 0,
+      igstAmount: 0,
+      totalAmount: 0
+    }];
+
+    setCreditNoteData(prev => ({
+      ...prev,
+      originalInvoiceNumber: invoice.invoiceNumber,
+      originalInvoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : '',
+      items: mappedItems
+    }));
+    setShowInvoiceDropdown(false);
   };
 
   const filteredClients = clients.filter(client =>
@@ -302,7 +414,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       description: '',
       hsnCode: '',
       quantity: 1,
-      unit: 'Nos',
       unitPrice: 0,
       discount: 0,
       taxableValue: 0,
@@ -343,7 +454,8 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     
     const savedCreditNote = {
       ...creditNoteData,
-      status: 'Draft'
+      status: 'Draft',
+      approvalStatus: editingCreditNote ? creditNoteData.approvalStatus : 'Pending'
     };
     
     if (onSave) {
@@ -351,12 +463,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     }
   };
 
-  const handleNewEntry = () => {
-    setCreditNoteData(prev => ({
-      ...prev,
-      creditNoteNumber: generateCreditNoteNumber()
-    }));
-  };
+
 
   const handleAutoFillFromReturn = (returnReq) => {
     setCreditNoteData(prev => ({
@@ -427,7 +534,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       'Description': item.description || '',
       'HSN/SAC Code': item.hsnCode || '',
       'Quantity': item.quantity || 0,
-      'Unit': item.unit || 'Nos',
       'Unit Price': item.unitPrice || 0,
       'Discount': item.discount || 0,
       'Taxable Value': item.taxableValue || 0,
@@ -459,6 +565,9 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       if (!event.target.closest('.client-dropdown-container')) {
         setShowClientDropdown(false);
       }
+      if (!event.target.closest('.invoice-dropdown-container')) {
+        setShowInvoiceDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -483,16 +592,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         </div>
         
         <div className="p-6">
-          {/* Generate Number Button */}
-          <div className="flex justify-end mb-6">
-            <button 
-              onClick={handleNewEntry}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Generate Credit Note Number
-            </button>
-          </div>
-
       {/* Supplier Details */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Supplier Details</h2>
@@ -548,14 +647,52 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div>
+        <div className="relative invoice-dropdown-container">
           <label className="block text-sm font-medium text-gray-700 mb-1">Original Invoice Number *</label>
-          <input
-            type="text"
-            value={creditNoteData.originalInvoiceNumber}
-            onChange={(e) => handleInputChange('originalInvoiceNumber', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={creditNoteData.originalInvoiceNumber}
+              onChange={(e) => handleInputChange('originalInvoiceNumber', e.target.value)}
+              onFocus={() => {
+                if (invoices.length > 0) {
+                  setShowInvoiceDropdown(true);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={creditNoteData.customerName ? "Select from approved invoices" : "Select customer first"}
+              readOnly={!creditNoteData.customerName}
+            />
+            {invoices.length > 0 && (
+              <ChevronDown 
+                className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
+                onClick={() => setShowInvoiceDropdown(!showInvoiceDropdown)}
+              />
+            )}
+            
+            {showInvoiceDropdown && invoices.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {invoices.map((invoice) => (
+                  <div
+                    key={invoice._id}
+                    onClick={() => handleInvoiceSelect(invoice)}
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
+                    <div className="text-sm text-gray-500">
+                      Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Total: ₹{(invoice.grandTotal || 0).toFixed(2)} | Remaining: ₹{(invoice.remainingAmount || invoice.grandTotal || 0).toFixed(2)}
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      Status: {invoice.status}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Original Invoice Date</label>
@@ -660,7 +797,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Unit</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
@@ -710,19 +846,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       min="0"
                       step="0.01"
                     />
-                  </td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={item.unit}
-                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="Nos">Nos</option>
-                      <option value="Kg">Kg</option>
-                      <option value="Liters">Liters</option>
-                      <option value="Hours">Hours</option>
-                      <option value="Pieces">Pieces</option>
-                    </select>
                   </td>
                   <td className="px-3 py-2">
                     <input

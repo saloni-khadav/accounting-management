@@ -33,6 +33,58 @@ const assetSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  vendorDetails: {
+    vendorName: {
+      type: String,
+      trim: true
+    },
+    vendorCode: {
+      type: String,
+      trim: true
+    },
+    contactPerson: {
+      type: String,
+      trim: true
+    },
+    contactDetails: {
+      type: String,
+      trim: true
+    },
+    email: {
+      type: String,
+      trim: true
+    },
+    website: {
+      type: String,
+      trim: true
+    },
+    billingAddress: {
+      type: String,
+      trim: true
+    },
+    gstNumber: {
+      type: String,
+      trim: true
+    },
+    panNumber: {
+      type: String,
+      trim: true
+    },
+    aadhaarNumber: {
+      type: String,
+      trim: true
+    },
+    industryType: {
+      type: String,
+      enum: ['Company', 'Individual', 'Partnership', 'LLP', 'Firm'],
+      default: 'Company'
+    },
+    vendorCategory: {
+      type: String,
+      enum: ['Corporate', 'SME', 'Startup', 'Government', 'Retail'],
+      default: 'Corporate'
+    }
+  },
   location: {
     type: String,
     trim: true

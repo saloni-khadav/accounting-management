@@ -19,9 +19,26 @@ const InvoiceManagement = ({ setActivePage }) => {
     fetchInvoices();
   }, [statusFilter, dateFilter]);
 
+  useEffect(() => {
+    const handleInvoicesUpdate = () => {
+      console.log('invoicesUpdated event received!');
+      fetchInvoices();
+    };
+    
+    window.addEventListener('invoicesUpdated', handleInvoicesUpdate);
+    window.addEventListener('focus', handleInvoicesUpdate);
+    
+    return () => {
+      window.removeEventListener('invoicesUpdated', handleInvoicesUpdate);
+      window.removeEventListener('focus', handleInvoicesUpdate);
+    };
+  }, []);
+
   const fetchInvoices = async () => {
     setLoading(true);
+    console.log('Fetching invoices...');
     try {
+      const token = localStorage.getItem('token');
       let url = 'http://localhost:5001/api/invoices';
       const params = new URLSearchParams();
       
@@ -33,7 +50,57 @@ const InvoiceManagement = ({ setActivePage }) => {
       
       const response = await fetch(url);
       const data = await response.json();
-      setInvoices(data);
+      console.log('Invoices fetched:', data.length);
+      
+      // Fetch collections and credit notes to calculate received amounts
+      const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+      let collections = [];
+      if (collectionsResponse.ok) {
+        collections = await collectionsResponse.json();
+        console.log('Collections fetched:', collections.length);
+      }
+      
+      const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      let creditNotes = [];
+      if (creditNotesResponse.ok) {
+        creditNotes = await creditNotesResponse.json();
+        console.log('Credit notes fetched:', creditNotes.length);
+      }
+      
+      // Calculate received amounts for each invoice
+      const invoicesWithReceivedAmounts = data.map(invoice => {
+        // Calculate total received from collections
+        const invoiceCollections = collections.filter(collection => 
+          collection.invoiceNumber?.includes(invoice.invoiceNumber) && 
+          collection.approvalStatus === 'Approved'
+        );
+        const totalReceived = invoiceCollections.reduce((sum, collection) => 
+          sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
+        );
+        
+        // Calculate total credit notes
+        const invoiceCreditNotes = creditNotes.filter(cn => 
+          cn.originalInvoiceNumber === invoice.invoiceNumber && 
+          cn.approvalStatus === 'Approved'
+        );
+        const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
+          sum + (cn.grandTotal || 0), 0
+        );
+        
+        console.log(`Invoice ${invoice.invoiceNumber}: GrandTotal=${invoice.grandTotal}, Received=${totalReceived}, CreditNotes=${totalCreditNotes}, TotalSettled=${totalReceived + totalCreditNotes}`);
+        
+        return {
+          ...invoice,
+          receivedAmount: totalReceived,
+          creditNoteAmount: totalCreditNotes
+        };
+      });
+      
+      setInvoices(invoicesWithReceivedAmounts);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     }
@@ -71,14 +138,14 @@ const InvoiceManagement = ({ setActivePage }) => {
     }
   };
 
-  const handleStatusChange = async (invoiceId, newStatus) => {
+  const handleApprovalChange = async (invoiceId, newApprovalStatus) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/invoices/${invoiceId}/status`, {
+      const response = await fetch(`http://localhost:5001/api/invoices/${invoiceId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ approvalStatus: newApprovalStatus }),
       });
       
       if (response.ok) {
@@ -86,11 +153,39 @@ const InvoiceManagement = ({ setActivePage }) => {
         setInvoices(invoices.map(invoice => 
           invoice._id === invoiceId ? updatedInvoice : invoice
         ));
-        alert('Invoice status updated successfully!');
+        alert('Invoice approval status updated successfully!');
       }
     } catch (error) {
-      alert('Error updating invoice status');
+      alert('Error updating invoice approval status');
     }
+  };
+
+  // Calculate invoice status based on collections and credit notes
+  const calculateInvoiceStatus = (invoice) => {
+    // If invoice is not approved, show hyphen
+    if (invoice.approvalStatus !== 'Approved') {
+      return '-';
+    }
+    
+    const grandTotal = invoice.grandTotal || 0;
+    const receivedAmount = invoice.receivedAmount || 0;
+    const creditNoteAmount = invoice.creditNoteAmount || 0;
+    
+    // Total settled amount = collections + credit notes
+    const totalSettled = receivedAmount + creditNoteAmount;
+    
+    // Check if fully settled
+    if (totalSettled >= grandTotal) {
+      return 'Fully Received';
+    }
+    
+    // Check if partially settled
+    if (totalSettled > 0 && totalSettled < grandTotal) {
+      return 'Partially Received';
+    }
+    
+    // Default status when nothing is settled
+    return 'Not Received';
   };
 
   const handleExportToExcel = () => {
@@ -107,7 +202,7 @@ const InvoiceManagement = ({ setActivePage }) => {
       'Taxable Value': invoice.totalTaxableValue,
       'Total Tax': invoice.totalTax,
       'Grand Total': invoice.grandTotal,
-      'Status': invoice.status,
+      'Status': calculateInvoiceStatus(invoice),
       'Due Date': invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : ''
     }));
     
@@ -115,19 +210,23 @@ const InvoiceManagement = ({ setActivePage }) => {
     alert('Invoice data exported successfully!');
   };
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (invoice.referenceNumber && invoice.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredInvoices = invoices.filter(invoice => {
+    const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.referenceNumber && invoice.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const calculatedStatus = calculateInvoiceStatus(invoice);
+    const matchesStatus = statusFilter === '' || calculatedStatus === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Draft': return 'bg-gray-100 text-gray-800';
-      case 'Sent': return 'bg-blue-100 text-blue-800';
-      case 'Paid': return 'bg-green-100 text-green-800';
-      case 'Overdue': return 'bg-red-100 text-red-800';
-      case 'Cancelled': return 'bg-yellow-100 text-yellow-800';
+      case 'Not Received': return 'bg-red-100 text-red-800';
+      case 'Partially Received': return 'bg-yellow-100 text-yellow-800';
+      case 'Fully Received': return 'bg-green-100 text-green-800';
+      case '-': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -160,8 +259,30 @@ const InvoiceManagement = ({ setActivePage }) => {
         </div>
       </div>
 
+      {/* Summary Stats */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-green-800">Fully Received</h3>
+          <p className="text-2xl font-bold text-green-900">
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Fully Received').length}
+          </p>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-yellow-800">Partially Received</h3>
+          <p className="text-2xl font-bold text-yellow-900">
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Partially Received').length}
+          </p>
+        </div>
+        <div className="bg-red-50 p-4 rounded-lg">
+          <h3 className="text-sm font-medium text-red-800">Not Received</h3>
+          <p className="text-2xl font-bold text-red-900">
+            {invoices.filter(inv => inv.approvalStatus === 'Approved' && calculateInvoiceStatus(inv) === 'Not Received').length}
+          </p>
+        </div>
+      </div>
+
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
@@ -169,41 +290,39 @@ const InvoiceManagement = ({ setActivePage }) => {
             placeholder="Search invoices..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All Status</option>
-          <option value="Draft">Draft</option>
-          <option value="Sent">Sent</option>
-          <option value="Paid">Paid</option>
-          <option value="Overdue">Overdue</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="Not Received">Not Received</option>
+          <option value="Partially Received">Partially Received</option>
+          <option value="Fully Received">Fully Received</option>
         </select>
         
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:col-span-2 lg:col-span-1">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 pointer-events-none">FROM:</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-gray-600 pointer-events-none">FROM:</span>
             <input
               type="date"
               value={dateFilter.start}
               onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              className="pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              className="pl-20 pr-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
             />
           </div>
           
           <div className="relative">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 pointer-events-none">TO:</span>
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-gray-600 pointer-events-none">TO:</span>
             <input
               type="date"
               value={dateFilter.end}
               onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              className="pl-16 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              className="pl-20 pr-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
             />
           </div>
         </div>
@@ -219,6 +338,7 @@ const InvoiceManagement = ({ setActivePage }) => {
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Customer</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Reference</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Amount</th>
+              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Approval</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Status</th>
               <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Actions</th>
             </tr>
@@ -226,13 +346,13 @@ const InvoiceManagement = ({ setActivePage }) => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                   Loading invoices...
                 </td>
               </tr>
             ) : filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                   No invoices found
                 </td>
               </tr>
@@ -255,17 +375,18 @@ const InvoiceManagement = ({ setActivePage }) => {
                     ₹{invoice.grandTotal.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
-                    <select
-                      value={invoice.status}
-                      onChange={(e) => handleStatusChange(invoice._id, e.target.value)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium border-0 ${getStatusColor(invoice.status)}`}
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Sent">Sent</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Overdue">Overdue</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      invoice.approvalStatus === 'Approved' ? 'bg-green-100 text-green-800' :
+                      invoice.approvalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {invoice.approvalStatus || 'Pending'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 border-b text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(calculateInvoiceStatus(invoice))}`}>
+                      {calculateInvoiceStatus(invoice)}
+                    </span>
                   </td>
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">
@@ -308,35 +429,6 @@ const InvoiceManagement = ({ setActivePage }) => {
         </table>
       </div>
 
-      {/* Summary Stats */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800">Total Invoices</h3>
-          <p className="text-2xl font-bold text-blue-900">{filteredInvoices.length}</p>
-        </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-green-800">Total Revenue</h3>
-          <p className="text-2xl font-bold text-green-900">
-            ₹{filteredInvoices.reduce((sum, inv) => sum + inv.grandTotal, 0).toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-yellow-800">Pending Amount</h3>
-          <p className="text-2xl font-bold text-yellow-900">
-            ₹{filteredInvoices
-              .filter(inv => ['Sent', 'Overdue'].includes(inv.status))
-              .reduce((sum, inv) => sum + inv.grandTotal, 0)
-              .toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-red-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-red-800">Overdue</h3>
-          <p className="text-2xl font-bold text-red-900">
-            {filteredInvoices.filter(inv => inv.status === 'Overdue').length}
-          </p>
-        </div>
-      </div>
-
       {/* View Invoice Modal */}
       {isViewModalOpen && viewingInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -359,8 +451,8 @@ const InvoiceManagement = ({ setActivePage }) => {
                     <p><span className="font-medium">Date:</span> {new Date(viewingInvoice.invoiceDate).toLocaleDateString()}</p>
                     <p><span className="font-medium">Reference:</span> {viewingInvoice.referenceNumber || 'N/A'}</p>
                     <p><span className="font-medium">Status:</span> 
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(viewingInvoice.status)}`}>
-                        {viewingInvoice.status}
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(calculateInvoiceStatus(viewingInvoice))}`}>
+                        {calculateInvoiceStatus(viewingInvoice)}
                       </span>
                     </p>
                   </div>

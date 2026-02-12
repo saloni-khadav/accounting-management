@@ -137,6 +137,14 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
   try {
     const billData = { ...req.body };
     
+    // Check if bill number already exists
+    if (billData.billNumber) {
+      const existingBill = await Bill.findOne({ billNumber: billData.billNumber });
+      if (existingBill) {
+        return res.status(400).json({ message: 'Bill number already exists' });
+      }
+    }
+    
     // Parse JSON fields that were stringified in FormData
     if (typeof billData.items === 'string') {
       billData.items = JSON.parse(billData.items);
@@ -174,6 +182,14 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
     const existingBill = await Bill.findById(req.params.id);
     if (!existingBill) {
       return res.status(404).json({ message: 'Bill not found' });
+    }
+    
+    // Check if bill number is being changed and if it already exists
+    if (req.body.billNumber && req.body.billNumber !== existingBill.billNumber) {
+      const duplicateBill = await Bill.findOne({ billNumber: req.body.billNumber });
+      if (duplicateBill) {
+        return res.status(400).json({ message: 'Bill number already exists' });
+      }
     }
     
     const updateData = {

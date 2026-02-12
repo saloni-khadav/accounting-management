@@ -1,6 +1,39 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Invoice = require('../models/Invoice');
 const router = express.Router();
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/invoices';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'invoice-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png|pdf/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only .png, .jpg, .jpeg and .pdf files are allowed!'));
+    }
+  }
+});
 
 // Get all invoices
 router.get('/', async (req, res) => {
@@ -38,9 +71,26 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new invoice
-router.post('/', async (req, res) => {
+router.post('/', upload.array('attachments', 10), async (req, res) => {
   try {
-    const invoice = new Invoice(req.body);
+    const invoiceData = { ...req.body };
+    
+    // Parse JSON fields
+    if (typeof invoiceData.items === 'string') {
+      invoiceData.items = JSON.parse(invoiceData.items);
+    }
+    
+    // Handle file attachments
+    if (req.files && req.files.length > 0) {
+      invoiceData.attachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileSize: file.size,
+        fileUrl: `/uploads/invoices/${file.filename}`,
+        uploadedAt: new Date()
+      }));
+    }
+    
+    const invoice = new Invoice(invoiceData);
     const savedInvoice = await invoice.save();
     res.status(201).json(savedInvoice);
   } catch (error) {
@@ -53,11 +103,32 @@ router.post('/', async (req, res) => {
 });
 
 // Update invoice
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.array('attachments', 10), async (req, res) => {
   try {
+    const invoiceData = { ...req.body };
+    
+    // Parse JSON fields
+    if (typeof invoiceData.items === 'string') {
+      invoiceData.items = JSON.parse(invoiceData.items);
+    }
+    
+    // Handle file attachments
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        fileName: file.originalname,
+        fileSize: file.size,
+        fileUrl: `/uploads/invoices/${file.filename}`,
+        uploadedAt: new Date()
+      }));
+      
+      // Merge with existing attachments
+      const existingInvoice = await Invoice.findById(req.params.id);
+      invoiceData.attachments = [...(existingInvoice.attachments || []), ...newAttachments];
+    }
+    
     const invoice = await Invoice.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      invoiceData,
       { new: true, runValidators: true }
     );
     if (!invoice) {
@@ -132,7 +203,7 @@ router.get('/stats/summary', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['Draft', 'Sent', 'Paid', 'Overdue', 'Cancelled'];
+    const validStatuses = ['Not Received', 'Partially Received', 'Fully Received'];
     
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
@@ -141,6 +212,39 @@ router.patch('/:id/status', async (req, res) => {
     const invoice = await Invoice.findByIdAndUpdate(
       req.params.id,
       { status },
+      { new: true }
+    );
+    
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+    
+    res.json(invoice);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update invoice approval status
+router.patch('/:id/approval', async (req, res) => {
+  try {
+    const { approvalStatus } = req.body;
+    const validStatuses = ['Pending', 'Approved', 'Rejected'];
+    
+    if (!validStatuses.includes(approvalStatus)) {
+      return res.status(400).json({ message: 'Invalid approval status' });
+    }
+    
+    const updateData = { approvalStatus };
+    if (approvalStatus === 'Approved') {
+      updateData.approvedAt = new Date();
+    } else if (approvalStatus === 'Rejected') {
+      updateData.rejectedAt = new Date();
+    }
+    
+    const invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      updateData,
       { new: true }
     );
     
@@ -214,6 +318,51 @@ router.get('/reports/debtors-aging', async (req, res) => {
     });
     
     res.json(Object.values(agingData));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get remaining amount for an invoice
+router.get('/:invoiceNumber/remaining-amount', async (req, res) => {
+  try {
+    const { invoiceNumber } = req.params;
+    const Invoice = require('../models/Invoice');
+    const Collection = require('../models/Collection');
+    const CreditNote = require('../models/CreditNote');
+    
+    const invoice = await Invoice.findOne({ invoiceNumber });
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Get all approved collections for this invoice
+    const collections = await Collection.find({ 
+      invoiceNumber: { $regex: invoiceNumber },
+      approvalStatus: 'Approved'
+    });
+    
+    // Get all approved credit notes for this invoice
+    const creditNotes = await CreditNote.find({ 
+      originalInvoiceNumber: invoiceNumber,
+      approvalStatus: 'Approved'
+    });
+
+    // Calculate total collected and credited amounts
+    const totalCollected = collections.reduce((sum, col) => sum + (parseFloat(col.netAmount) || 0), 0);
+    const totalCredited = creditNotes.reduce((sum, cn) => sum + (parseFloat(cn.grandTotal) || 0), 0);
+    const totalReceived = totalCollected + totalCredited;
+    const remainingAmount = Math.max(0, invoice.grandTotal - totalReceived);
+
+    res.json({
+      invoiceNumber,
+      grandTotal: invoice.grandTotal,
+      totalCollected,
+      totalCredited,
+      totalReceived,
+      remainingAmount,
+      status: invoice.status
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

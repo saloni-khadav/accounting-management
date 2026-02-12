@@ -214,11 +214,10 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         setAttachments([]);
       }
     } else {
-      // Generate new note number for new notes
+      // Initialize new note with empty note number
       const initializeNewNote = async () => {
-        const newNoteNumber = await generateNoteNumber('Credit Note');
         setNoteData({
-          noteNumber: newNoteNumber,
+          noteNumber: '',
           noteDate: new Date().toISOString().split('T')[0],
           invoiceDate: '',
           type: 'Credit Note',
@@ -404,18 +403,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       }
     }
     
-    if (field === 'type') {
-      // Generate new note number when type changes
-      const generateNewNumber = async () => {
-        const newNoteNumber = await generateNoteNumber(value);
-        setNoteData(prev => ({
-          ...prev,
-          [field]: value,
-          noteNumber: newNoteNumber
-        }));
-      };
-      generateNewNumber();
-    } else if (field === 'vendorName') {
+    if (field === 'vendorName') {
       setVendorSearchTerm(value);
       setShowVendorDropdown(true);
       setNoteData(prev => ({
@@ -742,8 +730,9 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                 <input
                   type="text"
                   value={noteData.noteNumber}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                  onChange={(e) => handleInputChange('noteNumber', e.target.value)}
+                  placeholder="Enter note number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>

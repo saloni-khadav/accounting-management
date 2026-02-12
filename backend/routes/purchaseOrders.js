@@ -3,6 +3,31 @@ const router = express.Router();
 const PurchaseOrder = require('../models/PurchaseOrder');
 const Bill = require('../models/Bill');
 
+// Get Purchase Orders by vendor name
+router.get('/vendor/:vendorName', async (req, res) => {
+  try {
+    const vendorName = req.params.vendorName;
+    console.log('Searching Purchase Orders for vendor:', vendorName);
+    
+    const purchaseOrders = await PurchaseOrder.find({ 
+      $or: [
+        { supplier: { $regex: vendorName, $options: 'i' } },
+        { supplier: vendorName }
+      ],
+      $or: [
+        { approvalStatus: 'approved' },
+        { status: 'Approved' }
+      ]
+    }).select('poNumber supplier poDate deliveryDate items subTotal totalAmount').sort({ createdAt: -1 });
+    
+    console.log('Found Purchase Orders:', purchaseOrders.length);
+    res.json(purchaseOrders);
+  } catch (error) {
+    console.error('Error fetching Purchase Orders:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get available POs with remaining amounts
 router.get('/available', async (req, res) => {
   try {

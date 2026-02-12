@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock } from 'lucide-react';
+import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock, Upload, X, Paperclip } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { exportToExcel } from '../utils/excelExport';
 import { generateTaxInvoicePDF } from '../utils/pdfGenerator';
@@ -10,6 +10,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   const [clients, setClients] = useState([]);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [showGSTDropdown, setShowGSTDropdown] = useState(false);
+  const [approvedProformas, setApprovedProformas] = useState([]);
+  const [showPODropdown, setShowPODropdown] = useState(false);
+  const [attachments, setAttachments] = useState([]);
   const [pendingOrders, setPendingOrders] = useState([
     {
       id: 'PO-001',
@@ -61,6 +66,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     invoiceDate: new Date().toISOString().split('T')[0],
     invoiceSeries: 'INV',
     referenceNumber: '',
+    poDate: '',
     placeOfSupply: '',
     
     // Supplier Details
@@ -90,7 +96,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       description: '',
       hsnCode: '',
       quantity: 1,
-      unit: 'Nos',
       unitPrice: 0,
       discount: 0,
       taxableValue: 0,
@@ -136,7 +141,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           description: '',
           hsnCode: '',
           quantity: 1,
-          unit: 'Nos',
           unitPrice: 0,
           discount: 0,
           taxableValue: 0,
@@ -151,6 +155,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           totalAmount: 0
         }]
       });
+      setAttachments(editingInvoice.attachments || []);
     } else {
       // Reset to default for new invoice
       setInvoiceData({
@@ -183,7 +188,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           description: '',
           hsnCode: '',
           quantity: 1,
-          unit: 'Nos',
           unitPrice: 0,
           discount: 0,
           taxableValue: 0,
@@ -214,12 +218,46 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         eInvoiceIRN: '',
         qrCode: ''
       });
+      setAttachments([]);
     }
   }, [editingInvoice]);
 
   useEffect(() => {
     calculateTotals();
   }, [invoiceData.items.length, invoiceData.items.map(item => `${item.quantity}-${item.unitPrice}-${item.discount}-${item.cgstRate}-${item.sgstRate}-${item.igstRate}`).join(',')]);
+
+  // Auto-apply GST based on Place of Supply and Customer Place
+  useEffect(() => {
+    if (invoiceData.placeOfSupply && invoiceData.customerPlace) {
+      const isSameState = invoiceData.placeOfSupply === invoiceData.customerPlace;
+      
+      setInvoiceData(prev => ({
+        ...prev,
+        items: prev.items.map(item => {
+          if (isSameState) {
+            // Same state: Apply CGST + SGST, set IGST to 0
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            const halfRate = totalGST / 2;
+            return {
+              ...item,
+              cgstRate: halfRate,
+              sgstRate: halfRate,
+              igstRate: 0
+            };
+          } else {
+            // Different state: Apply IGST, set CGST and SGST to 0
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            return {
+              ...item,
+              cgstRate: 0,
+              sgstRate: 0,
+              igstRate: totalGST
+            };
+          }
+        })
+      }));
+    }
+  }, [invoiceData.placeOfSupply, invoiceData.customerPlace]);
 
   // Fetch clients data
   useEffect(() => {
@@ -240,9 +278,82 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     }
   }, [isOpen]);
 
+  // Fetch approved proforma invoices for selected client
+  useEffect(() => {
+    const fetchApprovedProformas = async () => {
+      if (!selectedClient) {
+        setApprovedProformas([]);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`http://localhost:5001/api/proforma-invoices?customerName=${encodeURIComponent(selectedClient.clientName)}&status=Approved`);
+        if (response.ok) {
+          const proformas = await response.json();
+          setApprovedProformas(proformas);
+        }
+      } catch (error) {
+        console.error('Error fetching proforma invoices:', error);
+        setApprovedProformas([]);
+      }
+    };
+
+    fetchApprovedProformas();
+  }, [selectedClient]);
+
+  // GST code to state mapping function
+  const getStateFromGST = (gstNumber) => {
+    if (!gstNumber || gstNumber.length < 2) return '';
+    
+    const gstStateCode = gstNumber.substring(0, 2);
+    const gstStateMapping = {
+      '01': 'Jammu and Kashmir',
+      '02': 'Himachal Pradesh', 
+      '03': 'Punjab',
+      '04': 'Chandigarh',
+      '05': 'Uttarakhand',
+      '06': 'Haryana',
+      '07': 'Delhi',
+      '08': 'Rajasthan',
+      '09': 'Uttar Pradesh',
+      '10': 'Bihar',
+      '11': 'Sikkim',
+      '12': 'Arunachal Pradesh',
+      '13': 'Nagaland',
+      '14': 'Manipur',
+      '15': 'Mizoram',
+      '16': 'Tripura',
+      '17': 'Meghalaya',
+      '18': 'Assam',
+      '19': 'West Bengal',
+      '20': 'Jharkhand',
+      '21': 'Odisha',
+      '22': 'Chhattisgarh',
+      '23': 'Madhya Pradesh',
+      '24': 'Gujarat',
+      '25': 'Daman and Diu',
+      '26': 'Dadra and Nagar Haveli',
+      '27': 'Maharashtra',
+      '28': 'Andhra Pradesh',
+      '29': 'Karnataka',
+      '30': 'Goa',
+      '31': 'Lakshadweep',
+      '32': 'Kerala',
+      '33': 'Tamil Nadu',
+      '34': 'Puducherry',
+      '35': 'Andaman and Nicobar Islands',
+      '36': 'Telangana',
+      '37': 'Andhra Pradesh (New)'
+    };
+    
+    return gstStateMapping[gstStateCode] || '';
+  };
+
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
+      if (!isOpen) return;
+      
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -256,28 +367,15 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         if (response.ok) {
           const userData = await response.json();
           const profile = userData.user.profile || {};
-          
-          // Extract state from address for place of supply
-          let stateFromAddress = '';
-          if (profile.address) {
-            const addressParts = profile.address.split(',');
-            for (let part of addressParts) {
-              const trimmedPart = part.trim();
-              const states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Puducherry', 'Chandigarh', 'Andaman and Nicobar Islands', 'Dadra and Nagar Haveli and Daman and Diu', 'Lakshadweep'];
-              if (states.includes(trimmedPart)) {
-                stateFromAddress = trimmedPart;
-                break;
-              }
-            }
-          }
+          const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setInvoiceData(prev => ({
             ...prev,
-            supplierName: userData.user.companyName || profile.tradeName || prev.supplierName,
+            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN,
-            placeOfSupply: stateFromAddress || prev.placeOfSupply
+            placeOfSupply: gstBasedState || prev.placeOfSupply
           }));
         }
       } catch (error) {
@@ -286,7 +384,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -294,9 +392,14 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowExportDropdown(false);
       }
-      // Close client dropdown when clicking outside
       if (!event.target.closest('.client-dropdown-container')) {
         setShowClientDropdown(false);
+      }
+      if (!event.target.closest('.gst-dropdown-container')) {
+        setShowGSTDropdown(false);
+      }
+      if (!event.target.closest('.po-dropdown-container')) {
+        setShowPODropdown(false);
       }
     };
 
@@ -377,6 +480,17 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const handleInputChange = (field, value) => {
+    // Auto-set place of supply based on supplier GSTIN
+    if (field === 'supplierGSTIN') {
+      const placeOfSupply = getStateFromGST(value);
+      setInvoiceData(prev => ({
+        ...prev,
+        [field]: value,
+        placeOfSupply: placeOfSupply
+      }));
+      return;
+    }
+    
     setInvoiceData(prev => ({
       ...prev,
       [field]: value
@@ -384,17 +498,122 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const handleClientSelect = (client) => {
-    setInvoiceData(prev => ({
-      ...prev,
-      customerName: client.clientName,
-      customerAddress: client.billingAddress || '',
-      customerGSTIN: client.gstNumber || '',
-      contactPerson: client.contactPerson || '',
-      contactDetails: client.contactDetails || '',
-      paymentTerms: client.paymentTerms || '30 Days'
-    }));
+    // Set selected client for GST dropdown
+    setSelectedClient(client);
+    
+    // Get default GST or first available GST
+    const defaultGST = client.gstNumbers && client.gstNumbers.length > 0 
+      ? client.gstNumbers.find(gst => gst.isDefault) || client.gstNumbers[0]
+      : null;
+    
+    const selectedGSTNumber = defaultGST ? defaultGST.gstNumber : (client.gstNumber || '');
+    const customerPlace = getStateFromGST(selectedGSTNumber);
+    
+    // Get billing address for the default GST
+    let billingAddress = '';
+    if (defaultGST && defaultGST.billingAddress) {
+      billingAddress = defaultGST.billingAddress;
+    } else {
+      billingAddress = client.billingAddress || '';
+    }
+    
+    setInvoiceData(prev => {
+      const isSameState = prev.placeOfSupply && customerPlace && prev.placeOfSupply === customerPlace;
+      
+      return {
+        ...prev,
+        customerName: client.clientName,
+        customerAddress: billingAddress,
+        customerGSTIN: selectedGSTNumber,
+        customerPlace: customerPlace,
+        contactPerson: client.contactPerson || '',
+        contactDetails: client.contactDetails || '',
+        paymentTerms: client.paymentTerms || '30 Days',
+        referenceNumber: '',
+        poDate: '',
+        items: prev.items.map(item => {
+          if (isSameState) {
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            const halfRate = totalGST / 2;
+            return { ...item, cgstRate: halfRate, sgstRate: halfRate, igstRate: 0 };
+          } else if (customerPlace) {
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            return { ...item, cgstRate: 0, sgstRate: 0, igstRate: totalGST };
+          }
+          return item;
+        })
+      };
+    });
     setShowClientDropdown(false);
     setClientSearchTerm(client.clientName);
+  };
+
+  const handlePOSelect = (proforma) => {
+    const isSameState = invoiceData.placeOfSupply && invoiceData.customerPlace && 
+                        invoiceData.placeOfSupply === invoiceData.customerPlace;
+    
+    setInvoiceData(prev => ({
+      ...prev,
+      referenceNumber: proforma.proformaNumber,
+      poDate: proforma.proformaDate ? new Date(proforma.proformaDate).toISOString().split('T')[0] : '',
+      items: proforma.items && proforma.items.length > 0 ? proforma.items.map(item => ({
+        product: item.name || '',
+        description: item.name || '',
+        hsnCode: item.hsn || '',
+        quantity: item.quantity || 1,
+        unitPrice: item.rate || 0,
+        discount: item.discount || 0,
+        taxableValue: 0,
+        cgstRate: isSameState ? (item.cgstRate || 9) : 0,
+        sgstRate: isSameState ? (item.sgstRate || 9) : 0,
+        igstRate: isSameState ? 0 : (item.igstRate || 18),
+        cessRate: 0,
+        cgstAmount: 0,
+        sgstAmount: 0,
+        igstAmount: 0,
+        cessAmount: 0,
+        totalAmount: 0
+      })) : prev.items
+    }));
+    setShowPODropdown(false);
+  };
+
+  const handleGSTSelect = (gstNumber) => {
+    const customerPlace = getStateFromGST(gstNumber);
+    
+    // Find the billing address for this GST number from client master
+    let billingAddress = '';
+    if (selectedClient && selectedClient.gstNumbers) {
+      const gstEntry = selectedClient.gstNumbers.find(gst => gst.gstNumber === gstNumber);
+      if (gstEntry && gstEntry.billingAddress) {
+        billingAddress = gstEntry.billingAddress;
+      } else {
+        billingAddress = selectedClient.billingAddress || '';
+      }
+    }
+    
+    setInvoiceData(prev => {
+      const isSameState = prev.placeOfSupply && customerPlace && prev.placeOfSupply === customerPlace;
+      
+      return {
+        ...prev,
+        customerGSTIN: gstNumber,
+        customerPlace: customerPlace,
+        customerAddress: billingAddress,
+        items: prev.items.map(item => {
+          if (isSameState) {
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            const halfRate = totalGST / 2;
+            return { ...item, cgstRate: halfRate, sgstRate: halfRate, igstRate: 0 };
+          } else if (customerPlace) {
+            const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
+            return { ...item, cgstRate: 0, sgstRate: 0, igstRate: totalGST };
+          }
+          return item;
+        })
+      };
+    });
+    setShowGSTDropdown(false);
   };
 
   const filteredClients = clients.filter(client =>
@@ -417,18 +636,20 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const addItem = () => {
+    const isSameState = invoiceData.placeOfSupply && invoiceData.customerPlace && 
+                        invoiceData.placeOfSupply === invoiceData.customerPlace;
+    
     const newItem = {
       product: '',
       description: '',
       hsnCode: '',
       quantity: 1,
-      unit: 'Nos',
       unitPrice: 0,
       discount: 0,
       taxableValue: 0,
-      cgstRate: 9,
-      sgstRate: 9,
-      igstRate: 0,
+      cgstRate: isSameState ? 9 : 0,
+      sgstRate: isSameState ? 9 : 0,
+      igstRate: isSameState ? 0 : 18,
       cessRate: 0,
       cgstAmount: 0,
       sgstAmount: 0,
@@ -455,6 +676,31 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       
       setTimeout(() => calculateTotals(), 0);
     }
+  };
+
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const newAttachments = files.map(file => ({
+      fileName: file.name,
+      fileSize: file.size,
+      file: file,
+      fileUrl: URL.createObjectURL(file),
+      uploadedAt: new Date()
+    }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const downloadAttachment = (attachment) => {
+    const link = document.createElement('a');
+    link.href = attachment.fileUrl;
+    link.download = attachment.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleSave = async () => {
@@ -488,6 +734,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       // Clean the data before sending
       const cleanedData = {
         ...invoiceData,
+        status: editingInvoice ? invoiceData.status : 'Not Received',
+        approvalStatus: editingInvoice ? invoiceData.approvalStatus : 'Pending',
         items: (invoiceData.items || []).filter(item => 
           item.description && item.description.trim() && 
           item.hsnCode && item.hsnCode.trim()
@@ -504,12 +752,30 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         : 'http://localhost:5001/api/invoices';
       const method = isEditing ? 'PUT' : 'POST';
 
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all invoice data fields
+      Object.keys(cleanedData).forEach(key => {
+        if (key === 'items') {
+          formData.append(key, JSON.stringify(cleanedData[key]));
+        } else if (typeof cleanedData[key] === 'object' && cleanedData[key] !== null) {
+          formData.append(key, JSON.stringify(cleanedData[key]));
+        } else {
+          formData.append(key, cleanedData[key] || '');
+        }
+      });
+      
+      // Add attachment files
+      attachments.forEach((attachment) => {
+        if (attachment.file) {
+          formData.append('attachments', attachment.file);
+        }
+      });
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cleanedData),
+        body: formData,
       });
       
       if (response.ok) {
@@ -670,7 +936,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       </div>
 
       {/* Invoice Details */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number *</label>
           <input
@@ -689,12 +955,55 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <div className="relative po-dropdown-container">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Reference/PI Number</label>
+          <div className="relative">
+            <input
+              type="text"
+              value={invoiceData.referenceNumber}
+              onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
+              onFocus={() => {
+                if (approvedProformas.length > 0) {
+                  setShowPODropdown(true);
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Select from approved proformas"
+            />
+            {approvedProformas.length > 0 && (
+              <ChevronDown 
+                className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
+                onClick={() => setShowPODropdown(!showPODropdown)}
+              />
+            )}
+            
+            {showPODropdown && approvedProformas.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {approvedProformas.map((proforma) => (
+                  <div
+                    key={proforma._id}
+                    onClick={() => handlePOSelect(proforma)}
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-gray-900">{proforma.proformaNumber}</div>
+                    <div className="text-sm text-gray-500">
+                      Date: {proforma.proformaDate ? new Date(proforma.proformaDate).toLocaleDateString() : 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Amount: ₹{(proforma.grandTotal || 0).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reference/PO Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">PI Date</label>
           <input
-            type="text"
-            value={invoiceData.referenceNumber}
-            onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
+            type="date"
+            value={invoiceData.poDate}
+            onChange={(e) => handleInputChange('poDate', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -749,15 +1058,48 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
               )}
             </div>
           </div>
-          <div>
+          <div className="relative gst-dropdown-container">
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer GSTIN</label>
-            <input
-              type="text"
-              value={invoiceData.customerGSTIN}
-              onChange={(e) => handleInputChange('customerGSTIN', e.target.value)}
-              maxLength="15"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={invoiceData.customerGSTIN}
+                onChange={(e) => handleInputChange('customerGSTIN', e.target.value)}
+                onFocus={() => {
+                  if (selectedClient && selectedClient.gstNumbers && selectedClient.gstNumbers.length > 0) {
+                    setShowGSTDropdown(true);
+                  }
+                }}
+                maxLength="15"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Select from dropdown or enter manually"
+              />
+              {selectedClient && selectedClient.gstNumbers && selectedClient.gstNumbers.length > 0 && (
+                <ChevronDown 
+                  className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
+                  onClick={() => setShowGSTDropdown(!showGSTDropdown)}
+                />
+              )}
+              
+              {showGSTDropdown && selectedClient && selectedClient.gstNumbers && selectedClient.gstNumbers.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {selectedClient.gstNumbers.map((gst, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleGSTSelect(gst.gstNumber)}
+                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center"
+                    >
+                      <span className="font-medium text-gray-900">{gst.gstNumber}</span>
+                      {gst.isDefault && (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer Place</label>
@@ -857,7 +1199,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Unit</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
@@ -907,19 +1248,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                       min="0"
                       step="0.01"
                     />
-                  </td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={item.unit}
-                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="Nos">Nos</option>
-                      <option value="Kg">Kg</option>
-                      <option value="Liters">Liters</option>
-                      <option value="Hours">Hours</option>
-                      <option value="Pieces">Pieces</option>
-                    </select>
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -1073,6 +1401,59 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           rows="4"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+      </div>
+
+      {/* Attachments */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <div className="flex items-center justify-center">
+            <label className="flex flex-col items-center cursor-pointer">
+              <Upload className="w-8 h-8 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-600">Click to upload files</span>
+              <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+          
+          {attachments.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {attachments.map((attachment, index) => (
+                <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                  <div className="flex items-center">
+                    <Paperclip className="w-4 h-4 text-gray-500 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{attachment.fileName}</p>
+                      <p className="text-xs text-gray-500">{(attachment.fileSize / 1024).toFixed(2)} KB</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => downloadAttachment(attachment)}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => removeAttachment(index)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Remove"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* GST Declaration */}
