@@ -180,41 +180,41 @@ const TDSPurchases = () => {
       <p className="text-gray-600 mb-6">Consolidated TDS data from Bills, Payments, and Credit/Debit Notes</p>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Total TDS</h3>
-          <p className="text-4xl font-bold text-gray-900">₹{summaryData.totalTds.toLocaleString('en-IN')}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.totalTds.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Paid</h3>
-          <p className="text-4xl font-bold text-gray-900">₹{summaryData.paid.toLocaleString('en-IN')}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.paid.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Payable</h3>
-          <p className="text-4xl font-bold text-gray-900">₹{summaryData.payable.toLocaleString('en-IN')}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.payable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg text-gray-700 mb-2">Interest</h3>
-          <p className="text-4xl font-bold text-gray-900">₹{summaryData.interest.toLocaleString('en-IN')}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.interest.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
       {/* Action Bar */}
       <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="relative">
+          <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by vendor, invoice, or PAN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <button 
             onClick={handleExportToExcel}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Download className="w-4 h-4" />
             Export
@@ -257,7 +257,7 @@ const TDSPurchases = () => {
                 {transactionsData.map((transaction, index) => (
                   <tr key={transaction._id || index} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                         transaction.source === 'Payment' 
                           ? 'bg-blue-100 text-blue-800' 
                           : transaction.source === 'Credit Note'

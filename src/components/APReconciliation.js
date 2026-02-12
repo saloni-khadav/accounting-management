@@ -163,30 +163,30 @@ const APReconciliation = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Total Payable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{totalPayable.toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900 break-words">₹{totalPayable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Total Paid</h3>
-          <p className="text-2xl font-bold text-green-600">₹{totalPaid.toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-green-600 break-words">₹{totalPaid.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Credit Notes</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-blue-600 break-words">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Debit Notes</h3>
-          <p className="text-2xl font-bold text-orange-600">₹{debitNotesAmount.toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-orange-600 break-words">₹{debitNotesAmount.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Adjusted Payable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{adjustedPayable.toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900 break-words">₹{adjustedPayable.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Unreconciled</h3>
-          <p className="text-2xl font-bold text-red-600">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
+          <p className="text-xl md:text-2xl font-bold text-red-600 break-words">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
         </div>
       </div>
 
@@ -298,7 +298,7 @@ const APReconciliation = () => {
                       </td>
                       <td className="py-4 px-6 text-gray-900">{row.vendor}</td>
                       <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                           row.type === 'Payment' ? 'bg-green-100 text-green-800' :
                           row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800' :
                           row.type === 'Debit Note' ? 'bg-orange-100 text-orange-800' :

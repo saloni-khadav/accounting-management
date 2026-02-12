@@ -608,10 +608,10 @@ const AssetsEntry = () => {
   const totalValue = filteredAssets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Assets Entry</h1>
-        <p className="text-gray-600 text-base">Manage and track all your company assets</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Assets Entry</h1>
+        <p className="text-gray-600 text-lg">Manage and track all your company assets</p>
       </div>
 
       {/* Summary Cards */}
@@ -663,7 +663,11 @@ const AssetsEntry = () => {
       </div>
 
       {/* Filters and Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center mb-4">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900">Search & Filters</h3>
+        </div>
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -723,7 +727,7 @@ const AssetsEntry = () => {
       </div>
 
       {/* Assets Table */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100">

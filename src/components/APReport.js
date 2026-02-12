@@ -356,27 +356,27 @@ const APReport = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Invoices Processed</p>
-          <p className="text-4xl font-bold">{loading ? '...' : invoicesProcessed}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : invoicesProcessed}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Fully Paid Invoices</p>
-          <p className="text-4xl font-bold">{loading ? '...' : fullyPaidInvoices}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : fullyPaidInvoices}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Partially Paid Invoices</p>
-          <p className="text-4xl font-bold">{loading ? '...' : partiallyPaidInvoices}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : partiallyPaidInvoices}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Total Paid</p>
-          <p className="text-4xl font-bold">{loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}</p>
         </div>
         <div className="bg-white p-6 rounded-lg border">
           <p className="text-gray-600 mb-2">Total Credit Notes</p>
-          <p className="text-4xl font-bold text-blue-600">{loading ? '...' : totalCreditNotesCount}</p>
-          <p className="text-sm text-gray-500 mt-1">₹{totalCreditNotesAmount.toLocaleString('en-IN')}</p>
+          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-600 break-words">{loading ? '...' : totalCreditNotesCount}</p>
+          <p className="text-sm text-gray-500 mt-1 break-words">₹{totalCreditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
