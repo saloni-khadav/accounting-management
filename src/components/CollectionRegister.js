@@ -179,9 +179,14 @@ const CollectionRegister = () => {
           sum + (cn.grandTotal || 0), 0
         );
         
-        // Calculate remaining amount
+        // Calculate TDS from collections
+        const totalTDS = invoiceCollections.reduce((sum, col) => 
+          sum + (parseFloat(col.tdsAmount) || 0), 0
+        );
+        
+        // Calculate remaining amount (subtract TDS)
         const totalSettled = totalReceived + totalCreditNotes;
-        const remainingAmount = (invoice.grandTotal || 0) - totalSettled;
+        const remainingAmount = (invoice.grandTotal || 0) - totalSettled - totalTDS;
         
         return { 
           ...invoice, 

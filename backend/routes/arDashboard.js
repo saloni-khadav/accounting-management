@@ -104,8 +104,13 @@ router.get('/stats', async (req, res) => {
     // Calculate total credit notes
     const totalCreditNotes = creditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
     
-    // Calculate outstanding (receivable - collected, credit notes already reduce receivable)
-    const outstanding = Math.max(0, totalReceivable - totalCollected);
+    // Calculate total TDS
+    const totalTDS = collections.reduce((sum, col) => 
+      sum + (parseFloat(col.tdsAmount) || 0), 0
+    );
+    
+    // Calculate outstanding (receivable - collected - TDS)
+    const outstanding = Math.max(0, totalReceivable - totalCollected - totalTDS);
     
     // Calculate overdue and aging
     const currentDate = new Date();
@@ -125,13 +130,18 @@ router.get('/stats', async (req, res) => {
         sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
       );
       
+      // Calculate TDS for this invoice
+      const tdsAmount = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.tdsAmount) || 0), 0
+      );
+      
       // Calculate credit notes for this invoice
       const invoiceCreditNotes = creditNotes.filter(cn => 
         cn.originalInvoiceNumber === invoice.invoiceNumber
       );
       const creditAmount = invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
       
-      const remainingAmount = (invoice.grandTotal || 0) - paidAmount - creditAmount;
+      const remainingAmount = (invoice.grandTotal || 0) - paidAmount - creditAmount - tdsAmount;
       
       if (remainingAmount > 0 && invoice.dueDate) {
         const dueDate = new Date(invoice.dueDate);
@@ -158,12 +168,16 @@ router.get('/stats', async (req, res) => {
         sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
       );
       
+      const tdsAmount = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.tdsAmount) || 0), 0
+      );
+      
       const invoiceCreditNotes = creditNotes.filter(cn => 
         cn.originalInvoiceNumber === inv.invoiceNumber
       );
       const creditAmount = invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
       
-      return (inv.grandTotal || 0) - paidAmount - creditAmount > 0;
+      return (inv.grandTotal || 0) - paidAmount - creditAmount - tdsAmount > 0;
     }).length;
     
     // Calculate unapplied credits (credit notes not yet applied)
@@ -226,12 +240,16 @@ router.get('/overdue-invoices', async (req, res) => {
         sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
       );
       
+      const tdsAmount = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.tdsAmount) || 0), 0
+      );
+      
       const invoiceCreditNotes = creditNotes.filter(cn => 
         cn.originalInvoiceNumber === invoice.invoiceNumber
       );
       const creditAmount = invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
       
-      const remainingAmount = (invoice.grandTotal || 0) - paidAmount - creditAmount;
+      const remainingAmount = (invoice.grandTotal || 0) - paidAmount - creditAmount - tdsAmount;
       const dueDate = new Date(invoice.dueDate);
       const daysDiff = Math.floor((currentDate - dueDate) / (1000 * 60 * 60 * 24));
       
@@ -310,13 +328,17 @@ router.get('/monthly-revenue', async (req, res) => {
             sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
           );
           
+          const tdsAmount = invoiceCollections.reduce((sum, col) => 
+            sum + (parseFloat(col.tdsAmount) || 0), 0
+          );
+          
           const invoiceCreditNotes = creditNotes.filter(cn => 
             cn.originalInvoiceNumber === invoice.invoiceNumber &&
             new Date(cn.creditNoteDate) <= monthEnd
           );
           const creditAmount = invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
           
-          receivables += Math.max(0, (invoice.grandTotal || 0) - paidAmount - creditAmount);
+          receivables += Math.max(0, (invoice.grandTotal || 0) - paidAmount - creditAmount - tdsAmount);
         }
       });
       
