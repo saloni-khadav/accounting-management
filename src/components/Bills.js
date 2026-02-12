@@ -397,7 +397,7 @@ const Bills = () => {
                   <td className="py-4 px-6 text-gray-600">{bill.billDate}</td>
                   <td className="py-4 px-6 text-gray-600">{bill.dueDate}</td>
                   <td className="py-4 px-6">
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${getStatusColor(bill.status)}`}>
+                    <span className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getStatusColor(bill.status)}`}>
                       {bill.status}
                     </span>
                   </td>

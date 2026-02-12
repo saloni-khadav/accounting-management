@@ -298,7 +298,7 @@ const APReconciliation = () => {
                       </td>
                       <td className="py-4 px-6 text-gray-900">{row.vendor}</td>
                       <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                           row.type === 'Payment' ? 'bg-green-100 text-green-800' :
                           row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800' :
                           row.type === 'Debit Note' ? 'bg-orange-100 text-orange-800' :

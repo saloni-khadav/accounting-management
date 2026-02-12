@@ -538,7 +538,7 @@ const PurchaseOrders = () => {
                   <td className="py-5 px-6 text-gray-900">{order.supplier}</td>
                   <td className="py-5 px-6 text-gray-900">{new Date(order.poDate).toLocaleDateString()}</td>
                   <td className="py-5 px-6">
-                    <span className={`px-4 py-1.5 rounded-lg text-sm font-medium ${getStatusColor(order.status, order.approvalStatus)}`}>
+                    <span className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap ${getStatusColor(order.status, order.approvalStatus)}`}>
                       {order.approvalStatus === 'pending' ? 'Pending Approval' : 
                        order.approvalStatus === 'approved' ? 'Approved' :
                        order.approvalStatus === 'rejected' ? 'Rejected' :

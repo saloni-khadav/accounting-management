@@ -529,7 +529,7 @@ const Payments = () => {
                   <td className="py-5 px-4 text-gray-600">{payment.invoiceNumber}</td>
                   <td className="py-5 px-4 text-gray-600">{payment.referenceNumber}</td>
                   <td className="py-5 px-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(payment.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getPaymentStatusColor(payment.status)}`}>
                       {payment.status}
                     </span>
                   </td>

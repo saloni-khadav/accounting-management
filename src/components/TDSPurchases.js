@@ -257,7 +257,7 @@ const TDSPurchases = () => {
                 {transactionsData.map((transaction, index) => (
                   <tr key={transaction._id || index} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                         transaction.source === 'Payment' 
                           ? 'bg-blue-100 text-blue-800' 
                           : transaction.source === 'Credit Note'
