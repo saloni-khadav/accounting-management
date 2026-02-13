@@ -256,33 +256,52 @@ const AccountsPayable = () => {
   const agingData = getAgingData();
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Accounts Payable</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Accounts Payable</h1>
+        <p className="text-gray-600 text-lg mt-1">Manage vendor bills and payments</p>
       </div>
 
       {/* Top Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Payable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{totalPayable.toLocaleString('en-IN')}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-blue-700">Total Payable</h3>
+            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-blue-900">₹{totalPayable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Overdue Payable</h3>
-          <p className="text-2xl font-bold text-red-600">₹{overduePayable.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-red-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-red-700">Overdue Payable</h3>
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-red-900">₹{overduePayable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Due Soon</h3>
-          <p className="text-2xl font-bold text-yellow-600">₹{dueSoonPayable.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-yellow-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-yellow-700">Due Soon</h3>
+            <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-yellow-900">₹{dueSoonPayable.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
       {/* Chart and Aging Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Purchases & Payments Chart */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Purchases & Payments</h3>
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+          <div className="flex items-center mb-6">
+            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900">Purchases & Payments</h3>
+          </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={purchaseData} barCategoryGap="20%">
@@ -302,11 +321,14 @@ const AccountsPayable = () => {
         </div>
 
         {/* Payable Aging */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Payable Aging</h3>
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+          <div className="flex items-center mb-6">
+            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900">Payable Aging</h3>
+          </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-3">1–30 Days</h4>
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-blue-700 mb-3">1–30 Days</h4>
               <div className="space-y-3">
                 {agingData.days1to30.length > 0 ? agingData.days1to30.map((item, index) => (
                   <div key={index} className="text-sm">
@@ -318,8 +340,8 @@ const AccountsPayable = () => {
                 )}
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-3">31–90 Days</h4>
+            <div className="bg-green-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-green-700 mb-3">31–90 Days</h4>
               <div className="space-y-3">
                 {agingData.days31to90.length > 0 ? agingData.days31to90.map((item, index) => (
                   <div key={index} className="text-sm">
@@ -331,8 +353,8 @@ const AccountsPayable = () => {
                 )}
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-3">91–180 Days</h4>
+            <div className="bg-yellow-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-yellow-700 mb-3">91–180 Days</h4>
               <div className="space-y-3">
                 {agingData.days91to180.length > 0 ? agingData.days91to180.map((item, index) => (
                   <div key={index} className="text-sm">
@@ -344,8 +366,8 @@ const AccountsPayable = () => {
                 )}
               </div>
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-600 mb-3">180+ Days</h4>
+            <div className="bg-red-50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-red-700 mb-3">180+ Days</h4>
               <div className="space-y-3">
                 {agingData.over180Days.length > 0 ? agingData.over180Days.map((item, index) => (
                   <div key={index} className="text-sm">
@@ -362,31 +384,38 @@ const AccountsPayable = () => {
       </div>
 
       {/* Overdue Payables Table */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Overdue Payables</h3>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="w-1 h-6 bg-red-600 rounded-full mr-3"></div>
+            <h3 className="text-xl font-bold text-gray-900">Overdue Payables</h3>
+          </div>
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{overduePayables.length} Bills</span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Vendor</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Due Date</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Amount</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600 text-sm">Status</th>
+              <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vendor</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Due Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
                   <td colSpan="4" className="py-8 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : overduePayables.length > 0 ? (
                 overduePayables.map((payable, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{payable.vendor}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{payable.dueDate}</td>
-                    <td className="py-3 px-4 text-sm font-semibold text-gray-900">{payable.amount}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  <tr key={index} className="hover:bg-red-50 transition-colors duration-150">
+                    <td className="py-4 px-6 text-sm font-semibold text-gray-900">{payable.vendor}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 font-medium">{payable.dueDate}</td>
+                    <td className="py-4 px-6 text-sm font-bold text-gray-900">{payable.amount}</td>
+                    <td className="py-4 px-6 text-sm">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
                         {payable.status}
                       </span>
                     </td>
@@ -403,15 +432,18 @@ const AccountsPayable = () => {
       </div>
 
       {/* Bottom Overdue Payables Summary */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Overdue Payables</h3>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-6 bg-red-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900">Overdue Payables Summary</h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {overduePayables.length > 0 ? (
             overduePayables.slice(0, 4).map((payable, index) => (
-              <div key={index} className="text-sm">
-                <div className="font-medium text-gray-900">{payable.vendor}</div>
-                <div className="text-gray-600">Due: {payable.dueDate}</div>
-                <div className="font-semibold text-red-600">{payable.amount}</div>
+              <div key={index} className="bg-red-50 rounded-lg p-4 border border-red-100 hover:bg-red-100 transition-colors">
+                <div className="font-semibold text-gray-900 mb-1">{payable.vendor}</div>
+                <div className="text-sm text-gray-600 mb-2">Due: {payable.dueDate}</div>
+                <div className="text-lg font-bold text-red-600">{payable.amount}</div>
               </div>
             ))
           ) : (
