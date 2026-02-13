@@ -12,17 +12,13 @@ const GSTDashboard = () => {
   return (
     <div className="p-6 bg-white min-h-screen">
       {/* Top Summary Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹2,50,000</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">₹2,19,293.80</div>
           <div className="text-sm text-gray-500">GST Payable</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹1,00,000</div>
-          <div className="text-sm text-gray-500">GST Receivable</div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹1,50,000</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">₹1,96,422.85</div>
           <div className="text-sm text-gray-500">Net GST Payable</div>
         </div>
       </div>
