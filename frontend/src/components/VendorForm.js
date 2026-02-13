@@ -101,7 +101,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   const generateVendorCode = async () => {
     try {
       // First try to get existing vendors to calculate next code
-      const response = await fetch('http://localhost:5001/api/vendors');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       if (response.ok) {
         const vendors = await response.json();
         
@@ -263,7 +263,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     formDataUpload.append('documentType', documentType);
 
     try {
-      const response = await fetch('http://localhost:5001/api/ocr/extract', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
         method: 'POST',
         body: formDataUpload
       });
@@ -402,7 +402,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
       // Handle existing uploaded files (file paths)
-      window.open(`http://localhost:5001/api/vendors/download/${file}`, '_blank');
+      window.open(`https://nextbook-backend.nextsphere.co.in/api/vendors/download/${file}`, '_blank');
     }
   };
 
@@ -458,8 +458,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingVendor 
-        ? `http://localhost:5001/api/vendors/${editingVendor._id}`
-        : 'http://localhost:5001/api/vendors';
+        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
       const method = editingVendor ? 'PUT' : 'POST';
       
       const response = await fetch(url, {

@@ -15,7 +15,7 @@ const TDSReconciliation = () => {
   const fetchTDSData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/tds');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/tds');
       if (response.ok) {
         const data = await response.json();
         setTdsData(data);

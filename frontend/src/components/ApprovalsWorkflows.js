@@ -15,7 +15,7 @@ const ApprovalsWorkflows = () => {
   const showRejectionReason = async (itemId, itemType) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/manager/rejection-reason/${itemId}/${itemType}`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/manager/rejection-reason/${itemId}/${itemType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -39,7 +39,7 @@ const ApprovalsWorkflows = () => {
   const sendReminder = async (itemId, itemType) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/send-reminder', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/send-reminder', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -90,7 +90,7 @@ const ApprovalsWorkflows = () => {
   const fetchMyRequests = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/my-requests', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/my-requests', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +112,7 @@ const ApprovalsWorkflows = () => {
   const fetchPendingApprovals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/pending', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/pending', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -135,7 +135,7 @@ const ApprovalsWorkflows = () => {
   const handleApprove = async (id, type) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/action', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -162,7 +162,7 @@ const ApprovalsWorkflows = () => {
   const handleReject = async (id, type) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/action', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

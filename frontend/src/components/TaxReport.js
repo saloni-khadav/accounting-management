@@ -16,7 +16,7 @@ const TaxReport = () => {
   const fetchTaxData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5001/api/tax-report/summary?timePeriod=${timePeriod}`, {
+      const response = await axios.get(`https://nextbook-backend.nextsphere.co.in/api/tax-report/summary?timePeriod=${timePeriod}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTaxData(response.data.data);

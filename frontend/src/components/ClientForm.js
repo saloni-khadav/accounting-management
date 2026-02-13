@@ -116,7 +116,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   const generateClientCode = async () => {
     try {
       // First try to get existing clients to calculate next code
-      const response = await fetch('http://localhost:5001/api/clients');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
       if (response.ok) {
         const clients = await response.json();
         
@@ -278,7 +278,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     formDataUpload.append('documentType', documentType);
 
     try {
-      const response = await fetch('http://localhost:5001/api/ocr/extract', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
         method: 'POST',
         body: formDataUpload
       });
@@ -417,7 +417,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
       // Handle existing uploaded files (file paths)
-      window.open(`http://localhost:5001/api/clients/download/${file}`, '_blank');
+      window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${file}`, '_blank');
     }
   };
 
@@ -496,8 +496,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingClient 
-        ? `http://localhost:5001/api/clients/${editingClient._id}`
-        : 'http://localhost:5001/api/clients';
+        ? `https://nextbook-backend.nextsphere.co.in/api/clients/${editingClient._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/clients';
       const method = editingClient ? 'PUT' : 'POST';
       
       const response = await fetch(url, {

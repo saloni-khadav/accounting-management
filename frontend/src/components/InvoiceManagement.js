@@ -39,7 +39,7 @@ const InvoiceManagement = ({ setActivePage }) => {
     console.log('Fetching invoices...');
     try {
       const token = localStorage.getItem('token');
-      let url = 'http://localhost:5001/api/invoices';
+      let url = 'https://nextbook-backend.nextsphere.co.in/api/invoices';
       const params = new URLSearchParams();
       
       if (statusFilter) params.append('status', statusFilter);
@@ -53,14 +53,14 @@ const InvoiceManagement = ({ setActivePage }) => {
       console.log('Invoices fetched:', data.length);
       
       // Fetch collections and credit notes to calculate received amounts
-      const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+      const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
       let collections = [];
       if (collectionsResponse.ok) {
         collections = await collectionsResponse.json();
         console.log('Collections fetched:', collections.length);
       }
       
-      const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+      const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -124,7 +124,7 @@ const InvoiceManagement = ({ setActivePage }) => {
   const handleDeleteInvoice = async (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/invoices/${invoiceId}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/invoices/${invoiceId}`, {
           method: 'DELETE',
         });
         
@@ -140,7 +140,7 @@ const InvoiceManagement = ({ setActivePage }) => {
 
   const handleApprovalChange = async (invoiceId, newApprovalStatus) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/invoices/${invoiceId}/approval`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/invoices/${invoiceId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

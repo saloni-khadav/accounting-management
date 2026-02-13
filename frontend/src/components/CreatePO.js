@@ -38,7 +38,7 @@ const CreatePO = () => {
 
   const getNextPONumber = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/pos/next-number');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos/next-number');
       if (response.ok) {
         const data = await response.json();
         return data.poNumber;
@@ -94,7 +94,7 @@ const CreatePO = () => {
 
   const fetchPOs = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/pos');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos');
       if (response.ok) {
         const posData = await response.json();
         setPOs(posData);
@@ -160,7 +160,7 @@ const CreatePO = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/clients');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
       if (response.ok) {
         const clientsData = await response.json();
         setClients(clientsData);
@@ -175,7 +175,7 @@ const CreatePO = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -393,8 +393,8 @@ const CreatePO = () => {
 
       const isEditing = editingPO && editingPO._id;
       const url = isEditing 
-        ? `http://localhost:5001/api/pos/${editingPO._id}`
-        : 'http://localhost:5001/api/pos';
+        ? `https://nextbook-backend.nextsphere.co.in/api/pos/${editingPO._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/pos';
       const method = isEditing ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -472,7 +472,7 @@ const CreatePO = () => {
   const handleDelete = async (poId) => {
     if (window.confirm('Are you sure you want to delete this Proforma Invoice?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/pos/${poId}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/pos/${poId}`, {
           method: 'DELETE'
         });
 

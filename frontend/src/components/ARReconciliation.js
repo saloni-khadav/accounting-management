@@ -22,9 +22,9 @@ const ARReconciliation = () => {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       
       const [invoicesResponse, collectionsResponse, creditNotesResponse] = await Promise.all([
-        fetch('http://localhost:5001/api/invoices', { headers }),
-        fetch('http://localhost:5001/api/collections', { headers }),
-        fetch('http://localhost:5001/api/credit-notes', { headers })
+        fetch('https://nextbook-backend.nextsphere.co.in/api/invoices', { headers }),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/collections', { headers }),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', { headers })
       ]);
       
       if (invoicesResponse.ok) {

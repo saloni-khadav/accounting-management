@@ -23,7 +23,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   // Generate automatic note number
   const generateNoteNumber = async (type) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/credit-debit-notes/next-note-number/${encodeURIComponent(type)}`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/next-note-number/${encodeURIComponent(type)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -48,7 +48,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     // Fetch existing notes for number generation
     const fetchNotes = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/credit-debit-notes', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -65,7 +65,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     // Fetch vendors
     const fetchVendors = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/vendors', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -205,7 +205,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         const existingAttachments = editingNote.attachments.map(attachment => ({
           fileName: attachment.fileName,
           fileSize: attachment.fileSize,
-          fileUrl: `http://localhost:5001${attachment.fileUrl}`,
+          fileUrl: `https://nextbook-backend.nextsphere.co.in${attachment.fileUrl}`,
           uploadedAt: attachment.uploadedAt,
           isExisting: true // Flag to identify existing files
         }));
@@ -284,7 +284,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       // For existing files, download from server
       try {
         const filename = attachment.fileUrl.split('/').pop();
-        const response = await fetch(`http://localhost:5001/api/credit-debit-notes/download/${filename}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/download/${filename}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -434,7 +434,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const fetchVendorInvoices = async (vendorName) => {
     try {
-      const response = await fetch('http://localhost:5001/api/bills', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -443,7 +443,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         const bills = await response.json();
         
         // Get payments to calculate paid amounts
-        const paymentsResponse = await fetch('http://localhost:5001/api/payments', {
+        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -557,7 +557,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const userResponse = await fetch('http://localhost:5001/api/auth/me', {
+      const userResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await userResponse.json();
@@ -598,8 +598,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       }
       
       const url = editingNote 
-        ? `http://localhost:5001/api/credit-debit-notes/${editingNote._id}`
-        : 'http://localhost:5001/api/credit-debit-notes';
+        ? `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${editingNote._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes';
       const method = editingNote ? 'PUT' : 'POST';
 
       const response = await fetch(url, {

@@ -14,9 +14,9 @@ const DebtorsAging = () => {
     try {
       const token = localStorage.getItem('token');
       const [invoicesRes, collectionsRes, creditNotesRes] = await Promise.all([
-        fetch('http://localhost:5001/api/invoices'),
-        fetch('http://localhost:5001/api/collections'),
-        fetch('http://localhost:5001/api/credit-notes', {
+        fetch('https://nextbook-backend.nextsphere.co.in/api/invoices'),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/collections'),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);

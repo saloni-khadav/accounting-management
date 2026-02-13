@@ -154,7 +154,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -292,7 +292,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/vendors');
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
         if (response.ok) {
           const vendorsData = await response.json();
           setVendors(vendorsData);
@@ -324,13 +324,13 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const fetchApprovedPOs = async () => {
       try {
         // Use the new available POs endpoint
-        const response = await fetch('http://localhost:5001/api/purchase-orders/available');
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/available');
         if (response.ok) {
           const availablePOsData = await response.json();
           setAvailablePOs(availablePOsData);
           
           // Also fetch all approved POs for reference
-          const allPOsResponse = await fetch('http://localhost:5001/api/purchase-orders');
+          const allPOsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders');
           if (allPOsResponse.ok) {
             const allPOsData = await allPOsResponse.json();
             const approved = allPOsData.filter(po => 
@@ -760,7 +760,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const userResponse = await fetch('http://localhost:5001/api/auth/me', {
+      const userResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await userResponse.json();
@@ -791,8 +791,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
       const isEditing = editingBill && editingBill._id;
       const url = isEditing 
-        ? `http://localhost:5001/api/bills/${editingBill._id}`
-        : 'http://localhost:5001/api/bills';
+        ? `https://nextbook-backend.nextsphere.co.in/api/bills/${editingBill._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/bills';
       const method = isEditing ? 'PUT' : 'POST';
 
       // Create FormData for file upload
@@ -832,7 +832,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         
         // Refresh available POs after saving bill
         if (billData.referenceNumber) {
-          const availablePOsResponse = await fetch('http://localhost:5001/api/purchase-orders/available');
+          const availablePOsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/available');
           if (availablePOsResponse.ok) {
             const availablePOsData = await availablePOsResponse.json();
             setAvailablePOs(availablePOsData);

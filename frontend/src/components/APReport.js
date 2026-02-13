@@ -20,9 +20,9 @@ const APReport = () => {
     setLoading(true);
     try {
       const [billsResponse, paymentsResponse, notesResponse] = await Promise.all([
-        fetch('http://localhost:5001/api/bills'),
-        fetch('http://localhost:5001/api/payments'),
-        fetch('http://localhost:5001/api/credit-debit-notes', {
+        fetch('https://nextbook-backend.nextsphere.co.in/api/bills'),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/payments'),
+        fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

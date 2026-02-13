@@ -20,7 +20,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const fetchUserRole = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -38,7 +38,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/credit-notes', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -100,7 +100,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
     if (window.confirm('Are you sure you want to delete this credit note?')) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5001/api/credit-notes/${creditNoteId}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-notes/${creditNoteId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -121,7 +121,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const handleApprovalChange = async (creditNoteId, approvalStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/credit-notes/${creditNoteId}/approval`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-notes/${creditNoteId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -312,7 +312,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
           try {
             const token = localStorage.getItem('token');
             if (editingCreditNote) {
-              const response = await fetch(`http://localhost:5001/api/credit-notes/${editingCreditNote._id}`, {
+              const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-notes/${editingCreditNote._id}`, {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -327,7 +327,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 ));
               }
             } else {
-              const response = await fetch('http://localhost:5001/api/credit-notes', {
+              const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

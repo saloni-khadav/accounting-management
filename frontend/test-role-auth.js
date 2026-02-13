@@ -2,7 +2,7 @@
 // Run this in browser console or as a Node.js script
 
 const testRoleAuth = async () => {
-  const baseUrl = 'http://localhost:5001/api/auth';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in/api/auth';
   
   console.log('🧪 Testing Role-Based Authentication...\n');
   

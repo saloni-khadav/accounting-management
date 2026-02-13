@@ -223,7 +223,7 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
                     <button
-                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.panCard}`, '_blank')}
+                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.panCard}`, '_blank')}
                       className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
                     >
                       <Download size={16} className="mr-1" />
@@ -238,7 +238,7 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
                     <button
-                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.aadharCard}`, '_blank')}
+                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.aadharCard}`, '_blank')}
                       className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
                     >
                       <Download size={16} className="mr-1" />
@@ -253,7 +253,7 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
                     <button
-                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.gstCertificate}`, '_blank')}
+                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.gstCertificate}`, '_blank')}
                       className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
                     >
                       <Download size={16} className="mr-1" />
@@ -268,7 +268,7 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
                     <button
-                      onClick={() => window.open(`http://localhost:5001/api/clients/download/${client.documents.bankStatement}`, '_blank')}
+                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.bankStatement}`, '_blank')}
                       className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
                     >
                       <Download size={16} className="mr-1" />
@@ -288,7 +288,7 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
                           <p className="text-xs text-green-600">✓ Uploaded</p>
                         </div>
                         <button
-                          onClick={() => window.open(`http://localhost:5001/api/clients/download/${doc}`, '_blank')}
+                          onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${doc}`, '_blank')}
                           className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
                         >
                           <Download size={16} className="mr-1" />

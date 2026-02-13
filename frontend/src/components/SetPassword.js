@@ -26,7 +26,7 @@ const SetPassword = ({ onPasswordSet, token }) => {
     if (!validateForm()) return;
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/set-password', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/set-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

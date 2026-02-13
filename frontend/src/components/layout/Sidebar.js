@@ -47,7 +47,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
   const fetchPendingCount = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/manager/pending', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/pending', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

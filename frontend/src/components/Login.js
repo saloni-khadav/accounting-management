@@ -17,7 +17,7 @@ const Login = ({ onLogin, onSwitchToSignup, onBackToLanding }) => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

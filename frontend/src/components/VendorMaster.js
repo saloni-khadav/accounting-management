@@ -20,7 +20,7 @@ const VendorMaster = () => {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/vendors');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       const data = await response.json();
       setVendors(data);
     } catch (error) {
@@ -60,8 +60,8 @@ const VendorMaster = () => {
   const handleAddVendor = async (vendorData) => {
     try {
       const url = editingVendor 
-        ? `http://localhost:5001/api/vendors/${editingVendor._id}`
-        : 'http://localhost:5001/api/vendors';
+        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
       const method = editingVendor ? 'PUT' : 'POST';
       
       const response = await fetch(url, {

@@ -49,7 +49,7 @@ const AssetsReport = () => {
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/assets');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/assets');
       const data = await response.json();
       setAssets(data);
       setFilteredAssets(data);

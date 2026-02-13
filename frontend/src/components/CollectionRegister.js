@@ -74,7 +74,7 @@ const CollectionRegister = () => {
   const fetchUserRole = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -90,7 +90,7 @@ const CollectionRegister = () => {
 
   const fetchCollections = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/collections');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
       const data = await response.json();
       setCollections(data);
     } catch (error) {
@@ -100,7 +100,7 @@ const CollectionRegister = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/collections/stats/summary');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections/stats/summary');
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -110,7 +110,7 @@ const CollectionRegister = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/clients');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
       const data = await response.json();
       setClients(data);
     } catch (error) {
@@ -120,7 +120,7 @@ const CollectionRegister = () => {
 
   const fetchInvoices = async (clientName) => {
     try {
-      const response = await fetch('http://localhost:5001/api/invoices');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
       
       if (!response.ok) {
         setInvoices([]);
@@ -138,14 +138,14 @@ const CollectionRegister = () => {
       const token = localStorage.getItem('token');
       
       // Fetch collections
-      const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+      const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
       let collections = [];
       if (collectionsResponse.ok) {
         collections = await collectionsResponse.json();
       }
       
       // Fetch credit notes
-      const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+      const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       let creditNotes = [];
@@ -260,7 +260,7 @@ const CollectionRegister = () => {
       
       console.log('Submitting data:', submitData);
       
-      const response = await fetch('http://localhost:5001/api/collections', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
@@ -298,7 +298,7 @@ const CollectionRegister = () => {
   const handleApprovalChange = async (collectionId, approvalStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/collections/${collectionId}/approval`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/collections/${collectionId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

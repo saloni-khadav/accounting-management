@@ -32,7 +32,7 @@ const DocumentUpload = ({ onDataExtracted, documentType, label }) => {
       formData.append('documentType', documentType);
       formData.append('userId', 'current-user');
 
-      const response = await fetch('http://localhost:5001/api/ocr/process-document', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/process-document', {
         method: 'POST',
         body: formData,
       });

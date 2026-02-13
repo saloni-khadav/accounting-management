@@ -32,7 +32,7 @@ const Signup = ({ onSignup, onSwitchToLogin, onBackToLanding }) => {
     if (!validateForm()) return;
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/signup', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

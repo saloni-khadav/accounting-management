@@ -15,7 +15,7 @@ const GSTReconciliation = () => {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/bills');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
       if (response.ok) {
         const data = await response.json();
         setBills(data.filter(bill => bill.approvalStatus === 'approved'));
@@ -28,7 +28,7 @@ const GSTReconciliation = () => {
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/invoices');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
       if (response.ok) {
         const data = await response.json();
         setInvoices(data.filter(inv => inv.status !== 'Draft' && inv.status !== 'Cancelled'));

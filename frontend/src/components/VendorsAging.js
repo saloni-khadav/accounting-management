@@ -12,12 +12,12 @@ const VendorsAging = () => {
 
   const fetchBillsAging = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/bills');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
       if (response.ok) {
         const bills = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();

@@ -40,7 +40,7 @@ const Depreciation = () => {
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/assets');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/assets');
       const data = await response.json();
       setAssets(data);
     } catch (error) {
@@ -69,7 +69,7 @@ const Depreciation = () => {
 
   const fetchDepreciationSummary = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/assets');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/assets');
       const assetsData = await response.json();
       
       // Filter assets based on selection
@@ -107,7 +107,7 @@ const Depreciation = () => {
 
   const fetchMonthlyTrend = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/depreciation/trend');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/depreciation/trend');
       const data = await response.json();
       setMonthlyDepreciation(data);
     } catch (error) {
@@ -117,7 +117,7 @@ const Depreciation = () => {
 
   const fetchDepreciationSchedule = async (assetId) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/depreciation/schedule/${assetId}`);
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/depreciation/schedule/${assetId}`);
       const data = await response.json();
       setDepreciationSchedule(data.schedule || []);
     } catch (error) {
@@ -171,7 +171,7 @@ const Depreciation = () => {
     
     setIsCalculating(true);
     try {
-      const response = await fetch('http://localhost:5001/api/depreciation/run-monthly', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/depreciation/run-monthly', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})

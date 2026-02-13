@@ -27,7 +27,7 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -103,7 +103,7 @@ const Profile = () => {
       formData.append('document', file);
       formData.append('documentType', 'gstCertificate');
 
-      const ocrResponse = await fetch('http://localhost:5001/api/ocr/extract', {
+      const ocrResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
         method: 'POST',
         body: formData,
       });
@@ -115,7 +115,7 @@ const Profile = () => {
         
         // Step 2: Auto-verify GST and fetch details
         const token = localStorage.getItem('token');
-        const verifyResponse = await fetch('http://localhost:5001/api/gst/verify', {
+        const verifyResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/gst/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ const Profile = () => {
       formData.append('document', file);
       formData.append('documentType', 'mcaCertificate');
 
-      const response = await fetch('http://localhost:5001/api/ocr/extract', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
         method: 'POST',
         body: formData,
       });
@@ -193,7 +193,7 @@ const Profile = () => {
       formData.append('document', file);
       formData.append('documentType', 'msmeCertificate');
 
-      const response = await fetch('http://localhost:5001/api/ocr/extract', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
         method: 'POST',
         body: formData,
       });
@@ -230,7 +230,7 @@ const Profile = () => {
     setIsProcessing(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/gst/verify', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/gst/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ const Profile = () => {
         });
       }
 
-      const response = await fetch('http://localhost:5001/api/auth/profile', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

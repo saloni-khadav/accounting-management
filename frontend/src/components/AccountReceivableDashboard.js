@@ -28,7 +28,7 @@ const AccountReceivableDashboard = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/clients');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
       if (response.ok) {
         const data = await response.json();
         setClients(data);
@@ -46,7 +46,7 @@ const AccountReceivableDashboard = () => {
       if (selectedClient !== 'All Clients') params.append('client', selectedClient);
       
       const queryString = params.toString();
-      const baseUrl = 'http://localhost:5001/api/ar-dashboard';
+      const baseUrl = 'https://nextbook-backend.nextsphere.co.in/api/ar-dashboard';
       
       const [statsRes, revenueRes, overdueRes] = await Promise.all([
         fetch(`${baseUrl}/stats?${queryString}`),

@@ -27,7 +27,7 @@ const Approvals = () => {
       console.log('Fetching payments directly from payments API');
       
       // Try direct payments API with proper authentication
-      const response = await fetch('http://localhost:5001/api/payments', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -93,7 +93,7 @@ const Approvals = () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching approvals with token:', token);
-      const response = await fetch('http://localhost:5001/api/manager/pending', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/pending', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -136,7 +136,7 @@ const Approvals = () => {
       
       if (type === 'Payment') {
         // Use same manager action endpoint as bills
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -158,7 +158,7 @@ const Approvals = () => {
       
       if (type === 'Proforma Invoice') {
         // Handle Proforma Invoice approval
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -180,7 +180,7 @@ const Approvals = () => {
       
       if (type === 'Tax Invoice') {
         // Handle Tax Invoice approval
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -202,7 +202,7 @@ const Approvals = () => {
       
       if (type === 'Purchase Order') {
         // Handle Purchase Order approval
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -223,7 +223,7 @@ const Approvals = () => {
       }
       
       // Handle other approvals (bills, etc.)
-      const response = await fetch('http://localhost:5001/api/manager/action', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -261,7 +261,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Payment') {
         // Use same manager action endpoint as bills
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -291,7 +291,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Proforma Invoice') {
         // Handle Proforma Invoice rejection
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -321,7 +321,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Tax Invoice') {
         // Handle Tax Invoice rejection
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -351,7 +351,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Purchase Order') {
         // Handle Purchase Order rejection
-        const response = await fetch('http://localhost:5001/api/manager/action', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -380,7 +380,7 @@ const Approvals = () => {
       }
       
       // Handle other rejections
-      const response = await fetch('http://localhost:5001/api/manager/action', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

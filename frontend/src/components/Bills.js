@@ -40,7 +40,7 @@ const Bills = () => {
   const fetchUserRole = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await response.json();
@@ -53,12 +53,12 @@ const Bills = () => {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/bills');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
       if (response.ok) {
         const data = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();
@@ -106,7 +106,7 @@ const Bills = () => {
   const handleDeleteBill = async (billId) => {
     if (window.confirm('Are you sure you want to delete this bill?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/bills/${billId}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}`, {
           method: 'DELETE',
         });
         
@@ -132,7 +132,7 @@ const Bills = () => {
   const handleStatusChange = async (billId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/bills/${billId}/status`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ const Bills = () => {
   const handleApprovalAction = async (billId, action) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/bills/${billId}/approval`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

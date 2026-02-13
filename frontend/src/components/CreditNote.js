@@ -159,7 +159,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -189,7 +189,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/clients');
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
         if (response.ok) {
           const clientsData = await response.json();
           setClients(clientsData);
@@ -275,19 +275,19 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const fetchInvoicesForClient = async (clientName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/invoices');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
       if (response.ok) {
         const allInvoices = await response.json();
         
         // Fetch collections
-        const collectionsResponse = await fetch('http://localhost:5001/api/collections');
+        const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
         let collections = [];
         if (collectionsResponse.ok) {
           collections = await collectionsResponse.json();
         }
         
         // Fetch credit notes
-        const creditNotesResponse = await fetch('http://localhost:5001/api/credit-notes', {
+        const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         let creditNotes = [];

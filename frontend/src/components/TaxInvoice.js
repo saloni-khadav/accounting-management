@@ -263,7 +263,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/clients');
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
         if (response.ok) {
           const clientsData = await response.json();
           setClients(clientsData);
@@ -287,7 +287,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       }
       
       try {
-        const response = await fetch(`http://localhost:5001/api/proforma-invoices?customerName=${encodeURIComponent(selectedClient.clientName)}&status=Approved`);
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/proforma-invoices?customerName=${encodeURIComponent(selectedClient.clientName)}&status=Approved`);
         if (response.ok) {
           const proformas = await response.json();
           setApprovedProformas(proformas);
@@ -358,7 +358,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -748,8 +748,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
       const isEditing = editingInvoice && editingInvoice._id;
       const url = isEditing 
-        ? `http://localhost:5001/api/invoices/${editingInvoice._id}`
-        : 'http://localhost:5001/api/invoices';
+        ? `https://nextbook-backend.nextsphere.co.in/api/invoices/${editingInvoice._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/invoices';
       const method = isEditing ? 'PUT' : 'POST';
 
       // Create FormData for file upload
