@@ -174,47 +174,73 @@ const TDSPurchases = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       {/* Header */}
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">TDS on Purchases</h1>
-      <p className="text-gray-600 mb-6">Consolidated TDS data from Bills, Payments, and Credit/Debit Notes</p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">TDS on Purchases</h1>
+        <p className="text-gray-600 text-lg mt-1">Consolidated TDS data from Bills, Payments, and Credit/Debit Notes</p>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg text-gray-700 mb-2">Total TDS</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.totalTds.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-blue-700">Total TDS</h3>
+            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-blue-900">₹{summaryData.totalTds.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg text-gray-700 mb-2">Paid</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.paid.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-green-700">Paid</h3>
+            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-green-900">₹{summaryData.paid.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg text-gray-700 mb-2">Payable</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.payable.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-yellow-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-yellow-700">Payable</h3>
+            <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-yellow-900">₹{summaryData.payable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg text-gray-700 mb-2">Interest</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 break-words">₹{summaryData.interest.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-purple-700">Interest</h3>
+            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-3xl font-bold text-purple-900">₹{summaryData.interest.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
+        <div className="flex items-center mb-4">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h3 className="text-xl font-bold text-gray-900">Search & Export</h3>
+        </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="relative w-full md:w-80">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search by vendor, invoice, or PAN..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80"
             />
           </div>
           <button 
             onClick={handleExportToExcel}
-            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
           >
             <Download className="w-4 h-4" />
             Export
@@ -223,8 +249,14 @@ const TDSPurchases = () => {
       </div>
 
       {/* Transaction Details Table */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Transaction Details</h2>
+      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+            <h2 className="text-xl font-bold text-gray-900">Transaction Details</h2>
+          </div>
+          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{transactionsData.length} Transactions</span>
+        </div>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="text-center py-8 text-gray-500">
@@ -237,58 +269,61 @@ const TDSPurchases = () => {
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Source</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Vendor Name</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Invoice No.</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Date</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">PAN No.</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">TDS Section</th>
-                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Taxable Value</th>
-                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">TDS Amount</th>
-                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Interest</th>
-                  <th className="text-right py-4 px-3 font-semibold text-gray-900 text-sm">Total TDS Payable</th>
-                  <th className="text-center py-4 px-3 font-semibold text-gray-900 text-sm">Status</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Chalan No.</th>
-                  <th className="text-left py-4 px-3 font-semibold text-gray-900 text-sm">Chalan Date</th>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Source</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vendor Name</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Invoice No.</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Date</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">PAN No.</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">TDS Section</th>
+                  <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Taxable Value</th>
+                  <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">TDS Amount</th>
+                  <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Interest</th>
+                  <th className="text-right py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Total TDS Payable</th>
+                  <th className="text-center py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Status</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Chalan No.</th>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Chalan Date</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {transactionsData.map((transaction, index) => (
-                  <tr key={transaction._id || index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                  <tr key={transaction._id || index} className="hover:bg-blue-50 transition-colors duration-150">
+                    <td className="py-4 px-4 text-center">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
                         transaction.source === 'Payment' 
-                          ? 'bg-blue-100 text-blue-800' 
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200' 
                           : transaction.source === 'Credit Note'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-100 text-green-800 border border-green-200'
                           : transaction.source === 'Debit Note'
-                          ? 'bg-orange-100 text-orange-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                          : 'bg-gray-100 text-gray-800 border border-gray-200'
                       }`}>
                         {transaction.source}
                       </span>
                     </td>
-                    <td className="py-4 px-3 text-gray-900 font-medium">{transaction.vendorName}</td>
-                    <td className="py-4 px-3 text-gray-900">{transaction.invoiceNo}</td>
-                    <td className="py-4 px-3 text-gray-900">{new Date(transaction.invoiceDate).toLocaleDateString('en-IN')}</td>
-                    <td className="py-4 px-3 text-gray-900 font-mono text-sm">{transaction.panNo}</td>
-                    <td className="py-4 px-3 text-gray-900">{transaction.tdsSection}</td>
-                    <td className="py-4 px-3 text-gray-900 text-right font-semibold">₹{transaction.taxableValue.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-3 text-gray-900 text-right font-semibold">₹{transaction.tdsAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-3 text-gray-900 text-right">{transaction.interest > 0 ? `₹${transaction.interest.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-4 px-3 text-gray-900 text-right font-bold">₹{transaction.totalTdsPayable.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-3 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    <td className="py-4 px-4 text-gray-900 font-semibold">{transaction.vendorName}</td>
+                    <td className="py-4 px-4 text-gray-700 font-medium">{transaction.invoiceNo}</td>
+                    <td className="py-4 px-4 text-gray-700 font-medium">{new Date(transaction.invoiceDate).toLocaleDateString('en-IN')}</td>
+                    <td className="py-4 px-4 text-gray-700 font-mono text-sm">{transaction.panNo}</td>
+                    <td className="py-4 px-4 text-gray-700 font-medium">{transaction.tdsSection}</td>
+                    <td className="py-4 px-4 text-gray-900 text-right font-bold">₹{transaction.taxableValue.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-4 text-gray-900 text-right font-bold">₹{transaction.tdsAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-4 text-gray-700 text-right font-medium">{transaction.interest > 0 ? `₹${transaction.interest.toLocaleString('en-IN')}` : '—'}</td>
+                    <td className="py-4 px-4 text-gray-900 text-right font-bold">₹{transaction.totalTdsPayable.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-4 text-center">
+                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
                         transaction.status === 'Paid' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-green-100 text-green-800 border border-green-200' 
+                          : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                       }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${
+                          transaction.status === 'Paid' ? 'bg-green-500' : 'bg-yellow-500'
+                        }`}></span>
                         {transaction.status}
                       </span>
                     </td>
-                    <td className="py-4 px-3 text-gray-900">{transaction.chalanNo || '—'}</td>
-                    <td className="py-4 px-3 text-gray-900">{transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-IN') : '—'}</td>
+                    <td className="py-4 px-4 text-gray-700">{transaction.chalanNo || '—'}</td>
+                    <td className="py-4 px-4 text-gray-700">{transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-IN') : '—'}</td>
                   </tr>
                 ))}
               </tbody>

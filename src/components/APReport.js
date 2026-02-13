@@ -285,12 +285,15 @@ const APReport = () => {
   const periods = ['This Month', 'Last Month', 'First Quarter', 'Second Quarter', 'Third Quarter', 'Fourth Quarter', 'Last Quarter', 'This Year', 'Last Year'];
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">AP Report</h1>
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">AP Report</h1>
+        <p className="text-gray-600 text-lg mt-1">Accounts payable analytics and insights</p>
+      </div>
 
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-4 rounded-lg border">
-          <label className="text-gray-600 mb-2 block">Period:</label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <label className="text-gray-700 font-semibold mb-3 block">Period:</label>
           <div className="relative">
             <div 
               className="flex items-center justify-between bg-white border rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50"
@@ -317,8 +320,8 @@ const APReport = () => {
             )}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg border">
-          <label className="text-gray-600 mb-2 block">Vendor:</label>
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <label className="text-gray-700 font-semibold mb-3 block">Vendor:</label>
           <div className="relative">
             <div 
               className="flex items-center justify-between bg-white border rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50"
@@ -356,32 +359,35 @@ const APReport = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Invoices Processed</p>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : invoicesProcessed}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <p className="text-sm font-medium text-blue-700 mb-2">Invoices Processed</p>
+          <p className="text-4xl font-bold text-blue-900">{loading ? '...' : invoicesProcessed}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Fully Paid Invoices</p>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : fullyPaidInvoices}</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
+          <p className="text-sm font-medium text-green-700 mb-2">Fully Paid Invoices</p>
+          <p className="text-4xl font-bold text-green-900">{loading ? '...' : fullyPaidInvoices}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Partially Paid Invoices</p>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : partiallyPaidInvoices}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-yellow-200">
+          <p className="text-sm font-medium text-yellow-700 mb-2">Partially Paid Invoices</p>
+          <p className="text-4xl font-bold text-yellow-900">{loading ? '...' : partiallyPaidInvoices}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Total Paid</p>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold break-words">{loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}</p>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
+          <p className="text-sm font-medium text-purple-700 mb-2">Total Paid</p>
+          <p className="text-3xl font-bold text-purple-900">{loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}</p>
         </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <p className="text-gray-600 mb-2">Total Credit Notes</p>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-600 break-words">{loading ? '...' : totalCreditNotesCount}</p>
-          <p className="text-sm text-gray-500 mt-1 break-words">₹{totalCreditNotesAmount.toLocaleString('en-IN')}</p>
+        <div className="bg-gradient-to-br from-sky-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <p className="text-sm font-medium text-blue-700 mb-2">Total Credit Notes</p>
+          <p className="text-4xl font-bold text-blue-900">{loading ? '...' : totalCreditNotesCount}</p>
+          <p className="text-sm text-blue-600 mt-1 font-semibold">₹{totalCreditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg border">
-        <h2 className="text-xl font-semibold mb-6">Invoices by Vendor</h2>
+      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+          <h2 className="text-xl font-bold text-gray-900">Invoices by Vendor</h2>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <div className="text-gray-500">Loading chart data...</div>
