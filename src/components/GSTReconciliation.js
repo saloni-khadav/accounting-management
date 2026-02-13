@@ -1,303 +1,272 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertTriangle, XCircle, IndianRupee, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Search, Download, Upload, FileText, AlertCircle, CheckCircle, RefreshCw, Filter } from 'lucide-react';
 
 const GSTReconciliation = () => {
-  const [bills, setBills] = useState([]);
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [gstData, setGstData] = useState([]);
+  const [filters, setFilters] = useState({
+    period: '',
+    gstType: '',
+    status: '',
+    returnType: ''
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('2A-2B');
+
+  const mockGstData = [
+    {
+      id: 1,
+      gstin: '27AABCU9603R1ZX',
+      supplierName: 'ABC Suppliers Ltd',
+      invoiceNo: 'INV001',
+      invoiceDate: '2024-01-15',
+      invoiceValue: 118000,
+      taxableValue: 100000,
+      cgst: 9000,
+      sgst: 9000,
+      igst: 0,
+      status: 'Matched',
+      returnPeriod: '012024'
+    },
+    {
+      id: 2,
+      gstin: '29AABCU9603R1ZY',
+      supplierName: 'XYZ Trading Co',
+      invoiceNo: 'INV002',
+      invoiceDate: '2024-01-20',
+      invoiceValue: 59000,
+      taxableValue: 50000,
+      cgst: 4500,
+      sgst: 4500,
+      igst: 0,
+      status: 'Mismatched',
+      returnPeriod: '012024'
+    }
+  ];
 
   useEffect(() => {
-    fetchBills();
-    fetchInvoices();
+    setGstData(mockGstData);
   }, []);
 
-  const fetchBills = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:5001/api/bills');
-      if (response.ok) {
-        const data = await response.json();
-        setBills(data.filter(bill => bill.approvalStatus === 'approved'));
-      }
-    } catch (error) {
-      console.error('Error fetching bills:', error);
-    }
-    setLoading(false);
-  };
-
-  const fetchInvoices = async () => {
-    try {
-      const response = await fetch('http://localhost:5001/api/invoices');
-      if (response.ok) {
-        const data = await response.json();
-        setInvoices(data.filter(inv => inv.status !== 'Draft' && inv.status !== 'Cancelled'));
-      }
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Matched': return 'text-green-600 bg-green-100';
+      case 'Mismatched': return 'text-red-600 bg-red-100';
+      case 'Missing': return 'text-yellow-600 bg-yellow-100';
+      case 'Pending': return 'text-blue-600 bg-blue-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  // Calculate matched invoices (bills with proper GST)
-  const matchedInvoices = bills.filter(bill => 
-    bill.vendorGSTIN && bill.totalTax > 0
-  ).length;
+  const tabs = [
+    { id: '2A-2B', label: 'GSTR-2A vs 2B', count: 2 },
+    { id: '1-3B', label: 'GSTR-1 vs 3B', count: 0 },
+    { id: 'books', label: 'Books vs Returns', count: 1 }
+  ];
 
-  // Calculate mismatch invoices (bills with GST issues)
-  const mismatchInvoices = bills.filter(bill => 
-    (!bill.vendorGSTIN && bill.totalTax > 0) || 
-    (bill.vendorGSTIN && bill.totalTax === 0 && bill.grandTotal > 0)
+  const filteredData = gstData.filter(item =>
+    item.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.gstin.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const mismatchCount = mismatchInvoices.length;
-  const mismatchAmount = mismatchInvoices.reduce((sum, bill) => sum + bill.grandTotal, 0);
-
-  // Calculate missing invoices (bills without GSTIN)
-  const missingInvoices = bills.filter(bill => !bill.vendorGSTIN);
-  const missingCount = missingInvoices.length;
-  const missingAmount = missingInvoices.reduce((sum, bill) => sum + bill.grandTotal, 0);
-
-  // Calculate excess credit (total GST collected)
-  const excessCredit = bills.reduce((sum, bill) => sum + (bill.totalTax || 0), 0);
-
-  const exportToExcel = () => {
-    const purchaseData = bills.map(bill => ({
-      'Date': new Date(bill.billDate).toLocaleDateString('en-GB'),
-      'Vendor': bill.vendorName,
-      'Invoice No.': bill.billNumber,
-      'GSTIN': bill.vendorGSTIN || '-',
-      'Taxable Amount': bill.totalTaxableValue,
-      'GST Amount': bill.totalTax
-    }));
-    const salesData = invoices.map(invoice => ({
-      'Date': new Date(invoice.invoiceDate).toLocaleDateString('en-GB'),
-      'Customer': invoice.customerName,
-      'Invoice No.': invoice.invoiceNumber,
-      'GSTIN': invoice.customerGSTIN || '-',
-      'Taxable Amount': invoice.totalTaxableValue,
-      'GST Amount': invoice.totalTax
-    }));
-    const wb = XLSX.utils.book_new();
-    const ws1 = XLSX.utils.json_to_sheet(purchaseData);
-    const ws2 = XLSX.utils.json_to_sheet(salesData);
-    XLSX.utils.book_append_sheet(wb, ws1, 'Purchase Register');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Sales Register');
-    XLSX.writeFile(wb, `GST_Reconciliation_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
-  };
-
-  const exportPurchaseToExcel = () => {
-    const purchaseData = bills.map(bill => ({
-      'Date': new Date(bill.billDate).toLocaleDateString('en-GB'),
-      'Vendor': bill.vendorName,
-      'Invoice No.': bill.billNumber,
-      'GSTIN': bill.vendorGSTIN || '-',
-      'Taxable Amount': bill.totalTaxableValue,
-      'GST Amount': bill.totalTax
-    }));
-    const ws = XLSX.utils.json_to_sheet(purchaseData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Purchase Register');
-    XLSX.writeFile(wb, `GSTR-2B_Purchase_Register_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
-  };
-
-  const exportSalesToExcel = () => {
-    const salesData = invoices.map(invoice => ({
-      'Date': new Date(invoice.invoiceDate).toLocaleDateString('en-GB'),
-      'Customer': invoice.customerName,
-      'Invoice No.': invoice.invoiceNumber,
-      'GSTIN': invoice.customerGSTIN || '-',
-      'Taxable Amount': invoice.totalTaxableValue,
-      'GST Amount': invoice.totalTax
-    }));
-    const ws = XLSX.utils.json_to_sheet(salesData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sales Register');
-    XLSX.writeFile(wb, `GSTR-1_Sales_Register_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
-  };
 
   return (
-    <div className="bg-white p-4 md:p-8 rounded-lg shadow-sm">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4 sm:gap-0">
-        <h1 className="text-xl md:text-3xl font-semibold text-gray-800">GST Reconciliation</h1>
-      </div>
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="w-full">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">GST Reconciliation</h1>
+          <p className="text-gray-600 text-lg">Reconcile GST returns and identify discrepancies</p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Matched Invoices</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{matchedInvoices}</p>
-            </div>
-            <div className="p-2 sm:p-3 rounded-lg text-green-600 bg-green-50 flex-shrink-0">
-              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            </div>
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-gray-300">
+            <nav className="-mb-px flex space-x-8">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-3 px-2 border-b-2 font-semibold text-sm transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-400'
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`ml-2 py-0.5 px-2.5 rounded-full text-xs font-bold ${
+                    activeTab === tab.id ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Mismatch Invoices</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{mismatchCount}</p>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">₹ {mismatchAmount.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="p-2 sm:p-3 rounded-lg text-yellow-600 bg-yellow-50 flex-shrink-0">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Missing Invoices</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{missingCount}</p>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">₹ {missingAmount.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="p-2 sm:p-3 rounded-lg text-red-600 bg-red-50 flex-shrink-0">
-              <XCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Excess Credit</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">₹ {excessCredit.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="p-2 sm:p-3 rounded-lg text-blue-600 bg-blue-50 flex-shrink-0">
-              <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">GSTR-2B vs Purchase Register</h2>
-      
-      <div className="flex justify-end mb-3">
-        <button 
-          onClick={exportPurchaseToExcel}
-          className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-        >
-          <Download size={16} />
-          Export to Excel
-        </button>
-      </div>
-      
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Date</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Vendor</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Invoice No.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">GSTIN</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Taxable Amt.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">GST Amt.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="px-2 md:px-4 py-8 text-center text-gray-500">Loading...</td>
-                </tr>
-              ) : bills.length > 0 ? (
-                bills.map((bill, index) => {
-                  const hasGSTIN = bill.vendorGSTIN && bill.vendorGSTIN.length > 0;
-                  const hasGST = bill.totalTax > 0;
-                  const isMatched = hasGSTIN && hasGST;
-                  const isMismatch = (!hasGSTIN && hasGST) || (hasGSTIN && !hasGST && bill.grandTotal > 0);
-                  
-                  return (
-                    <tr key={index} className="border-t hover:bg-gray-50">
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">
-                        {new Date(bill.billDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{bill.vendorName}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{bill.billNumber}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{bill.vendorGSTIN || '-'}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">₹ {bill.totalTaxableValue.toLocaleString('en-IN')}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">₹ {bill.totalTax.toLocaleString('en-IN')}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <span className={`w-2 h-2 rounded-full inline-block ${
-                          isMatched ? 'bg-green-500' : isMismatch ? 'bg-orange-500' : 'bg-red-500'
-                        }`}></span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-2 md:px-4 py-8 text-center text-gray-500">No bills found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Filters & Actions */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Return Period</label>
+              <select
+                value={filters.period}
+                onChange={(e) => setFilters({...filters, period: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select Period</option>
+                <option value="012024">Jan 2024</option>
+                <option value="022024">Feb 2024</option>
+                <option value="032024">Mar 2024</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">GST Type</label>
+              <select
+                value={filters.gstType}
+                onChange={(e) => setFilters({...filters, gstType: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Types</option>
+                <option value="CGST">CGST</option>
+                <option value="SGST">SGST</option>
+                <option value="IGST">IGST</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Status</option>
+                <option value="Matched">Matched</option>
+                <option value="Mismatched">Mismatched</option>
+                <option value="Missing">Missing</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search GSTIN, supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            <button className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <Upload className="h-4 w-4 mr-2" />
+              Import GSTR Data
+            </button>
+            <button className="flex items-center px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <Download className="h-4 w-4 mr-2" />
+              Export Reconciliation
+            </button>
+            <button className="flex items-center px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Auto Reconcile
+            </button>
+          </div>
         </div>
-      </div>
 
-      <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 mt-8">GSTR-1 vs Sales Register</h2>
-      
-      <div className="flex justify-end mb-3">
-        <button 
-          onClick={exportSalesToExcel}
-          className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-        >
-          <Download size={16} />
-          Export to Excel
-        </button>
-      </div>
-      
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Date</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Customer</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Invoice No.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">GSTIN</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Taxable Amt.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">GST Amt.</th>
-                <th className="px-2 md:px-4 py-2 md:py-3 text-left text-xs md:text-sm font-medium text-gray-700">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-md border border-green-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-green-700 mb-1">Matched</p>
+                <p className="text-3xl font-bold text-green-900">1</p>
+                <p className="text-xs text-green-600 mt-1">Perfect match</p>
+              </div>
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl shadow-md border border-red-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-red-700 mb-1">Mismatched</p>
+                <p className="text-3xl font-bold text-red-900">1</p>
+                <p className="text-xs text-red-600 mt-1">Requires review</p>
+              </div>
+              <AlertCircle className="h-12 w-12 text-red-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md border border-blue-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-blue-700 mb-1">Total Value</p>
+                <p className="text-3xl font-bold text-blue-900">₹1,77,000</p>
+                <p className="text-xs text-blue-600 mt-1">Invoice value</p>
+              </div>
+              <FileText className="h-12 w-12 text-blue-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl shadow-md border border-orange-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-orange-700 mb-1">Tax Difference</p>
+                <p className="text-3xl font-bold text-orange-900">₹4,500</p>
+                <p className="text-xs text-orange-600 mt-1">Needs attention</p>
+              </div>
+              <Filter className="h-12 w-12 text-orange-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* GST Data Table */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200">
+          <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <h3 className="text-xl font-bold text-gray-900">GST Reconciliation Data - {tabs.find(t => t.id === activeTab)?.label}</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan="7" className="px-2 md:px-4 py-8 text-center text-gray-500">Loading...</td>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">GSTIN</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Supplier</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Invoice</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Value</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">CGST</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">SGST</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">IGST</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
-              ) : invoices.length > 0 ? (
-                invoices.map((invoice, index) => {
-                  const hasGSTIN = invoice.customerGSTIN && invoice.customerGSTIN.length > 0;
-                  const hasGST = invoice.totalTax > 0;
-                  const isMatched = hasGSTIN && hasGST;
-                  const isMismatch = (!hasGSTIN && hasGST) || (hasGSTIN && !hasGST && invoice.grandTotal > 0);
-                  
-                  return (
-                    <tr key={index} className="border-t hover:bg-gray-50">
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">
-                        {new Date(invoice.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{invoice.customerName}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{invoice.invoiceNumber}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">{invoice.customerGSTIN || '-'}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">₹ {invoice.totalTaxableValue.toLocaleString('en-IN')}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">₹ {invoice.totalTax.toLocaleString('en-IN')}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3">
-                        <span className={`w-2 h-2 rounded-full inline-block ${
-                          isMatched ? 'bg-green-500' : isMismatch ? 'bg-orange-500' : 'bg-red-500'
-                        }`}></span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="7" className="px-2 md:px-4 py-8 text-center text-gray-500">No invoices found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredData.map((item) => (
+                  <tr key={item.id} className="hover:bg-blue-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{item.gstin}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.supplierName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.invoiceNo}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.invoiceDate}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.invoiceValue.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.cgst.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.sgst.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.igst.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button className="text-blue-600 hover:text-blue-900 font-semibold mr-4">View</button>
+                      <button className="text-green-600 hover:text-green-900 font-semibold">Reconcile</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

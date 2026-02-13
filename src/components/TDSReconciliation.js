@@ -1,253 +1,231 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, AlertTriangle, Calendar, Download, IndianRupee } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Search, Download, Upload, FileText, Calendar, Filter, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const TDSReconciliation = () => {
   const [tdsData, setTdsData] = useState([]);
+  const [filters, setFilters] = useState({
+    fromDate: '',
+    toDate: '',
+    status: '',
+    deductorType: ''
+  });
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedSection, setSelectedSection] = useState('All');
-  const [selectedFilter, setSelectedFilter] = useState('All');
+
+  const mockTdsData = [
+    {
+      id: 1,
+      challanNo: 'TDS001',
+      deductorName: 'ABC Corp Ltd',
+      deductorTAN: 'ABCD12345E',
+      deductionDate: '2024-01-15',
+      amount: 50000,
+      tdsDeducted: 5000,
+      section: '194C',
+      status: 'Matched',
+      certificateNo: 'CERT001'
+    },
+    {
+      id: 2,
+      challanNo: 'TDS002',
+      deductorName: 'XYZ Industries',
+      deductorTAN: 'XYZA98765B',
+      deductionDate: '2024-01-20',
+      amount: 75000,
+      tdsDeducted: 7500,
+      section: '194J',
+      status: 'Unmatched',
+      certificateNo: 'CERT002'
+    }
+  ];
 
   useEffect(() => {
-    fetchTDSData();
+    setTdsData(mockTdsData);
   }, []);
 
-  const fetchTDSData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:5001/api/tds');
-      if (response.ok) {
-        const data = await response.json();
-        setTdsData(data);
-      }
-    } catch (error) {
-      console.error('Error fetching TDS data:', error);
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Matched': return 'text-green-600 bg-green-100';
+      case 'Unmatched': return 'text-red-600 bg-red-100';
+      case 'Pending': return 'text-yellow-600 bg-yellow-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
-    setLoading(false);
   };
 
-  // Calculate current month TDS (7th to 7th, except March 30th to 30th)
-  const getCurrentMonthRange = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const currentDate = today.getDate();
-    
-    let startDate, endDate;
-    
-    if (currentMonth === 2) { // March (0-indexed)
-      if (currentDate >= 30) {
-        startDate = new Date(currentYear, 2, 30);
-        endDate = new Date(currentYear, 3, 30);
-      } else {
-        startDate = new Date(currentYear, 1, 28);
-        endDate = new Date(currentYear, 2, 30);
-      }
-    } else {
-      if (currentDate >= 7) {
-        startDate = new Date(currentYear, currentMonth, 7);
-        endDate = new Date(currentYear, currentMonth + 1, 7);
-      } else {
-        startDate = new Date(currentYear, currentMonth - 1, 7);
-        endDate = new Date(currentYear, currentMonth, 7);
-      }
-    }
-    
-    return { startDate, endDate };
-  };
-
-  const { startDate, endDate } = getCurrentMonthRange();
-  const currentMonthTDS = tdsData
-    .filter(item => {
-      const itemDate = new Date(item.invoiceDate);
-      return itemDate >= startDate && itemDate < endDate;
-    })
-    .reduce((sum, item) => sum + (item.tdsAmount || 0), 0);
-
-  // Count invoices with TDS
-  const invoicesWithTDS = tdsData.length;
-
-  // Count bills where TDS should be deducted but is not (taxable > threshold but TDS = 0)
-  const notDeducted = tdsData.filter(item => 
-    item.taxableValue > 30000 && item.tdsAmount === 0
-  ).length;
-
-  // Calculate next TDS due date (7th of next month)
-  const getNextDueDate = () => {
-    const today = new Date();
-    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 7);
-    return nextMonth.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  // Filter data based on selected filters
-  const filteredData = tdsData.filter(item => {
-    const sectionMatch = selectedSection === 'All' || item.tdsSection === selectedSection;
-    let filterMatch = true;
-    
-    if (selectedFilter === 'Mismatch') {
-      // Show mismatches: where TDS should be deducted but isn't, or incorrect calculation
-      const expectedTDS = (item.taxableValue * (item.tdsSection === '194C' ? 1 : 10)) / 100;
-      filterMatch = Math.abs(item.tdsAmount - expectedTDS) > 1 || (item.taxableValue > 30000 && item.tdsAmount === 0);
-    } else if (selectedFilter === 'Not Deducted') {
-      filterMatch = item.taxableValue > 30000 && item.tdsAmount === 0;
-    }
-    
-    return sectionMatch && filterMatch;
-  });
-
-  // Get unique TDS sections
-  const tdsSections = ['All', ...new Set(tdsData.map(item => item.tdsSection).filter(Boolean))];
-
-  const applyFilters = () => {
-    // Filters are applied automatically through filteredData
-  };
-
-  const exportToExcel = () => {
-    const exportData = filteredData.map(item => ({
-      'Date': new Date(item.invoiceDate).toLocaleDateString('en-GB'),
-      'Invoice No.': item.invoiceNo,
-      'Party': item.vendorName,
-      'TDS Section': item.tdsSection || 'N/A',
-      'Taxable Amount': item.taxableValue,
-      'TDS Deducted': item.tdsAmount
-    }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'TDS Reconciliation');
-    XLSX.writeFile(wb, `TDS_Reconciliation_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
-  };
+  const filteredData = tdsData.filter(item =>
+    item.deductorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.challanNo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-sm">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-800">TDS Reconciliation</h1>
-        <button 
-          onClick={exportToExcel}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-        >
-          <Download size={18} />
-          Export to Excel
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">TDS Amount</p>
-              <p className="text-xs text-gray-500 mb-1">(This Month)</p>
-              <p className="text-2xl font-bold text-gray-900">₹ {currentMonthTDS.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="p-3 rounded-lg text-green-600 bg-green-50">
-              <IndianRupee size={24} />
-            </div>
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="w-full">
+        {/* Header */}
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">TDS Reconciliation</h1>
+            <p className="text-gray-600 text-lg">Reconcile TDS deductions with certificates and challans</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            <span className="text-sm font-medium text-gray-700">FY 2023-24</span>
           </div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Invoices with TDS</p>
-              <p className="text-2xl font-bold text-gray-900">{invoicesWithTDS}</p>
-            </div>
-            <div className="p-3 rounded-lg text-blue-600 bg-blue-50">
-              <FileText size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Not Deducted</p>
-              <p className="text-xs text-gray-500 mb-1">Where Applicable</p>
-              <p className="text-2xl font-bold text-red-600">{notDeducted}</p>
-            </div>
-            <div className="p-3 rounded-lg text-red-600 bg-red-50">
-              <AlertTriangle size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Due Date</p>
-              <p className="text-xl font-bold text-gray-900">{getNextDueDate()}</p>
-            </div>
-            <div className="p-3 rounded-lg text-purple-600 bg-purple-50">
-              <Calendar size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">Section</span>
-          <select 
-            className="px-3 py-2 border border-gray-300 rounded-md"
-            value={selectedSection}
-            onChange={(e) => setSelectedSection(e.target.value)}
-          >
-            {tdsSections.map(section => (
-              <option key={section} value={section}>{section}</option>
-            ))}
-          </select>
+        {/* Filters & Actions */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">From Date</label>
+              <input
+                type="date"
+                value={filters.fromDate}
+                onChange={(e) => setFilters({...filters, fromDate: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">To Date</label>
+              <input
+                type="date"
+                value={filters.toDate}
+                onChange={(e) => setFilters({...filters, toDate: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Status</option>
+                <option value="Matched">Matched</option>
+                <option value="Unmatched">Unmatched</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search deductor or challan..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap gap-3">
+            <button className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <Upload className="h-4 w-4 mr-2" />
+              Import TDS Data
+            </button>
+            <button className="flex items-center px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </button>
+            <button className="flex items-center px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Auto Reconcile
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <select 
-            className="px-3 py-2 border border-gray-300 rounded-md"
-            value={selectedFilter}
-            onChange={(e) => setSelectedFilter(e.target.value)}
-          >
-            <option value="All">All</option>
-            <option value="Mismatch">Mismatch</option>
-            <option value="Not Deducted">Not Deducted</option>
-          </select>
-        </div>
-        <button 
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          onClick={applyFilters}
-        >
-          Apply Filters
-        </button>
-      </div>
 
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Invoice No.</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Party</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">TDS Section</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Taxable Amount</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">TDS Deducted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading...</td>
-              </tr>
-            ) : filteredData.length > 0 ? (
-              filteredData.map((item, index) => (
-                <tr key={index} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {new Date(item.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3">{item.invoiceNo}</td>
-                  <td className="px-4 py-3">{item.vendorName}</td>
-                  <td className="px-4 py-3">{item.tdsSection || 'N/A'}</td>
-                  <td className="px-4 py-3">₹ {item.taxableValue.toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3">₹ {item.tdsAmount.toLocaleString('en-IN')}</td>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-md border border-green-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-green-700 mb-1">Matched</p>
+                <p className="text-3xl font-bold text-green-900">1</p>
+                <p className="text-xs text-green-600 mt-1">100% accuracy</p>
+              </div>
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl shadow-md border border-red-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-red-700 mb-1">Unmatched</p>
+                <p className="text-3xl font-bold text-red-900">1</p>
+                <p className="text-xs text-red-600 mt-1">Needs attention</p>
+              </div>
+              <AlertTriangle className="h-12 w-12 text-red-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md border border-blue-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-blue-700 mb-1">Total TDS</p>
+                <p className="text-3xl font-bold text-blue-900">₹12,500</p>
+                <p className="text-xs text-blue-600 mt-1">Current period</p>
+              </div>
+              <FileText className="h-12 w-12 text-blue-600" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-md border border-purple-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-purple-700 mb-1">This Month</p>
+                <p className="text-3xl font-bold text-purple-900">₹12,500</p>
+                <p className="text-xs text-purple-600 mt-1">+15% vs last month</p>
+              </div>
+              <Calendar className="h-12 w-12 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* TDS Data Table */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200">
+          <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <h3 className="text-xl font-bold text-gray-900">TDS Reconciliation Data</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Challan No</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Deductor</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">TAN</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">TDS</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Section</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">No TDS records found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredData.map((item) => (
+                  <tr key={item.id} className="hover:bg-blue-50 transition-colors duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{item.challanNo}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.deductorName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.deductorTAN}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.deductionDate}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.amount.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">₹{item.tdsDeducted.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.section}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button className="text-blue-600 hover:text-blue-900 font-semibold mr-4">View</button>
+                      <button className="text-green-600 hover:text-green-900 font-semibold">Match</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

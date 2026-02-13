@@ -1,174 +1,170 @@
-import React from 'react';
-import { Plus, FileText, Upload } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useState } from 'react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, Wallet, ArrowUpRight, ArrowDownRight, Download, RefreshCw, Calendar } from 'lucide-react';
 
 const BankDashboard = () => {
-  const inflowOutflowData = [
-    { month: 'May', inflow: 1.5, outflow: 0.8 },
-    { month: 'Jun', inflow: 1.2, outflow: 1.0 },
-    { month: 'Jul', inflow: 1.8, outflow: 0.6 },
-    { month: 'Aug', inflow: 2.5, outflow: 0.5 },
-    { month: 'Sep', inflow: 2.2, outflow: 1.2 },
-    { month: 'Oct', inflow: 1.8, outflow: 0.8 },
-    { month: 'Nov', inflow: 2.3, outflow: 1.0 },
-    { month: 'Apr', inflow: 2.6, outflow: 0.9 },
-  ];
+  const [selectedPeriod, setSelectedPeriod] = useState('This Month');
 
   const cashFlowData = [
-    { day: 1, value: 5 },
-    { day: 2, value: 3.5 },
-    { day: 3, value: 4 },
-    { day: 4, value: 5.5 },
-    { day: 5, value: 4.5 },
-    { day: 6, value: 6 },
-    { day: 7, value: 6.5 },
+    { month: 'Jan', inflow: 450000, outflow: 320000 },
+    { month: 'Feb', inflow: 520000, outflow: 380000 },
+    { month: 'Mar', inflow: 480000, outflow: 350000 },
+    { month: 'Apr', inflow: 550000, outflow: 400000 },
+    { month: 'May', inflow: 600000, outflow: 420000 },
+    { month: 'Jun', inflow: 580000, outflow: 390000 }
   ];
 
-  const reconciliationData = [
-    { name: 'Matched', value: 79, color: '#1e40af' },
-    { name: 'Unmatched', value: 15, color: '#3b82f6' },
-    { name: 'Suggested', value: 6, color: '#93c5fd' },
+  const transactions = [
+    { id: 1, date: '2024-01-15', description: 'Client Payment - ABC Corp', type: 'Credit', amount: 125000, balance: 850000 },
+    { id: 2, date: '2024-01-14', description: 'Vendor Payment - XYZ Ltd', type: 'Debit', amount: 45000, balance: 725000 },
+    { id: 3, date: '2024-01-13', description: 'Salary Payment', type: 'Debit', amount: 180000, balance: 770000 }
+  ];
+
+  const stats = [
+    { title: 'Total Balance', value: '₹8,50,000', change: '+12.5%', trend: 'up', icon: Wallet, gradient: 'from-blue-500 to-blue-600' },
+    { title: 'Cash Inflow', value: '₹6,00,000', change: '+8.3%', trend: 'up', icon: TrendingUp, gradient: 'from-green-500 to-green-600' },
+    { title: 'Cash Outflow', value: '₹4,20,000', change: '-5.2%', trend: 'down', icon: TrendingDown, gradient: 'from-red-500 to-red-600' },
+    { title: 'Net Cash Flow', value: '₹1,80,000', change: '+15.7%', trend: 'up', icon: DollarSign, gradient: 'from-purple-500 to-purple-600' }
   ];
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-semibold text-gray-900 mb-8">Bank Dashboard</h1>
-
-      {/* Top Metrics */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="text-sm text-gray-600 mb-2">Total Bank Balance</div>
-          <div className="text-3xl font-semibold text-gray-900">₹ 5,23,000</div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Bank Dashboard
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg font-medium">Monitor your bank accounts and cash flow</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="text-sm text-gray-600 mb-2">Cash Balance</div>
-          <div className="text-3xl font-semibold text-gray-900">₹ 54,000</div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="text-sm text-gray-600 mb-2">Uncleared Cheques</div>
-          <div className="text-3xl font-semibold text-gray-900">12</div>
+        <div className="flex gap-3 mt-4 md:mt-0">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-blue-400 hover:shadow-lg transition-all duration-200 font-semibold">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-xl transition-all duration-200 font-semibold">
+            <Download className="h-4 w-4" />
+            Export
+          </button>
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        {/* Monthly Bank Inflow vs Outflow */}
-        <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Bank Inflow vs Outflow</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={inflowOutflowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#666" fontSize={12} />
-              <YAxis stroke="#666" fontSize={12} tickFormatter={(value) => `${value} L`} />
-              <Tooltip formatter={(value) => `₹${value}L`} />
-              <Line type="monotone" dataKey="inflow" stroke="#2563eb" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="outflow" stroke="#93c5fd" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Reconciliation Status */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Reconciliation Status</h3>
-          <div className="flex items-center justify-center mb-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat, idx) => (
+          <div key={idx} className={`relative overflow-hidden bg-gradient-to-br ${stat.gradient} rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-6`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
             <div className="relative">
-              <PieChart width={200} height={200}>
-                <Pie
-                  data={reconciliationData}
-                  cx={100}
-                  cy={100}
-                  innerRadius={60}
-                  outerRadius={90}
-                  dataKey="value"
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  {reconciliationData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                <div className="text-3xl font-bold text-gray-900">79%</div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+                {stat.trend === 'up' ? (
+                  <ArrowUpRight className="h-5 w-5 text-white opacity-75" />
+                ) : (
+                  <ArrowDownRight className="h-5 w-5 text-white opacity-75" />
+                )}
               </div>
+              <p className="text-white text-opacity-90 text-sm font-semibold mb-2">{stat.title}</p>
+              <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
+              <p className="text-white text-opacity-75 text-xs font-medium">{stat.change} vs last month</p>
             </div>
           </div>
-          <div className="space-y-2">
-            {reconciliationData.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-sm text-gray-700">{item.name}</span>
-              </div>
-            ))}
-          </div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Cash Flow Trend</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <AreaChart data={cashFlowData}>
+              <defs>
+                <linearGradient id="colorInflow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorOutflow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: '2px solid #e5e7eb', fontWeight: 600 }} />
+              <Area type="monotone" dataKey="inflow" stroke="#10b981" strokeWidth={3} fill="url(#colorInflow)" />
+              <Area type="monotone" dataKey="outflow" stroke="#ef4444" strokeWidth={3} fill="url(#colorOutflow)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Monthly Comparison</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={cashFlowData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: '2px solid #e5e7eb', fontWeight: 600 }} />
+              <Bar dataKey="inflow" fill="#10b981" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="outflow" fill="#ef4444" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Cash Flow Trend */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Cash Flow Trend</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={cashFlowData}>
-              <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-          <div className="flex justify-between items-center mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-              <span className="text-gray-600">Last 5u days</span>
-            </div>
-            <span className="text-gray-600">Usst 7 Days</span>
-          </div>
-          <div className="flex justify-between items-center mt-2 text-sm">
-            <span className="text-gray-900">7</span>
-            <span className="text-gray-900">Today</span>
-          </div>
+      {/* Recent Transactions */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-8 py-6 border-b border-gray-200">
+          <h3 className="text-2xl font-bold text-gray-900">Recent Transactions</h3>
+          <p className="text-sm text-gray-600 mt-1">Latest bank transactions</p>
         </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                <Plus className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-gray-900">Add Payment</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-gray-900">Add Receipt</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                <Upload className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-gray-900">Upload Bank Statement</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Last 4 Days */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Last 4 Dayags</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-900 font-medium">R$ 4,97,300</span>
-              <span className="text-gray-600">70%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-900 font-medium">R$ 74,000</span>
-              <span className="text-gray-600">15%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-900 font-medium">R$ 57,700</span>
-              <span className="text-gray-600">6%</span>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Description</th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Balance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {transactions.map((txn) => (
+                <tr key={txn.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-200">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-700 font-medium">{txn.date}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="font-semibold text-gray-900">{txn.description}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                      txn.type === 'Credit' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'
+                    }`}>
+                      {txn.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className={`font-bold text-lg ${txn.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
+                      {txn.type === 'Credit' ? '+' : '-'}₹{txn.amount.toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-bold text-gray-900 text-lg">₹{txn.balance.toLocaleString()}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

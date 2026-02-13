@@ -1,230 +1,241 @@
-import React from 'react';
-import { ChevronDown, Menu, Building, CreditCard, PieChart, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { DollarSign, TrendingUp, Scale, Percent, Download, Calendar, RefreshCw, ArrowUpRight } from 'lucide-react';
 
 const BalanceSheet = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState('This Year');
+
+  const stats = [
+    { title: 'Total Assets', value: '₹82,00,000', icon: DollarSign, gradient: 'from-blue-500 to-blue-600' },
+    { title: 'Total Liabilities', value: '₹40,00,000', icon: TrendingUp, gradient: 'from-red-500 to-red-600' },
+    { title: 'Equity', value: '₹42,00,000', icon: Scale, gradient: 'from-green-500 to-green-600' },
+    { title: 'Current Ratio', value: '1.80', icon: Percent, gradient: 'from-purple-500 to-purple-600' }
+  ];
+
+  const assetsData = [
+    { category: 'Current Assets', current: 5000000, previous: 2500000 },
+    { category: 'Accounts Receivable', current: 12000000, previous: 13000000 },
+    { category: 'Inventory', current: 9000000, previous: 8000000 }
+  ];
+
+  const liabilitiesData = [
+    { category: 'Accounts Payable', current: 13000000, previous: 13000000 },
+    { category: 'Short-term Loans', current: 13000000, previous: 13000000 }
+  ];
+
+  const equityData = [
+    { category: 'Share Capital', current: 23000000, previous: 25000000 },
+    { category: 'Retained Earnings', current: 17000000, previous: 17000000 }
+  ];
+
+  const pieData = [
+    { name: 'Assets', value: 82000000, color: '#3b82f6' },
+    { name: 'Liabilities', value: 40000000, color: '#ef4444' },
+    { name: 'Equity', value: 42000000, color: '#10b981' }
+  ];
+
+  const comparisonData = [
+    { name: 'Assets', current: 82000000, previous: 75000000 },
+    { name: 'Liabilities', current: 40000000, previous: 38000000 },
+    { name: 'Equity', current: 42000000, previous: 37000000 }
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-6 border-b border-gray-200 gap-4 sm:gap-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Balance Sheet</h1>
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className="relative">
-            <select className="appearance-none bg-white border border-gray-300 rounded-lg px-3 md:px-4 py-2 pr-8 md:pr-10 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option>This Year</option>
-            </select>
-            <ChevronDown className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-          </div>
-          <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Menu size={18} />
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Balance Sheet
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg font-medium">Financial position statement</p>
+        </div>
+        <div className="flex gap-3 mt-4 md:mt-0">
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="px-5 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+          >
+            <option>This Year</option>
+            <option>Last Year</option>
+            <option>This Quarter</option>
+          </select>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-blue-400 hover:shadow-lg transition-all duration-200 font-semibold">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-xl transition-all duration-200 font-semibold">
+            <Download className="h-4 w-4" />
+            Export
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="p-4 md:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Assets</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹8,200,000</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat, idx) => (
+          <div key={idx} className={`relative overflow-hidden bg-gradient-to-br ${stat.gradient} rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-6`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+                <ArrowUpRight className="h-5 w-5 text-white opacity-75" />
               </div>
-              <div className="p-2 sm:p-3 rounded-lg text-blue-600 bg-blue-50 flex-shrink-0">
-                <Building className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
+              <p className="text-white text-opacity-90 text-sm font-semibold mb-2">{stat.title}</p>
+              <p className="text-3xl font-bold text-white">{stat.value}</p>
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Liabilities</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,000,000</p>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Assets vs Liabilities</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={80}
+                outerRadius={120}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value) => [`₹${(value / 10000000).toFixed(2)} Cr`, '']} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            {pieData.map((item, idx) => (
+              <div key={idx} className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className="w-3 h-3 rounded-full mx-auto mb-2" style={{ backgroundColor: item.color }}></div>
+                <p className="text-xs font-semibold text-gray-600 mb-1">{item.name}</p>
+                <p className="text-sm font-bold text-gray-900">₹{(item.value / 10000000).toFixed(2)} Cr</p>
               </div>
-              <div className="p-2 sm:p-3 rounded-lg text-red-600 bg-red-50 flex-shrink-0">
-                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Equity</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,200,000</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-green-600 bg-green-50 flex-shrink-0">
-                <PieChart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Current Ratio</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">1.80</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-purple-600 bg-purple-50 flex-shrink-0">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
-          {/* Left Column - Financial Data */}
-          <div className="xl:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
-              {/* Assets Section */}
-              <div className="mb-6 md:mb-8">
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Assets</h2>
-                <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="text-left py-2 md:py-3 text-xs md:text-sm font-medium text-gray-700">Particulars</th>
-                      <th className="text-right py-2 md:py-3 text-xs md:text-sm font-medium text-gray-700">As of Mar 31, 2024</th>
-                      <th className="text-right py-2 md:py-3 text-xs md:text-sm font-medium text-gray-700">Previous Period</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm font-medium text-blue-600">Assets</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Current Assets</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">500,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">2,500,000</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Accounts Receivable</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,200,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,300,000</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Inventory</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">900,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">800,000</td>
-                    </tr>
-                    <tr className="border-b-2 border-gray-400">
-                      <td className="py-2 md:py-3 text-xs md:text-sm font-semibold text-gray-900">Subtotal Total</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">2,600,000</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">2,800,000</td>
-                    </tr>
-                  </tbody>
-                </table>
-                </div>
-              </div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Period Comparison</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={comparisonData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 600 }} />
+              <Tooltip formatter={(value) => [`₹${(value / 10000000).toFixed(2)} Cr`, '']} />
+              <Bar dataKey="current" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Current" />
+              <Bar dataKey="previous" fill="#93c5fd" radius={[8, 8, 0, 0]} name="Previous" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
-              {/* Liabilities Section */}
-              <div className="mb-6 md:mb-8">
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Liabilities</h3>
-                <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px]">
-                  <tbody>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Accounts Payable</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,300,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,300,000</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Short-term Loans</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,300,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,300,000</td>
-                    </tr>
-                    <tr className="border-b-2 border-gray-400">
-                      <td className="py-2 md:py-3 text-xs md:text-sm font-semibold text-gray-900">Subtotal Total</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">3,300,000</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">2,550,000</td>
-                    </tr>
-                  </tbody>
-                </table>
-                </div>
-              </div>
-
-              {/* Equity Section */}
-              <div>
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Equity</h3>
-                <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px]">
-                  <tbody>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Share Capital</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">2,300,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">2,500,000</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="py-1.5 md:py-2 text-xs md:text-sm text-gray-700">Retained Earnings</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,700,000</td>
-                      <td className="text-right text-xs md:text-sm text-gray-900">1,700,000</td>
-                    </tr>
-                    <tr className="border-b-2 border-gray-400">
-                      <td className="py-2 md:py-3 text-xs md:text-sm font-semibold text-gray-900">Total Equity</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">4,200,000</td>
-                      <td className="text-right text-xs md:text-sm font-semibold text-gray-900">4,200,000</td>
-                    </tr>
-                  </tbody>
-                </table>
-                </div>
-              </div>
-            </div>
+      {/* Detailed Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Assets */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Assets</h3>
           </div>
+          <div className="p-6">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 text-xs font-bold text-gray-700 uppercase">Particulars</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Current</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Previous</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {assetsData.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-blue-50 transition-colors duration-150">
+                    <td className="py-3 text-sm font-semibold text-gray-900">{item.category}</td>
+                    <td className="py-3 text-right text-sm font-bold text-gray-900">₹{(item.current / 100000).toFixed(0)}L</td>
+                    <td className="py-3 text-right text-sm text-gray-600">₹{(item.previous / 100000).toFixed(0)}L</td>
+                  </tr>
+                ))}
+                <tr className="bg-blue-50 font-bold">
+                  <td className="py-3 text-sm text-gray-900">Total Assets</td>
+                  <td className="py-3 text-right text-sm text-blue-600">₹260L</td>
+                  <td className="py-3 text-right text-sm text-gray-600">₹280L</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-          {/* Right Column - Chart and Summary */}
-          <div className="xl:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
-              {/* Bar Chart */}
-              <div className="mb-6 md:mb-8">
-                <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
-                  <div className="flex items-end justify-center gap-4 md:gap-8 mb-4 h-24 md:h-32">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 md:w-12 h-16 md:h-20 bg-blue-500 rounded-sm mb-2"></div>
-                      <span className="text-xs font-medium text-gray-700">Assets</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 md:w-12 h-20 md:h-24 bg-blue-600 rounded-sm mb-2"></div>
-                      <span className="text-xs font-medium text-gray-700">Liabilities</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        {/* Liabilities */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-red-50 to-red-100 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Liabilities</h3>
+          </div>
+          <div className="p-6">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 text-xs font-bold text-gray-700 uppercase">Particulars</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Current</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Previous</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {liabilitiesData.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-red-50 transition-colors duration-150">
+                    <td className="py-3 text-sm font-semibold text-gray-900">{item.category}</td>
+                    <td className="py-3 text-right text-sm font-bold text-gray-900">₹{(item.current / 100000).toFixed(0)}L</td>
+                    <td className="py-3 text-right text-sm text-gray-600">₹{(item.previous / 100000).toFixed(0)}L</td>
+                  </tr>
+                ))}
+                <tr className="bg-red-50 font-bold">
+                  <td className="py-3 text-sm text-gray-900">Total Liabilities</td>
+                  <td className="py-3 text-right text-sm text-red-600">₹330L</td>
+                  <td className="py-3 text-right text-sm text-gray-600">₹255L</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-              {/* Summary Table */}
-              <div className="mb-4 md:mb-6">
-                <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="text-left py-2 text-xs md:text-sm font-medium text-gray-700">Assets</th>
-                      <th className="text-right py-2 text-xs md:text-sm font-medium text-gray-700">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs md:text-sm text-gray-700">
-                    <tr><td className="py-1">9,200,000</td><td className="text-right">4,000,000</td></tr>
-                    <tr><td className="py-1">4,200,000</td><td className="text-right">4,100,000</td></tr>
-                    <tr><td className="py-1">6,200,000</td><td className="text-right">6,200,000</td></tr>
-                    <tr><td className="py-1">2100,000</td><td className="text-right">3,100,000</td></tr>
-                    <tr><td className="py-1">-</td><td className="text-right">-</td></tr>
-                    <tr><td className="py-1">5,500,000</td><td className="text-right">5,500,000</td></tr>
-                    <tr><td className="py-1">4,350,000</td><td className="text-right">4,300,000</td></tr>
-                    <tr><td className="py-1">1,200,000</td><td className="text-right">1,300,000</td></tr>
-                    <tr><td className="py-1">4,200,000</td><td className="text-right">4,200,000</td></tr>
-                  </tbody>
-                </table>
-                </div>
-              </div>
-
-              {/* Totals */}
-              <div className="border-t border-gray-300 pt-3 md:pt-4">
-                <div className="text-sm md:text-base font-medium text-gray-900 mb-2">Totals</div>
-                <div className="flex items-center gap-2 md:gap-4">
-                  <span className="text-blue-600 font-semibold text-xs md:text-sm">Assets</span>
-                  <span className="text-gray-500 text-xs md:text-sm">vs</span>
-                  <span className="text-blue-600 font-semibold text-xs md:text-sm">Liabilities</span>
-                </div>
-              </div>
-            </div>
+        {/* Equity */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-green-50 to-green-100 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Equity</h3>
+          </div>
+          <div className="p-6">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 text-xs font-bold text-gray-700 uppercase">Particulars</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Current</th>
+                  <th className="text-right py-3 text-xs font-bold text-gray-700 uppercase">Previous</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {equityData.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-green-50 transition-colors duration-150">
+                    <td className="py-3 text-sm font-semibold text-gray-900">{item.category}</td>
+                    <td className="py-3 text-right text-sm font-bold text-gray-900">₹{(item.current / 100000).toFixed(0)}L</td>
+                    <td className="py-3 text-right text-sm text-gray-600">₹{(item.previous / 100000).toFixed(0)}L</td>
+                  </tr>
+                ))}
+                <tr className="bg-green-50 font-bold">
+                  <td className="py-3 text-sm text-gray-900">Total Equity</td>
+                  <td className="py-3 text-right text-sm text-green-600">₹420L</td>
+                  <td className="py-3 text-right text-sm text-gray-600">₹420L</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

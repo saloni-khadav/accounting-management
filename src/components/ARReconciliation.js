@@ -1,290 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Download, Filter, RefreshCw, CheckCircle, AlertCircle, XCircle, FileText, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 
 const ARReconciliation = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [collections, setCollections] = useState([]);
-  const [creditNotes, setCreditNotes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [reconciliations, setReconciliations] = useState([
+    { id: 1, client: 'ABC Corp Ltd', invoiceNo: 'INV-001', invoiceAmount: 125000, receivedAmount: 125000, difference: 0, status: 'Matched', date: '2024-01-15' },
+    { id: 2, client: 'XYZ Industries', invoiceNo: 'INV-002', invoiceAmount: 85000, receivedAmount: 80000, difference: 5000, status: 'Partial', date: '2024-01-18' },
+    { id: 3, client: 'Tech Solutions', invoiceNo: 'INV-003', invoiceAmount: 150000, receivedAmount: 0, difference: 150000, status: 'Unmatched', date: '2024-01-20' }
+  ]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const matched = reconciliations.filter(r => r.status === 'Matched').length;
+  const partial = reconciliations.filter(r => r.status === 'Partial').length;
+  const unmatched = reconciliations.filter(r => r.status === 'Unmatched').length;
+  const totalDifference = reconciliations.reduce((sum, r) => sum + r.difference, 0);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      
-      const [invoicesResponse, collectionsResponse, creditNotesResponse] = await Promise.all([
-        fetch('http://localhost:5001/api/invoices', { headers }),
-        fetch('http://localhost:5001/api/collections', { headers }),
-        fetch('http://localhost:5001/api/credit-notes', { headers })
-      ]);
-      
-      if (invoicesResponse.ok) {
-        const invoicesData = await invoicesResponse.json();
-        const approvedInvoices = invoicesData.filter(inv => inv.approvalStatus === 'Approved');
-        setInvoices(approvedInvoices);
-      }
-      
-      if (collectionsResponse.ok) {
-        const collectionsData = await collectionsResponse.json();
-        setCollections(collectionsData);
-      }
-      
-      if (creditNotesResponse.ok) {
-        const creditNotesData = await creditNotesResponse.json();
-        const approvedCreditNotes = creditNotesData.filter(note => note.approvalStatus === 'Approved');
-        setCreditNotes(approvedCreditNotes);
-      }
-      
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-    setLoading(false);
+  const stats = [
+    { title: 'Matched', value: matched.toString(), icon: CheckCircle, gradient: 'from-green-500 to-green-600' },
+    { title: 'Partial Match', value: partial.toString(), icon: AlertCircle, gradient: 'from-orange-500 to-orange-600' },
+    { title: 'Unmatched', value: unmatched.toString(), icon: XCircle, gradient: 'from-red-500 to-red-600' },
+    { title: 'Total Difference', value: `₹${totalDifference.toLocaleString()}`, icon: DollarSign, gradient: 'from-purple-500 to-purple-600' }
+  ];
+
+  const getStatusConfig = (status) => {
+    const configs = {
+      'Matched': { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
+      'Partial': { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: AlertCircle },
+      'Unmatched': { color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle }
+    };
+    return configs[status] || configs['Unmatched'];
   };
 
-  const totalReceivable = invoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-  
-  const totalCollected = collections
-    .filter(col => col.approvalStatus === 'Approved')
-    .reduce((sum, col) => sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0);
-    
-  const creditNotesAmount = creditNotes
-    .filter(note => note.status !== 'Cancelled')
-    .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
-    
-  const adjustedReceivable = totalReceivable - creditNotesAmount;
-  const unreconciled = adjustedReceivable - totalCollected;
-
-  const invoicesData = invoices.map(inv => ({
-    date: new Date(inv.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-    invoiceNo: inv.invoiceNumber,
-    customer: inv.customerName,
-    type: 'Invoice',
-    amount: `₹${(inv.grandTotal || 0).toLocaleString('en-IN')}`,
-    status: inv.status || 'Pending',
-    sortDate: new Date(inv.invoiceDate)
-  }));
-
-  const collectionsData = collections.map(col => ({
-    date: new Date(col.collectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-    invoiceNo: col.collectionNumber || col.invoiceNumber || '-',
-    customer: col.customer,
-    type: 'Collection',
-    amount: `₹${(parseFloat(col.netAmount) || parseFloat(col.amount) || 0).toLocaleString('en-IN')}`,
-    status: col.approvalStatus === 'Pending' ? 'Pending Approval' :
-            col.approvalStatus === 'Rejected' ? 'Rejected' : 'Completed',
-    sortDate: new Date(col.collectionDate)
-  }));
-
-  const creditNotesData = creditNotes.map(note => ({
-    date: new Date(note.creditNoteDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-    invoiceNo: note.creditNoteNumber,
-    customer: note.customerName,
-    type: 'Credit Note',
-    amount: `₹${(note.grandTotal || 0).toLocaleString('en-IN')}`,
-    status: note.approvalStatus === 'Pending' ? 'Pending Approval' :
-            note.approvalStatus === 'Rejected' ? 'Rejected' :
-            note.status || 'Issued',
-    sortDate: new Date(note.creditNoteDate)
-  }));
-
-  const allData = [...invoicesData, ...collectionsData, ...creditNotesData]
-    .sort((a, b) => b.sortDate - a.sortDate);
-
-  const filteredData = allData.filter(item => {
-    const matchesSearch = searchTerm === '' || 
-      item.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = typeFilter === '' || item.type === typeFilter;
-    const matchesStatus = statusFilter === '' || item.status === statusFilter;
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">AR Reconciliation</h1>
-      </div>
-
-      {/* Header Actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-sm text-gray-500">
-          Last updated: {lastUpdated.toLocaleString()}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              AR Reconciliation
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg font-medium">Reconcile accounts receivable with payments</p>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={fetchData}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+        <div className="flex gap-3 mt-4 md:mt-0">
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-blue-400 hover:shadow-lg transition-all duration-200 font-semibold">
+            <RefreshCw className="h-4 w-4" />
             Refresh
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-xl transition-all duration-200 font-semibold">
+            <TrendingUp className="h-4 w-4" />
+            Auto Reconcile
+          </button>
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-xl transition-all duration-200 font-semibold">
+            <Download className="h-4 w-4" />
+            Export
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Receivable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{totalReceivable.toLocaleString('en-IN')}</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Collected</h3>
-          <p className="text-2xl font-bold text-green-600">₹{totalCollected.toLocaleString('en-IN')}</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Credit Notes</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Adjusted Receivable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{adjustedReceivable.toLocaleString('en-IN')}</p>
-        </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Unreconciled</h3>
-          <p className="text-2xl font-bold text-red-600">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat, idx) => (
+          <div key={idx} className={`relative overflow-hidden bg-gradient-to-br ${stat.gradient} rounded-2xl shadow-xl p-6`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white bg-opacity-20 rounded-xl backdrop-blur-sm">
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <p className="text-white text-opacity-90 text-sm font-semibold mb-2">{stat.title}</p>
+              <p className="text-4xl font-bold text-white">{stat.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="relative w-64">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search by customer or reference" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by client or invoice..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+              />
+            </div>
           </div>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
-          >
-            <option value="">All Types</option>
-            <option value="Invoice">Invoice</option>
-            <option value="Collection">Collection</option>
-            <option value="Credit Note">Credit Note</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-            <option value="Pending Approval">Pending Approval</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Issued">Issued</option>
-          </select>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+            >
+              <option value="">All Status</option>
+              <option value="Matched">Matched</option>
+              <option value="Partial">Partial Match</option>
+              <option value="Unmatched">Unmatched</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold">
+              <Filter className="h-4 w-4" />
+              Apply Filter
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">AR Transactions ({filteredData.length})</h2>
-          <div className="flex gap-4 text-sm">
-            <span className="text-blue-600 font-medium">Invoices: {invoicesData.length}</span>
-            <span className="text-green-600 font-medium">Collections: {collectionsData.length}</span>
-            <span className="text-purple-600 font-medium">Credit Notes: {creditNotesData.length}</span>
-          </div>
+      {/* Reconciliation Table */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 px-8 py-6 border-b border-gray-200">
+          <h3 className="text-2xl font-bold text-gray-900">Reconciliation Records</h3>
+          <p className="text-sm text-gray-600 mt-1">Match invoices with received payments</p>
         </div>
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading reconciliation data...</p>
-          </div>
-        ) : filteredData.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <p className="text-lg">No transactions found!</p>
-            <p className="text-sm mt-2">Create invoices, collections, or credit notes to see them here.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Customer</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Type</th>
-                  <th className="text-right py-4 px-6 font-semibold text-gray-900">Amount</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.map((row, index) => {
-                  const getStatusColor = (status, type) => {
-                    if (type === 'Collection') {
-                      switch(status) {
-                        case 'Completed': return 'bg-green-100 text-green-800';
-                        case 'Pending Approval': return 'bg-yellow-100 text-yellow-800';
-                        case 'Rejected': return 'bg-red-100 text-red-800';
-                        default: return 'bg-gray-100 text-gray-800';
-                      }
-                    } else {
-                      switch(status) {
-                        case 'Pending': return 'bg-blue-100 text-blue-800';
-                        case 'Completed': return 'bg-green-100 text-green-800';
-                        case 'Issued': return 'bg-green-100 text-green-800';
-                        case 'Pending Approval': return 'bg-yellow-100 text-yellow-800';
-                        case 'Rejected': return 'bg-red-100 text-red-800';
-                        default: return 'bg-gray-100 text-gray-800';
-                      }
-                    }
-                  };
-                  
-                  return (
-                    <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-6 text-gray-900">{row.date}</td>
-                      <td className="py-4 px-6">
-                        <span className={`font-medium ${row.type === 'Collection' ? 'text-green-600' : row.type === 'Credit Note' ? 'text-purple-600' : 'text-blue-600'}`}>{row.invoiceNo}</span>
-                      </td>
-                      <td className="py-4 px-6 text-gray-900">{row.customer}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          row.type === 'Collection' ? 'bg-green-100 text-green-800' :
-                          row.type === 'Credit Note' ? 'bg-purple-100 text-purple-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {row.type}
-                        </span>
-                      </td>
-                      <td className={`py-4 px-6 text-right font-semibold ${
-                        row.type === 'Collection' ? 'text-green-600' :
-                        row.type === 'Credit Note' ? 'text-purple-600' :
-                        'text-gray-900'
-                      }`}>{row.amount}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(row.status, row.type)}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Client</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Invoice No</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Invoice Amount</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Received Amount</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Difference</th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {reconciliations.map((record) => {
+                const statusConfig = getStatusConfig(record.status);
+                const StatusIcon = statusConfig.icon;
+                return (
+                  <tr key={record.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-all duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-700 font-medium">{record.date}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-bold text-gray-900">{record.client}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-gray-700 font-medium">{record.invoiceNo}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="font-bold text-gray-900">₹{record.invoiceAmount.toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="font-bold text-green-600">₹{record.receivedAmount.toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={`font-bold ${record.difference === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {record.difference === 0 ? '₹0' : `₹${record.difference.toLocaleString()}`}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${statusConfig.color}`}>
+                        <StatusIcon className="h-3.5 w-3.5" />
+                        {record.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
+                          <FileText className="h-4 w-4" />
+                        </button>
+                        {record.status !== 'Matched' && (
+                          <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200">
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
