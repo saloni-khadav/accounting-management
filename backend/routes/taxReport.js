@@ -81,6 +81,9 @@ router.get('/summary', auth, async (req, res) => {
       collectionDate: { $gte: startDate, $lte: endDate }
     });
     
+    // Calculate TDS Received from approved collections
+    const totalTDSReceived = collections.reduce((sum, col) => sum + (col.tdsAmount || 0), 0);
+    
     console.log('Tax Report Debug:');
     console.log('Total invoices (Approved):', invoices.length);
     console.log('Total bills (approved):', bills.length);
@@ -93,13 +96,13 @@ router.get('/summary', auth, async (req, res) => {
     const gstr2b = totalGSTFromBills; // GST we have to pay (Input GST)
     
     // Net GST calculation
-    const netGSTPayable = gstr2b - gstr1AccountReceivable; // Bills GST - Invoice GST
+    const netGSTPayable = gstr1AccountReceivable - gstr2b; // GSTR1 - GSTR2B
     
     // Total GST Payable should be the actual GST from bills (what we owe)
     const totalGSTPayable = gstr2b;
     
-    // Total GST should show Net GST Payable (what we actually need to pay after adjusting receivables)
-    const totalGST = netGSTPayable > 0 ? netGSTPayable : 0;
+    // Total GST should show Net GST (can be positive or negative)
+    const totalGST = netGSTPayable;
     
     // Calculate Mismatched Amount by comparing invoice-wise GST
     let mismatchedAmount = 0;
@@ -238,7 +241,8 @@ router.get('/summary', auth, async (req, res) => {
       mismatchedAmount,
       totalTDSPayable,
       totalIncomeTaxReceivable,
-      totalTDSReceivable
+      totalTDSReceivable,
+      totalTDSReceived // TDS from approved collections
     };
     
     console.log('Final Tax Report Result:', result);
