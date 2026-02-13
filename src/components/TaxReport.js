@@ -34,13 +34,11 @@ const TaxReport = () => {
 
   const chartData = [
     { name: 'Total GST', value: taxData?.totalGST || 0 },
-    { name: 'GST Payable', value: taxData?.totalGSTPayable || 0 },
     { name: 'GSTR1', value: taxData?.gstr1AccountReceivable || 0 },
     { name: 'GSTR2B', value: taxData?.gstr2b || 0 },
-    { name: 'GST A/R', value: taxData?.totalGSTAccountReceivable || 0 },
     { name: 'Mismatched', value: taxData?.mismatchedAmount || 0 },
     { name: 'TDS Payable', value: taxData?.totalTDSPayable || 0 },
-    { name: 'Income Tax', value: taxData?.totalIncomeTaxReceivable || 0 },
+    { name: 'TDS Received', value: taxData?.totalTDSReceived || 0 },
     { name: 'TDS Receivable', value: taxData?.totalTDSReceivable || 0 }
   ];
 
@@ -80,32 +78,24 @@ const TaxReport = () => {
         </div>
       </div>
 
-      {/* Summary Cards - Top 1 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* Summary Cards - Top Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalGST?.toLocaleString('en-IN') || '0'}</div>
           <div className="text-sm text-gray-500">Total GST</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalGSTPayable?.toLocaleString('en-IN') || '0'}</div>
-          <div className="text-sm text-gray-500">Total GST Payable</div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.gstr1AccountReceivable?.toLocaleString('en-IN') || '0'}</div>
-          <div className="text-sm text-gray-500">Total GSTR1 Account Receivable</div>
+          <div className="text-sm text-gray-500">Total GSTR1</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.gstr2b?.toLocaleString('en-IN') || '0'}</div>
           <div className="text-sm text-gray-500">Total GSTR2B</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-xl md:text-2xl font-bold text-blue-600 mb-1 break-words">₹{taxData?.totalGSTAccountReceivable?.toLocaleString('en-IN') || '0'}</div>
-          <div className="text-sm text-gray-500">Total GST of Account Receivable</div>
-        </div>
       </div>
 
-      {/* Additional Cards - 4 Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {/* Additional Cards - Bottom Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="text-xl md:text-2xl font-bold text-red-600 mb-1 break-words">₹{taxData?.mismatchedAmount?.toLocaleString('en-IN') || '0'}</div>
           <div className="text-sm text-gray-500">Mismatched Amount (GSTR1 & GSTR2B)</div>
@@ -115,8 +105,8 @@ const TaxReport = () => {
           <div className="text-sm text-gray-500">Total TDS Payable</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalIncomeTaxReceivable?.toLocaleString('en-IN') || '0'}</div>
-          <div className="text-sm text-gray-500">Total Income Tax Receivable</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalTDSReceived?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total TDS Received</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
           <div className="text-xl md:text-2xl font-bold text-gray-400 mb-1 break-words">₹{taxData?.totalTDSReceivable?.toLocaleString('en-IN') || '0'}</div>
