@@ -1,20 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import axios from 'axios';
 
 const TaxReport = () => {
-  const chartData = [
-    { name: 'GST', value: 400000 },
-    { name: 'TDS', value: 250000 },
-    { name: 'Income Tax', value: 300000 },
-    { name: 'Advance Tax', value: 150000 }
-  ];
+  const [taxData, setTaxData] = useState(null);
+  const [taxDetails, setTaxDetails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [timePeriod, setTimePeriod] = useState('current_financial_year');
 
-  const taxDetails = [
-    { date: '10/04/2024', taxType: 'GSST', category: 'CGST', amount: '₹25,000' },
-    { date: '25/03/2024', taxType: 'TDS', category: 'Interest', amount: '₹30,000' },
-    { date: '21/03/2024', taxType: 'Income Tax', category: 'Income Tax', amount: '₹30,000' },
-    { date: '01/02/2024', taxType: 'Advance Tax', category: 'Utilities', amount: '₹15,000' }
+  useEffect(() => {
+    fetchTaxData();
+  }, [timePeriod]);
+
+  const fetchTaxData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5001/api/tax-report/summary?timePeriod=${timePeriod}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTaxData(response.data.data);
+      setTaxDetails(response.data.details || []);
+    } catch (error) {
+      console.error('Error fetching tax data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 bg-gray-50 min-h-screen">Loading...</div>;
+  }
+
+  const chartData = [
+    { name: 'Total GST', value: taxData?.totalGST || 0 },
+    { name: 'GST Payable', value: taxData?.totalGSTPayable || 0 },
+    { name: 'GSTR1', value: taxData?.gstr1AccountReceivable || 0 },
+    { name: 'GSTR2B', value: taxData?.gstr2b || 0 },
+    { name: 'GST A/R', value: taxData?.totalGSTAccountReceivable || 0 },
+    { name: 'Mismatched', value: taxData?.mismatchedAmount || 0 },
+    { name: 'TDS Payable', value: taxData?.totalTDSPayable || 0 },
+    { name: 'Income Tax', value: taxData?.totalIncomeTaxReceivable || 0 },
+    { name: 'TDS Receivable', value: taxData?.totalTDSReceivable || 0 }
   ];
 
   return (
@@ -36,46 +63,91 @@ const TaxReport = () => {
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
           <div className="relative">
-            <select className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option>This Financial Year</option>
+            <select 
+              value={timePeriod}
+              onChange={(e) => setTimePeriod(e.target.value)}
+              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg appearance-none pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="current_financial_year">Current Financial Year</option>
+              <option value="previous_financial_year">Previous Financial Year</option>
+              <option value="current_month">Current Month</option>
+              <option value="previous_month">Previous Month</option>
+              <option value="current_quarter">Current Quarter</option>
+              <option value="previous_quarter">Previous Quarter</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
+      {/* Summary Cards - Top 1 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹7,50,000</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalGST?.toLocaleString('en-IN') || '0'}</div>
           <div className="text-sm text-gray-500">Total GST</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹2,50,000</div>
-          <div className="text-sm text-gray-500">Total TDS</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalGSTPayable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total GST Payable</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-          <div className="text-3xl font-bold text-gray-900 mb-1">₹3,00,000</div>
-          <div className="text-sm text-gray-500">Total Ancome Tax</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.gstr1AccountReceivable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total GSTR1 Account Receivable</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.gstr2b?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total GSTR2B</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-blue-600 mb-1 break-words">₹{taxData?.totalGSTAccountReceivable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total GST of Account Receivable</div>
+        </div>
+      </div>
+
+      {/* Additional Cards - 4 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-red-600 mb-1 break-words">₹{taxData?.mismatchedAmount?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Mismatched Amount (GSTR1 & GSTR2B)</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalTDSPayable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total TDS Payable</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1 break-words">₹{taxData?.totalIncomeTaxReceivable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total Income Tax Receivable</div>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="text-xl md:text-2xl font-bold text-gray-400 mb-1 break-words">₹{taxData?.totalTDSReceivable?.toLocaleString('en-IN') || '0'}</div>
+          <div className="text-sm text-gray-500">Total TDS Receivable</div>
         </div>
       </div>
 
       {/* Tax Summary Chart */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Tax Summary</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-            <XAxis dataKey="name" tick={{ fill: '#6B7280' }} />
-            <YAxis 
-              tick={{ fill: '#6B7280' }}
-              tickFormatter={(value) => `${value / 100000} Lakh`}
-              ticks={[0, 100000, 200000, 400000]}
-            />
-            <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
-            <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="w-full" style={{ height: '550px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 120 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: '#6B7280', fontSize: 10 }} 
+                angle={-45} 
+                textAnchor="end" 
+                interval={0}
+              />
+              <YAxis 
+                tick={{ fill: '#6B7280' }}
+                tickFormatter={(value) => `${(value / 100000).toFixed(1)}L`}
+                width={80}
+              />
+              <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} />
+              <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} maxBarSize={80} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Tax Details Table */}
@@ -97,7 +169,7 @@ const TaxReport = () => {
                   <td className="py-3 px-4 text-sm text-gray-700">{item.date}</td>
                   <td className="py-3 px-4 text-sm text-gray-700">{item.taxType}</td>
                   <td className="py-3 px-4 text-sm text-gray-700">{item.category}</td>
-                  <td className="py-3 px-4 text-sm text-gray-700">{item.amount}</td>
+                  <td className="py-3 px-4 text-sm text-gray-700">₹{item.amount?.toLocaleString('en-IN')}</td>
                 </tr>
               ))}
             </tbody>

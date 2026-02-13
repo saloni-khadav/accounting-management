@@ -25,6 +25,7 @@ const collectionRoutes = require('./routes/collections');
 const tdsRoutes = require('./routes/tds');
 const proformaInvoiceRoutes = require('./routes/proformaInvoices');
 const arDashboardRoutes = require('./routes/arDashboard');
+const taxReportRoutes = require('./routes/taxReport');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/collections', collectionRoutes);
 app.use('/api/tds', tdsRoutes);
 app.use('/api/proforma-invoices', proformaInvoiceRoutes);
 app.use('/api/ar-dashboard', arDashboardRoutes);
+app.use('/api/tax-report', taxReportRoutes);
 
 // test route 
 app.get('/api/test', (req, res) => {
