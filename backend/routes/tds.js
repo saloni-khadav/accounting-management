@@ -105,6 +105,12 @@ router.get('/', async (req, res) => {
 // Get TDS summary statistics from bills and payments
 router.get('/summary', async (req, res) => {
   try {
+    // Debug: Check all bills first
+    const allBills = await Bill.find({});
+    console.log('Total bills in database:', allBills.length);
+    console.log('Bills with TDS amount > 0:', allBills.filter(b => b.tdsAmount > 0).length);
+    console.log('Approved bills with TDS:', allBills.filter(b => b.tdsAmount > 0 && b.approvalStatus === 'approved').length);
+    
     const [billTotalTds, paymentTotalTds] = await Promise.all([
       Bill.aggregate([
         { $match: { tdsAmount: { $gt: 0 }, approvalStatus: 'approved' } },
@@ -130,6 +136,8 @@ router.get('/summary', async (req, res) => {
     const totalTds = (billTotalTds[0]?.total || 0) + (paymentTotalTds[0]?.total || 0);
     const paid = paymentPaidTds[0]?.total || 0;
     const payable = billPayableTds[0]?.total || 0;
+
+    console.log('TDS Summary:', { totalTds, paid, payable });
 
     res.json({
       totalTds,
