@@ -201,7 +201,7 @@ router.get('/me', auth, async (req, res) => {
 // Save profile data
 router.post('/profile', auth, async (req, res) => {
   try {
-    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber, bankDetails } = req.body;
+    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
     
     const currentUser = await User.findById(req.user._id);
     
@@ -217,16 +217,7 @@ router.post('/profile', auth, async (req, res) => {
     if (mcaNumber) currentUser.profile.mcaNumber = mcaNumber;
     if (msmeStatus) currentUser.profile.msmeStatus = msmeStatus;
     if (msmeNumber) currentUser.profile.msmeNumber = msmeNumber;
-    
-    if (bankDetails) {
-      if (!currentUser.profile.bankDetails) {
-        currentUser.profile.bankDetails = {};
-      }
-      currentUser.profile.bankDetails.bankName = bankDetails.bankName || '';
-      currentUser.profile.bankDetails.accountNumber = bankDetails.accountNumber || '';
-      currentUser.profile.bankDetails.ifscCode = bankDetails.ifscCode || '';
-      currentUser.profile.bankDetails.branchName = bankDetails.branchName || '';
-    }
+    if (bankAccounts) currentUser.profile.bankAccounts = bankAccounts;
     
     currentUser.markModified('profile');
     await currentUser.save();
@@ -238,6 +229,30 @@ router.post('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Profile save error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete bank account
+router.delete('/profile/bank/:index', auth, async (req, res) => {
+  try {
+    const { index } = req.params;
+    const currentUser = await User.findById(req.user._id);
+    
+    if (!currentUser.profile || !currentUser.profile.bankAccounts) {
+      return res.status(404).json({ message: 'No bank accounts found' });
+    }
+    
+    currentUser.profile.bankAccounts.splice(parseInt(index), 1);
+    currentUser.markModified('profile');
+    await currentUser.save();
+
+    res.json({
+      message: 'Bank account deleted successfully',
+      success: true
+    });
+  } catch (error) {
+    console.error('Bank delete error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

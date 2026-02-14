@@ -58,12 +58,12 @@ const userSchema = new mongoose.Schema({
     mcaNumber: String,
     msmeStatus: { type: String, default: 'No' },
     msmeNumber: String,
-    bankDetails: {
+    bankAccounts: [{
       bankName: String,
       accountNumber: String,
       ifscCode: String,
       branchName: String
-    }
+    }]
   }
 }, {
   timestamps: true
