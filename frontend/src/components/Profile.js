@@ -14,7 +14,11 @@ const Profile = () => {
     mcaNumber: '',
     msmeStatus: 'No',
     msmeNumber: '',
-    msmeFile: null
+    msmeFile: null,
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: ''
   });
 
   const [showPanFull, setShowPanFull] = useState(false);
@@ -27,7 +31,7 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -35,6 +39,7 @@ const Profile = () => {
 
         if (response.ok) {
           const result = await response.json();
+          
           if (result.user && result.user.profile) {
             const profile = result.user.profile;
             setProfileData(prev => ({
@@ -46,7 +51,11 @@ const Profile = () => {
               mcaNumber: profile.mcaNumber || '',
               msmeStatus: profile.msmeStatus || 'No',
               msmeNumber: profile.msmeNumber || '',
-              companyLogoUrl: profile.companyLogo || null
+              companyLogoUrl: profile.companyLogo || null,
+              bankName: profile.bankDetails?.bankName || '',
+              accountNumber: profile.bankDetails?.accountNumber || '',
+              ifscCode: profile.bankDetails?.ifscCode || '',
+              branchName: profile.bankDetails?.branchName || ''
             }));
           }
         }
@@ -266,7 +275,6 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    // Validate required fields
     if (!profileData.gstNumber) {
       alert('GST Number is required');
       return;
@@ -275,7 +283,6 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Convert logo file to base64 if exists
       let logoBase64 = null;
       if (profileData.companyLogo) {
         const reader = new FileReader();
@@ -285,7 +292,7 @@ const Profile = () => {
         });
       }
 
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/profile', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -299,7 +306,13 @@ const Profile = () => {
           panNumber: profileData.panNumber,
           mcaNumber: profileData.mcaNumber,
           msmeStatus: profileData.msmeStatus,
-          msmeNumber: profileData.msmeNumber
+          msmeNumber: profileData.msmeNumber,
+          bankDetails: {
+            bankName: profileData.bankName,
+            accountNumber: profileData.accountNumber,
+            ifscCode: profileData.ifscCode,
+            branchName: profileData.branchName
+          }
         })
       });
 
@@ -528,6 +541,53 @@ const Profile = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Bank Details */}
+        <div className="bg-green-50 p-4 rounded-lg">
+          <label className="block text-sm font-medium text-gray-700 mb-3">Bank Details</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+              <input
+                type="text"
+                value={profileData.bankName}
+                onChange={(e) => handleInputChange('bankName', e.target.value)}
+                placeholder="Enter Bank Name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+              <input
+                type="text"
+                value={profileData.accountNumber}
+                onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                placeholder="Enter Account Number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+              <input
+                type="text"
+                value={profileData.ifscCode}
+                onChange={(e) => handleInputChange('ifscCode', e.target.value.toUpperCase())}
+                placeholder="Enter IFSC Code"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
+              <input
+                type="text"
+                value={profileData.branchName}
+                onChange={(e) => handleInputChange('branchName', e.target.value)}
+                placeholder="Enter Branch Name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
         </div>
 

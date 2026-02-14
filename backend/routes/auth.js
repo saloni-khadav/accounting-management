@@ -201,29 +201,40 @@ router.get('/me', auth, async (req, res) => {
 // Save profile data
 router.post('/profile', auth, async (req, res) => {
   try {
-    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber } = req.body;
+    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber, bankDetails } = req.body;
     
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        profile: {
-          companyLogo,
-          gstNumber,
-          tradeName,
-          address,
-          panNumber,
-          mcaNumber,
-          msmeStatus,
-          msmeNumber
-        }
-      },
-      { new: true }
-    );
+    const currentUser = await User.findById(req.user._id);
+    
+    if (!currentUser.profile) {
+      currentUser.profile = {};
+    }
+    
+    if (companyLogo) currentUser.profile.companyLogo = companyLogo;
+    if (gstNumber) currentUser.profile.gstNumber = gstNumber;
+    if (tradeName) currentUser.profile.tradeName = tradeName;
+    if (address) currentUser.profile.address = address;
+    if (panNumber) currentUser.profile.panNumber = panNumber;
+    if (mcaNumber) currentUser.profile.mcaNumber = mcaNumber;
+    if (msmeStatus) currentUser.profile.msmeStatus = msmeStatus;
+    if (msmeNumber) currentUser.profile.msmeNumber = msmeNumber;
+    
+    if (bankDetails) {
+      if (!currentUser.profile.bankDetails) {
+        currentUser.profile.bankDetails = {};
+      }
+      currentUser.profile.bankDetails.bankName = bankDetails.bankName || '';
+      currentUser.profile.bankDetails.accountNumber = bankDetails.accountNumber || '';
+      currentUser.profile.bankDetails.ifscCode = bankDetails.ifscCode || '';
+      currentUser.profile.bankDetails.branchName = bankDetails.branchName || '';
+    }
+    
+    currentUser.markModified('profile');
+    await currentUser.save();
 
     res.json({
       message: 'Profile saved successfully',
       success: true,
-      profile: user.profile
+      profile: currentUser.profile
     });
   } catch (error) {
     console.error('Profile save error:', error);
