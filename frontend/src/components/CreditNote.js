@@ -152,7 +152,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     calculateTotals();
   }, [creditNoteData.items]);
 
-  // Fetch user profile data
+  // Fetch user profile data - runs for both new and edit
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -182,8 +182,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       }
     };
 
-    fetchUserProfile();
-  }, []);
+    if (isOpen) {
+      fetchUserProfile();
+    }
+  }, [isOpen]);
 
   // Fetch clients data
   useEffect(() => {
