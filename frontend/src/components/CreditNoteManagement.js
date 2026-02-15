@@ -11,10 +11,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCreditNote, setEditingCreditNote] = useState(null);
   const [userRole, setUserRole] = useState('');
+  const [viewingCreditNote, setViewingCreditNote] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
 
   useEffect(() => {
     fetchCreditNotes();
     fetchUserRole();
+    fetchCurrentUserProfile();
   }, []);
 
   const fetchUserRole = async () => {
@@ -31,6 +35,29 @@ const CreditNoteManagement = ({ setActivePage }) => {
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
+    }
+  };
+
+  const fetchCurrentUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        const profile = userData.user.profile || {};
+        setCurrentUserProfile({
+          supplierName: userData.user.companyName || profile.tradeName || 'N/A',
+          supplierAddress: profile.address || 'N/A',
+          supplierGSTIN: profile.gstNumber || 'N/A',
+          supplierPAN: profile.panNumber || 'N/A'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
     }
   };
 
@@ -65,6 +92,11 @@ const CreditNoteManagement = ({ setActivePage }) => {
 
   const handleDownloadPDF = (creditNote) => {
     generateCreditNotePDF(creditNote);
+  };
+
+  const handleViewCreditNote = (creditNote) => {
+    setViewingCreditNote(creditNote);
+    setIsViewModalOpen(true);
   };
 
   const handleExportToExcel = () => {
@@ -272,6 +304,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   <td className="px-4 py-3 border-b text-sm">
                     <div className="flex gap-2">
                       <button 
+                        onClick={() => handleViewCreditNote(creditNote)}
+                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs hover:bg-blue-200 flex items-center gap-1"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                        View Details
+                      </button>
+                      <button 
                         onClick={() => handleDownloadPDF(creditNote)}
                         className="text-blue-600 hover:text-blue-800 p-1" 
                         title="Download PDF"
@@ -301,6 +341,62 @@ const CreditNoteManagement = ({ setActivePage }) => {
         </table>
       </div>
 
+      {/* View Credit Note Modal */}
+      {isViewModalOpen && viewingCreditNote && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800">Credit Note Details - {viewingCreditNote.creditNoteNumber}</h2>
+              <button onClick={() => setIsViewModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
+            </div>
+            <div className="p-6">
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><span className="font-medium">Name:</span> {currentUserProfile?.supplierName || 'N/A'}</div>
+                  <div><span className="font-medium">GSTIN:</span> {currentUserProfile?.supplierGSTIN || 'N/A'}</div>
+                  <div><span className="font-medium">PAN:</span> {currentUserProfile?.supplierPAN || 'N/A'}</div>
+                  <div className="md:col-span-2"><span className="font-medium">Address:</span> {currentUserProfile?.supplierAddress || 'N/A'}</div>
+                </div>
+              </div>
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Credit Note Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div><span className="font-medium">Credit Note Number:</span> {viewingCreditNote.creditNoteNumber}</div>
+                  <div><span className="font-medium">Date:</span> {new Date(viewingCreditNote.creditNoteDate).toLocaleDateString()}</div>
+                  <div><span className="font-medium">Original Invoice:</span> {viewingCreditNote.originalInvoiceNumber || 'N/A'}</div>
+                  <div><span className="font-medium">Original Invoice Date:</span> {viewingCreditNote.originalInvoiceDate ? new Date(viewingCreditNote.originalInvoiceDate).toLocaleDateString() : 'N/A'}</div>
+                  <div><span className="font-medium">Reason:</span> {viewingCreditNote.reason || 'N/A'}</div>
+                  <div><span className="font-medium">Approval:</span> <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getApprovalColor(viewingCreditNote.approvalStatus || 'Pending')}`}>{viewingCreditNote.approvalStatus || 'Pending'}</span></div>
+                </div>
+              </div>
+              <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Customer Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><span className="font-medium">Name:</span> {viewingCreditNote.customerName}</div>
+                  <div><span className="font-medium">GSTIN:</span> {viewingCreditNote.customerGSTIN || 'N/A'}</div>
+                  <div><span className="font-medium">Customer Place:</span> {viewingCreditNote.customerPlace || 'N/A'}</div>
+                  <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewingCreditNote.customerAddress}</div>
+                </div>
+              </div>
+              {viewingCreditNote.items && viewingCreditNote.items.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">Items</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border text-sm">
+                      <thead className="bg-gray-50"><tr><th className="px-3 py-2 border text-left">Description</th><th className="px-3 py-2 border text-left">HSN</th><th className="px-3 py-2 border text-right">Qty</th><th className="px-3 py-2 border text-right">Rate</th><th className="px-3 py-2 border text-right">Taxable</th><th className="px-3 py-2 border text-right">CGST</th><th className="px-3 py-2 border text-right">SGST</th><th className="px-3 py-2 border text-right">IGST</th><th className="px-3 py-2 border text-right">Total</th></tr></thead>
+                      <tbody>{viewingCreditNote.items.map((item, i) => (<tr key={i}><td className="px-3 py-2 border">{item.description}</td><td className="px-3 py-2 border">{item.hsnCode}</td><td className="px-3 py-2 border text-right">{item.quantity}</td><td className="px-3 py-2 border text-right">₹{(item.unitPrice||0).toFixed(2)}</td><td className="px-3 py-2 border text-right">₹{(item.taxableValue||0).toFixed(2)}</td><td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount||0).toFixed(2)}</td></tr>))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              <div className="mb-6"><h3 className="text-lg font-semibold mb-3">Tax Computation</h3><div className="bg-gray-50 p-4 rounded-lg"><div className="grid grid-cols-2 md:grid-cols-4 gap-4"><div><p className="text-sm text-gray-600">Subtotal</p><p className="text-lg font-semibold">₹{(viewingCreditNote.subtotal||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">Discount</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalDiscount||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">Taxable Value</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalTaxableValue||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">CGST</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalCGST||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">SGST</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalSGST||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">IGST</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalIGST||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">Total Tax</p><p className="text-lg font-semibold">₹{(viewingCreditNote.totalTax||0).toLocaleString()}</p></div><div><p className="text-sm text-gray-600">Grand Total</p><p className="text-xl font-bold text-blue-600">₹{(viewingCreditNote.grandTotal||0).toLocaleString()}</p></div></div></div></div>
+              {viewingCreditNote.notes && (<div className="mb-6"><h3 className="text-lg font-semibold mb-2">Notes</h3><p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewingCreditNote.notes}</p></div>)}
+              <div className="mt-6 flex gap-3 justify-end"><button onClick={() => handleDownloadPDF(viewingCreditNote)} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2"><Download size={16} />Download PDF</button><button onClick={() => {setIsViewModalOpen(false);handleEditCreditNote(viewingCreditNote);}} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"><Edit size={16} />Edit</button></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CreditNote
         isOpen={isFormOpen}
