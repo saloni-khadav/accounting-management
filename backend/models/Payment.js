@@ -54,6 +54,11 @@ const paymentSchema = new mongoose.Schema({
     enum: ['Bank Transfer', 'Check', 'Cash', 'Credit Card', 'UPI', 'NEFT/RTGS'],
     default: 'Bank Transfer'
   },
+  bankName: {
+    type: String,
+    enum: ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Kotak Mahindra Bank', 'Yes Bank'],
+    trim: true
+  },
   referenceNumber: {
     type: String,
     trim: true
