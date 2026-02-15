@@ -127,18 +127,11 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     }
 
     if (!rawText || result.error) {
-      // Fallback: return mock data for testing
-      console.log('OCR failed, returning mock data for testing');
-      const mockData = {
-        accountNumber: '1234567890123456',
-        ifscCode: 'HDFC0001234',
-        bankName: 'HDFC BANK'
-      };
-      
+      console.log('OCR failed, no text extracted');
       return res.json({
-        success: true,
-        data: mockData,
-        message: 'Mock data for testing'
+        success: false,
+        message: 'Could not extract text from document',
+        data: {}
       });
     }
 

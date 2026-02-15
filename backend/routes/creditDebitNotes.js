@@ -187,7 +187,7 @@ router.put('/:id', auth, upload.array('attachments', 10), async (req, res) => {
         const existingAttachments = JSON.parse(updateData.existingAttachments);
         finalAttachments = existingAttachments.map(att => ({
           fileName: att.fileName,
-          fileUrl: att.fileUrl.replace('http://localhost:5001', ''), // Remove base URL
+          fileUrl: att.fileUrl.replace('https://nextbook-backend.nextsphere.co.in', ''), // Remove base URL
           fileSize: att.fileSize,
           uploadedAt: att.uploadedAt
         }));
