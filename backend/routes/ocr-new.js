@@ -215,26 +215,7 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     }
 
     if (!rawText || result.error) {
-      // For PDF files, return realistic bank data based on common Indian banks
-      if (documentType === 'bankStatement') {
-        console.log('Using sample bank data - GCS permissions needed for real PDF OCR');
-        const bankOptions = [
-          { accountNumber: '50100123456789', ifscCode: 'HDFC0000123', bankName: 'HDFC BANK' },
-          { accountNumber: '026291800001234', ifscCode: 'SBIN0000123', bankName: 'STATE BANK OF INDIA' },
-          { accountNumber: '917010012345678', ifscCode: 'UTIB0000123', bankName: 'AXIS BANK' },
-          { accountNumber: '123456789012', ifscCode: 'ICIC0000123', bankName: 'ICICI BANK' }
-        ];
-        
-        // Return random bank data for variety
-        const randomBank = bankOptions[Math.floor(Math.random() * bankOptions.length)];
-        
-        return res.json({
-          success: true,
-          data: randomBank,
-          message: 'Sample bank data (Add Storage Object Creator role to service account for real PDF OCR)'
-        });
-      }
-      
+      console.log('OCR failed, no text extracted');
       return res.json({ 
         success: false,
         message: 'No text found in document'
@@ -269,11 +250,10 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     console.log('Has relevant data:', hasRelevantData);
 
     if (!hasRelevantData) {
-      // Return extracted data even if no specific match found for debugging
       return res.json({
-        success: true,
-        data: extractedData,
-        message: 'Partial data extracted'
+        success: false,
+        data: {},
+        message: `No ${documentType === 'bankStatement' ? 'bank details' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'relevant data'} found in this document. Please upload the correct document.`
       });
     }
 

@@ -1,15 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, ChevronDown, Check, FileText, Trash2, Eye, Download, Calendar, Search, Filter } from 'lucide-react';
 
 const BankStatementUpload = () => {
   const currentYear = new Date().getFullYear();
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [selectedBank, setSelectedBank] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState(`April ${currentYear}`);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBank, setFilterBank] = useState('All Banks');
   const [filterPeriod, setFilterPeriod] = useState('All Periods');
+
+  useEffect(() => {
+    const fetchBankAccounts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.user && result.user.profile && result.user.profile.bankAccounts) {
+            const accounts = result.user.profile.bankAccounts.filter(acc => acc.bankName);
+            setBankAccounts(accounts);
+            if (accounts.length > 0) {
+              setSelectedBank(accounts[0].bankName);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching bank accounts:', error);
+      }
+    };
+
+    const fetchUploadedStatements = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/bank-statements/list`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const formattedFiles = result.data.map(stmt => ({
+              id: stmt._id,
+              name: stmt.fileName,
+              size: stmt.fileSize,
+              bank: stmt.bankName,
+              period: stmt.period,
+              uploadDate: new Date(stmt.uploadDate).toLocaleDateString('en-IN')
+            }));
+            setUploadedFiles(formattedFiles);
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching statements:', error);
+      }
+    };
+
+    fetchBankAccounts();
+    fetchUploadedStatements();
+  }, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -36,39 +94,107 @@ const BankStatementUpload = () => {
     }
   };
 
-  const handleFiles = (files) => {
+  const handleFiles = async (files) => {
     const file = files[0];
     if (file.type === 'application/pdf' && file.size <= 5 * 1024 * 1024) {
-      const newFile = {
-        id: Date.now(),
-        name: file.name,
-        size: (file.size / 1024).toFixed(2) + ' KB',
-        bank: selectedBank,
-        period: selectedPeriod,
-        uploadDate: new Date().toLocaleDateString('en-IN'),
-        file: file
-      };
-      setUploadedFiles([newFile, ...uploadedFiles]);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bankName', selectedBank);
+        formData.append('period', selectedPeriod);
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/bank-statements/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+          const newFile = {
+            id: result.data._id,
+            name: result.data.fileName,
+            size: result.data.fileSize,
+            bank: result.data.bankName,
+            period: result.data.period,
+            uploadDate: new Date(result.data.uploadDate).toLocaleDateString('en-IN')
+          };
+          setUploadedFiles([newFile, ...uploadedFiles]);
+          alert('Bank statement uploaded successfully!');
+        } else {
+          alert(result.message || 'Upload failed');
+        }
+      } catch (error) {
+        alert('Error uploading file');
+      }
     } else {
       alert('Please upload a PDF file under 5MB');
     }
   };
 
-  const deleteFile = (id) => {
-    setUploadedFiles(uploadedFiles.filter(file => file.id !== id));
+  const deleteFile = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this statement?')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/bank-statements/delete/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setUploadedFiles(uploadedFiles.filter(file => file.id !== id));
+        alert('Statement deleted successfully');
+      } else {
+        alert(result.message || 'Delete failed');
+      }
+    } catch (error) {
+      alert('Error deleting file');
+    }
   };
 
-  const viewFile = (file) => {
-    const url = URL.createObjectURL(file.file);
-    window.open(url, '_blank');
+  const viewFile = async (file) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/bank-statements/download/${file.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } else {
+        alert('Error viewing file');
+      }
+    } catch (error) {
+      alert('Error viewing file');
+    }
   };
 
-  const downloadFile = (file) => {
-    const url = URL.createObjectURL(file.file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    a.click();
+  const downloadFile = async (file) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/bank-statements/download/${file.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        alert('Error downloading file');
+      }
+    } catch (error) {
+      alert('Error downloading file');
+    }
   };
 
   const filteredFiles = uploadedFiles.filter(file => {
@@ -97,10 +223,15 @@ const BankStatementUpload = () => {
                   onChange={(e) => setSelectedBank(e.target.value)}
                   className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 text-gray-900 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option>HDFC Bank</option>
-                  <option>ICICI Bank</option>
-                  <option>SBI Bank</option>
-                  <option>Axis Bank</option>
+                  {bankAccounts.length === 0 ? (
+                    <option value="">No bank accounts found</option>
+                  ) : (
+                    bankAccounts.map((account, index) => (
+                      <option key={index} value={account.bankName}>
+                        {account.bankName} - {account.accountNumber}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
               </div>
@@ -196,10 +327,9 @@ const BankStatementUpload = () => {
                   className="appearance-none w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option>All Banks</option>
-                  <option>HDFC Bank</option>
-                  <option>ICICI Bank</option>
-                  <option>SBI Bank</option>
-                  <option>Axis Bank</option>
+                  {bankAccounts.map((account, index) => (
+                    <option key={index} value={account.bankName}>{account.bankName}</option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
               </div>
