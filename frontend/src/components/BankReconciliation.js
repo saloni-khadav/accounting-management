@@ -31,7 +31,7 @@ const BankReconciliation = () => {
     setEditingNarration(null);
     
     try {
-      await fetch('http://localhost:5001/api/bank-reconciliation/update', {
+      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +61,7 @@ const BankReconciliation = () => {
     setTransactions(updatedTransactions);
     
     try {
-      await fetch('http://localhost:5001/api/bank-reconciliation/update', {
+      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +109,7 @@ const BankReconciliation = () => {
 
   const loadSavedReconciliations = async (transactions) => {
     try {
-      const response = await fetch('http://localhost:5001/api/bank-reconciliation');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation');
       const savedData = await response.json();
       
       return transactions.map(t => {
@@ -132,22 +132,22 @@ const BankReconciliation = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const collectionsRes = await fetch('http://localhost:5001/api/collections');
+      const collectionsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
       const collectionsData = await collectionsRes.json();
       
-      const paymentsRes = await fetch('http://localhost:5001/api/payments');
+      const paymentsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
       const paymentsData = await paymentsRes.json();
       
-      const invoicesRes = await fetch('http://localhost:5001/api/invoices');
+      const invoicesRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
       const invoicesData = await invoicesRes.json();
       
-      const billsRes = await fetch('http://localhost:5001/api/bills');
+      const billsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
       const billsData = await billsRes.json();
       
-      const clientsRes = await fetch('http://localhost:5001/api/clients');
+      const clientsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
       const clientsData = await clientsRes.json();
       
-      const vendorsRes = await fetch('http://localhost:5001/api/vendors');
+      const vendorsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       const vendorsData = await vendorsRes.json();
       
       setCollections(collectionsData);
