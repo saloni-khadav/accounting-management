@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell, LabelList } from 'recharts';
 import axios from 'axios';
 
 const TaxReport = () => {
@@ -8,6 +8,13 @@ const TaxReport = () => {
   const [taxDetails, setTaxDetails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timePeriod, setTimePeriod] = useState('current_financial_year');
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsSmallScreen(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchTaxData();
@@ -33,13 +40,13 @@ const TaxReport = () => {
   }
 
   const chartData = [
-    { name: 'Total GST', value: taxData?.totalGST || 0 },
-    { name: 'GSTR1', value: taxData?.gstr1AccountReceivable || 0 },
-    { name: 'GSTR2B', value: taxData?.gstr2b || 0 },
-    { name: 'Mismatched', value: taxData?.mismatchedAmount || 0 },
-    { name: 'TDS Payable', value: taxData?.totalTDSPayable || 0 },
-    { name: 'TDS Received', value: taxData?.totalTDSReceived || 0 },
-    { name: 'TDS Receivable', value: taxData?.totalTDSReceivable || 0 }
+    { name: 'Total GST', value: taxData?.totalGST || 0, type: 'positive' },
+    { name: 'GSTR1', value: taxData?.gstr1AccountReceivable || 0, type: 'positive' },
+    { name: 'GSTR2B', value: taxData?.gstr2b || 0, type: 'positive' },
+    { name: 'Mismatched', value: taxData?.mismatchedAmount || 0, type: 'positive' },
+    { name: 'TDS Payable', value: taxData?.totalTDSPayable || 0, type: 'positive' },
+    { name: 'TDS Received', value: taxData?.totalTDSReceived || 0, type: 'positive' },
+    { name: 'TDS Receivable', value: taxData?.totalTDSReceivable || 0, type: 'positive' }
   ];
 
   return (
@@ -117,26 +124,41 @@ const TaxReport = () => {
       {/* Tax Summary Chart */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Tax Summary</h3>
-        <div className="w-full" style={{ height: '550px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 60, bottom: 120 }}>
+        <div className="w-full overflow-auto" style={{ height: '550px' }}>
+          <div style={{ minWidth: isSmallScreen ? '800px' : '100%', height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 40, right: 30, left: 60, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis 
                 dataKey="name" 
-                tick={{ fill: '#6B7280', fontSize: 10 }} 
-                angle={-45} 
-                textAnchor="end" 
+                tick={false}
                 interval={0}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
-                tick={{ fill: '#6B7280' }}
+                tick={{ fill: '#374151', fontWeight: 500 }}
                 tickFormatter={(value) => `${(value / 100000).toFixed(1)}L`}
                 width={80}
+                axisLine={{ stroke: '#9CA3AF', strokeWidth: 2 }}
               />
-              <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} />
-              <Bar dataKey="value" fill="#3B82F6" radius={[8, 8, 0, 0]} maxBarSize={80} />
+              <Tooltip 
+                formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+              />
+              <ReferenceLine y={0} stroke="#1F2937" strokeWidth={3} />
+              <Bar dataKey="value" maxBarSize={60} fill="#3B82F6" radius={[8, 8, 0, 0]}>
+                <LabelList 
+                  dataKey="name" 
+                  position="bottom"
+                  style={{ fill: '#374151', fontSize: isSmallScreen ? '9px' : '11px', fontWeight: 500 }}
+                  offset={5}
+                  angle={isSmallScreen ? -45 : 0}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
