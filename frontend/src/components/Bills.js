@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, Download, Eye, X } from 'lucide-react';
+import { Search, Edit, Trash2, Download, Eye, X, Plus, AlertTriangle, Clock, CreditCard, CheckCircle, DollarSign } from 'lucide-react';
 import VendorBill from './VendorBill';
+import MetricsCard from './ui/MetricsCard';
 
 const Bills = () => {
   const [activeFilter, setActiveFilter] = useState('Status');
@@ -297,94 +298,128 @@ const Bills = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Bills</h1>
-        <div className="flex gap-3">
-          <button 
-            onClick={exportToExcel}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
-          >
-            <Download size={18} />
-            Export to Excel
-          </button>
-          <button 
-            onClick={handleCreateNew}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Create New
-          </button>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Bills Management</h1>
+            <div className="flex gap-3">
+              <button 
+                onClick={exportToExcel}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+              >
+                <Download size={18} />
+                Export
+              </button>
+              <button 
+                onClick={handleCreateNew}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+              >
+                <Plus size={18} />
+                Create New
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-red-500 text-white rounded-xl p-6">
-          <div className="text-sm mb-2">Overdue</div>
-          <div className="text-5xl font-bold">{overdueCount}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Overdue"
+            value={overdueCount}
+            icon={AlertTriangle}
+            color="danger"
+          />
         </div>
-        <div className="bg-orange-400 text-white rounded-xl p-6">
-          <div className="text-sm mb-2">Due Soon</div>
-          <div className="text-5xl font-bold">{dueSoonCount}</div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Due Soon"
+            value={dueSoonCount}
+            icon={Clock}
+            color="warning"
+          />
         </div>
-        <div className="bg-blue-400 text-white rounded-xl p-6">
-          <div className="text-sm mb-2">Not Paid</div>
-          <div className="text-5xl font-bold">{notPaidCount}</div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Not Paid"
+            value={notPaidCount}
+            icon={CreditCard}
+            color="primary"
+          />
         </div>
-        <div className="bg-yellow-500 text-white rounded-xl p-6">
-          <div className="text-sm mb-2">Partially Paid</div>
-          <div className="text-5xl font-bold">{partiallyPaidCount}</div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Partially Paid"
+            value={partiallyPaidCount}
+            icon={DollarSign}
+            color="warning"
+          />
         </div>
-        <div className="bg-green-500 text-white rounded-xl p-6">
-          <div className="text-sm mb-2">Fully Paid</div>
-          <div className="text-5xl font-bold">{fullyPaidCount}</div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Fully Paid"
+            value={fullyPaidCount}
+            icon={CheckCircle}
+            color="success"
+          />
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="relative w-64">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search by Bill ID or Vendor" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4 rounded-t-xl">
+          <h2 className="text-lg font-semibold">Search & Filter</h2>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-64">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search by Bill ID or Vendor" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-48"
+            >
+              <option value="">All Status</option>
+              <option value="Not Paid">Not Paid</option>
+              <option value="Due Soon">Due Soon</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Fully Paid">Fully Paid</option>
+            </select>
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-          >
-            <option value="">All Status</option>
-            <option value="Not Paid">Not Paid</option>
-            <option value="Due Soon">Due Soon</option>
-            <option value="Overdue">Overdue</option>
-            <option value="Partially Paid">Partially Paid</option>
-            <option value="Fully Paid">Fully Paid</option>
-          </select>
         </div>
       </div>
 
       {/* Bills Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">
-                Bill ID ↓
-              </th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Bill Date</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Due Date</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Status</th>
-              <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm">Amount</th>
-              <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Approval</th>
-              <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Actions</th>
-            </tr>
-          </thead>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+          <h2 className="text-lg font-semibold">Bills List</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">
+                  Bill ID ↓
+                </th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Bill Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Due Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Status</th>
+                <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm">Amount</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Approval</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Actions</th>
+              </tr>
+            </thead>
           <tbody>
             {billsData.map((bill, index) => {
               const originalBill = bills.find(b => b.billNumber === bill.id);
@@ -470,7 +505,8 @@ const Bills = () => {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Vendor Bill Form Modal */}

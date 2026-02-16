@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Eye, Edit, Trash2, Download, FileText } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, Download, FileText, CreditCard, TrendingUp, Calculator } from 'lucide-react';
 import CreditDebitNoteForm from './CreditDebitNoteForm';
 import { generateCreditDebitNotePDF } from '../utils/pdfGenerator';
+import MetricsCard from './ui/MetricsCard';
 
 const CreditDebitNotes = () => {
   const [creditDebitNotes, setCreditDebitNotes] = useState([]);
@@ -103,153 +104,185 @@ const CreditDebitNotes = () => {
     .reduce((sum, note) => sum + (note.grandTotal || 0), 0);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
-            <FileText className="mr-2" />
-            Credit/Debit Notes Management
-          </h2>
-          <p className="text-gray-600">Manage vendor credit and debit notes</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Note
-          </button>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center">
+                <FileText className="mr-3" size={28} />
+                Credit/Debit Notes Management
+              </h1>
+              <p className="text-blue-100 mt-1">Manage vendor credit and debit notes</p>
+            </div>
+            <button
+              onClick={() => setIsFormOpen(true)}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+            >
+              <Plus size={18} />
+              Create Note
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-green-50 rounded-xl p-6 border border-green-200">
-          <h3 className="text-lg text-green-600 mb-2">Credit Amount</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-700 break-words">₹{totalCredit.toLocaleString()}</p>
-        </div>
-        <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
-          <h3 className="text-lg text-orange-600 mb-2">Debit Amount</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-orange-700 break-words">₹{totalDebit.toLocaleString()}</p>
-        </div>
-        <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-          <h3 className="text-lg text-blue-600 mb-2">Net Amount</h3>
-          <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-blue-700 break-words">₹{Math.abs(totalCredit - totalDebit).toLocaleString()}</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search notes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Credit Amount"
+            value={`₹${totalCredit.toLocaleString()}`}
+            icon={TrendingUp}
+            color="success"
           />
         </div>
-
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Types</option>
-          <option value="Credit Note">Credit Note</option>
-          <option value="Debit Note">Debit Note</option>
-        </select>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Debit Amount"
+            value={`₹${totalDebit.toLocaleString()}`}
+            icon={CreditCard}
+            color="warning"
+          />
+        </div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Net Amount"
+            value={`₹${Math.abs(totalCredit - totalDebit).toLocaleString()}`}
+            icon={Calculator}
+            color="primary"
+          />
+        </div>
       </div>
 
-      {/* Notes List */}
-      <div className="overflow-x-auto mb-6">
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Note No.</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Date</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Invoice Date</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Vendor</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Type</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Original Invoice</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Amount</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Approval</th>
-              <th className="px-4 py-3 border-b text-left text-sm font-medium text-gray-900">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredNotes.length === 0 ? (
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4 rounded-t-xl">
+          <h2 className="text-lg font-semibold">Search & Filter</h2>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-64">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by Note Number or Vendor"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-48"
+            >
+              <option value="">All Types</option>
+              <option value="Credit Note">Credit Note</option>
+              <option value="Debit Note">Debit Note</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Notes Table */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+          <h2 className="text-lg font-semibold">Notes List</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
-                  No notes found
-                </td>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Note No. ↓</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Type</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Original Invoice</th>
+                <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm">Amount</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Approval</th>
+                <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Actions</th>
               </tr>
-            ) : (
-              filteredNotes.map((note) => (
-                <tr key={note._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
-                    {note.noteNumber}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {new Date(note.noteDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {note.invoiceDate ? new Date(note.invoiceDate).toLocaleDateString() : '-'}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {note.vendorName}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getTypeColor(note.type)}`}>
-                      {note.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
-                    {note.originalInvoiceNumber || '-'}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
-                    ₹{((note.grandTotal || 0) - (note.tdsAmount || 0)).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalStatusColor(note.approvalStatus)}`}>
-                      {note.approvalStatus === 'approved' ? 'Approved' : 
-                       note.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 border-b text-sm">
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleViewNote(note)}
-                        className="p-1 text-blue-600 hover:text-blue-800"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        onClick={() => note.approvalStatus === 'pending' ? handleEditNote(note) : null}
-                        className={`p-1 ${note.approvalStatus === 'pending' ? 'text-green-600 hover:text-green-800' : 'text-gray-300 cursor-not-allowed'}`}
-                        title={note.approvalStatus === 'pending' ? 'Edit' : 'Cannot edit after manager response'}
-                        disabled={note.approvalStatus !== 'pending'}
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        onClick={() => note.approvalStatus === 'pending' ? handleDeleteNote(note._id) : null}
-                        className={`p-1 ${note.approvalStatus === 'pending' ? 'text-red-600 hover:text-red-800' : 'text-gray-300 cursor-not-allowed'}`}
-                        title={note.approvalStatus === 'pending' ? 'Delete' : 'Cannot delete after manager response'}
-                        disabled={note.approvalStatus !== 'pending'}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+            </thead>
+            <tbody>
+              {filteredNotes.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
+                    <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No notes found</p>
+                    <p className="text-sm">Create your first credit/debit note to get started</p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredNotes.map((note, index) => (
+                  <tr key={note._id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <td className="py-4 px-6">
+                      <span className="text-blue-600 font-medium">{note.noteNumber}</span>
+                    </td>
+                    <td className="py-4 px-6 text-gray-600">
+                      {new Date(note.noteDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </td>
+                    <td className="py-4 px-6 text-gray-600">
+                      {note.invoiceDate ? new Date(note.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-'}
+                    </td>
+                    <td className="py-4 px-6 text-gray-900">{note.vendorName}</td>
+                    <td className="py-4 px-6">
+                      <span className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getTypeColor(note.type)}`}>
+                        {note.type}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-gray-600">{note.originalInvoiceNumber || '-'}</td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900">
+                      ₹{((note.grandTotal || 0) - (note.tdsAmount || 0)).toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getApprovalStatusColor(note.approvalStatus)}`}>
+                        {note.approvalStatus === 'approved' ? 'Approved' : 
+                         note.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => handleViewNote(note)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button 
+                          onClick={() => note.approvalStatus === 'pending' ? handleEditNote(note) : null}
+                          disabled={note.approvalStatus !== 'pending'}
+                          className={`p-2 rounded-lg transition-colors ${
+                            note.approvalStatus === 'pending'
+                              ? 'text-blue-600 hover:bg-blue-50'
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
+                          title={note.approvalStatus === 'pending' ? 'Edit' : 'Cannot edit after manager response'}
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => note.approvalStatus === 'pending' ? handleDeleteNote(note._id) : null}
+                          disabled={note.approvalStatus !== 'pending'}
+                          className={`p-2 rounded-lg transition-colors ${
+                            note.approvalStatus === 'pending'
+                              ? 'text-red-600 hover:bg-red-50'
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
+                          title={note.approvalStatus === 'pending' ? 'Delete' : 'Cannot delete after manager response'}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
 

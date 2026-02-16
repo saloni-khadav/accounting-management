@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Download, Search } from 'lucide-react';
+import { RefreshCw, Download, Search, BarChart3, DollarSign, CheckCircle, AlertTriangle, Calculator, FileText } from 'lucide-react';
+import MetricsCard from './ui/MetricsCard';
 
 const APReconciliation = () => {
   const [bills, setBills] = useState([]);
@@ -139,142 +140,172 @@ const APReconciliation = () => {
   });
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">AP Reconciliation</h1>
-        <p className="text-gray-600 text-lg mt-1">Reconcile accounts payable transactions</p>
-      </div>
-
-      {/* Header Actions */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-          <span className="font-medium">Last updated:</span> {lastUpdated.toLocaleString()}
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={fetchData}
-            disabled={loading}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 font-medium flex items-center gap-2 disabled:opacity-50 shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center">
+                <BarChart3 className="mr-3" size={28} />
+                AP Reconciliation
+              </h1>
+              <p className="text-blue-100 mt-1">Reconcile accounts payable transactions</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-blue-100 text-sm">
+                <span className="font-medium">Last updated:</span> {lastUpdated.toLocaleString()}
+              </div>
+              <button 
+                onClick={fetchData}
+                disabled={loading}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
-          <h3 className="text-xs font-medium text-blue-700 mb-1">Total Payable</h3>
-          <p className="text-2xl font-bold text-blue-900">₹{totalPayable.toLocaleString('en-IN')}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Total Payable"
+            value={`₹${totalPayable.toLocaleString('en-IN')}`}
+            icon={DollarSign}
+            color="primary"
+          />
         </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
-          <h3 className="text-xs font-medium text-green-700 mb-1">Total Paid</h3>
-          <p className="text-2xl font-bold text-green-900">₹{totalPaid.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Total Paid"
+            value={`₹${totalPaid.toLocaleString('en-IN')}`}
+            icon={CheckCircle}
+            color="success"
+          />
         </div>
-        <div className="bg-gradient-to-br from-sky-50 to-blue-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
-          <h3 className="text-xs font-medium text-blue-700 mb-1">Credit Notes</h3>
-          <p className="text-2xl font-bold text-blue-900">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Credit Notes"
+            value={`₹${creditNotesAmount.toLocaleString('en-IN')}`}
+            icon={FileText}
+            color="primary"
+          />
         </div>
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-orange-200">
-          <h3 className="text-xs font-medium text-orange-700 mb-1">Debit Notes</h3>
-          <p className="text-2xl font-bold text-orange-900">₹{debitNotesAmount.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Debit Notes"
+            value={`₹${debitNotesAmount.toLocaleString('en-IN')}`}
+            icon={FileText}
+            color="warning"
+          />
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
-          <h3 className="text-xs font-medium text-purple-700 mb-1">Adjusted Payable</h3>
-          <p className="text-2xl font-bold text-purple-900">₹{adjustedPayable.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Adjusted Payable"
+            value={`₹${adjustedPayable.toLocaleString('en-IN')}`}
+            icon={Calculator}
+            color="primary"
+          />
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-red-200">
-          <h3 className="text-xs font-medium text-red-700 mb-1">Unreconciled</h3>
-          <p className="text-2xl font-bold text-red-900">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Unreconciled"
+            value={`₹${Math.abs(unreconciled).toLocaleString('en-IN')}`}
+            icon={AlertTriangle}
+            color="danger"
+          />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 mb-8 shadow-lg border border-gray-200">
-        <div className="flex items-center mb-4">
-          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-          <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4 rounded-t-xl">
+          <h2 className="text-lg font-semibold">Search & Filter</h2>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="relative w-64">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search by vendor or reference" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        <div className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-64">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search by vendor or reference" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-40"
+            >
+              <option value="">All Types</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Payment">Payment</option>
+              <option value="Credit Note">Credit Note</option>
+              <option value="Debit Note">Debit Note</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-48"
+            >
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Paid">Paid</option>
+              <option value="Partial">Partial</option>
+              <option value="Draft">Draft</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Pending Approval">Pending Approval</option>
+              <option value="Rejected">Rejected</option>
+            </select>
           </div>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
-          >
-            <option value="">All Types</option>
-            <option value="Invoice">Invoice</option>
-            <option value="Payment">Payment</option>
-            <option value="Credit Note">Credit Note</option>
-            <option value="Debit Note">Debit Note</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-            <option value="Overdue">Overdue</option>
-            <option value="Paid">Paid</option>
-            <option value="Partial">Partial</option>
-            <option value="Draft">Draft</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Pending Approval">Pending Approval</option>
-            <option value="Rejected">Rejected</option>
-          </select>
         </div>
       </div>
 
-      {/* Bills & Payments Table */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <div className="flex items-center">
-            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h2 className="text-xl font-bold text-gray-900">AP Transactions ({mismatchData.length})</h2>
-          </div>
-          <div className="flex gap-4 text-sm">
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">Bills: {billsData.length}</span>
-            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">Payments: {paymentsData.length}</span>
-            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-semibold">Credit/Debit Notes: {creditDebitNotesData.length}</span>
+      {/* AP Transactions Table */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">AP Transactions</h2>
+            <div className="flex gap-4 text-sm">
+              <span className="bg-white/20 text-white px-3 py-1 rounded-full font-medium">Bills: {billsData.length}</span>
+              <span className="bg-white/20 text-white px-3 py-1 rounded-full font-medium">Payments: {paymentsData.length}</span>
+              <span className="bg-white/20 text-white px-3 py-1 rounded-full font-medium">Notes: {creditDebitNotesData.length}</span>
+            </div>
           </div>
         </div>
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading reconciliation data...</p>
+          <div className="px-6 py-12 text-center text-gray-500">
+            <BarChart3 size={48} className="mx-auto mb-4 text-gray-300 animate-pulse" />
+            <p className="text-lg font-medium">Loading reconciliation data...</p>
           </div>
         ) : mismatchData.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <p className="text-lg">No bills or payments found!</p>
-            <p className="text-sm mt-2">Create some bills and payments to see them here.</p>
+          <div className="px-6 py-12 text-center text-gray-500">
+            <BarChart3 size={48} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium">No transactions found</p>
+            <p className="text-sm">Create some bills and payments to see them here</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Date</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Reference No.</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vendor</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Type</th>
-                  <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Amount</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Status</th>
+            <table className="min-w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Date</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Reference No.</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Type</th>
+                  <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm">Amount</th>
+                  <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {mismatchData.map((row, index) => {
                   const getStatusColor = (status, type) => {
                     if (type === 'Payment') {
@@ -299,30 +330,30 @@ const APReconciliation = () => {
                   };
                   
                   return (
-                    <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
-                      <td className="py-4 px-6 text-gray-700 font-medium">{row.date}</td>
+                    <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <td className="py-4 px-6 text-gray-600">{new Date(row.sortDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
                       <td className="py-4 px-6">
-                        <span className={`font-semibold ${row.type === 'Payment' ? 'text-green-600' : 'text-blue-600'}`}>{row.invoiceNo}</span>
+                        <span className={`font-medium ${row.type === 'Payment' ? 'text-green-600' : 'text-blue-600'}`}>{row.invoiceNo}</span>
                       </td>
                       <td className="py-4 px-6 text-gray-900 font-medium">{row.vendor}</td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
-                          row.type === 'Payment' ? 'bg-green-100 text-green-800 border border-green-200' :
-                          row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                          row.type === 'Debit Note' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                          'bg-gray-100 text-gray-800 border border-gray-200'
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                          row.type === 'Payment' ? 'bg-green-100 text-green-800' :
+                          row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800' :
+                          row.type === 'Debit Note' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {row.type}
                         </span>
                       </td>
-                      <td className={`py-4 px-6 text-right font-bold ${
+                      <td className={`py-4 px-6 text-right font-semibold ${
                         row.type === 'Payment' ? 'text-green-600' :
                         row.type === 'Credit Note' ? 'text-blue-600' :
                         row.type === 'Debit Note' ? 'text-orange-600' :
                         'text-gray-900'
                       }`}>{row.amount}</td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(row.status, row.type)}`}>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(row.status, row.type)}`}>
                           {row.status}
                         </span>
                       </td>
