@@ -278,8 +278,37 @@ const Approvals = () => {
       if (type === 'Bill') endpoint = `https://nextbook-backend.nextsphere.co.in/api/bills/${id}`;
       else if (type === 'Payment') endpoint = `https://nextbook-backend.nextsphere.co.in/api/payments/${id}`;
       else if (type === 'Purchase Order') endpoint = `https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${id}`;
-      else if (type === 'Proforma Invoice') endpoint = `https://nextbook-backend.nextsphere.co.in/api/proforma-invoices/${id}`;
+      else if (type === 'Proforma Invoice') endpoint = `https://nextbook-backend.nextsphere.co.in/api/pos/${id}`;
       else if (type === 'Tax Invoice') endpoint = `https://nextbook-backend.nextsphere.co.in/api/invoices/${id}`;
+      else if (type === 'Debit Note' || type === 'Credit/Debit Note') endpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${id}`;
+      else if (type === 'Credit Note') {
+        // Try credit-debit-notes first (vendor credit note), fallback to credit-notes (client credit note)
+        const cdnEndpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${id}`;
+        const cnEndpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-notes/${id}`;
+        
+        const cdnResponse = await fetch(cdnEndpoint, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (cdnResponse.ok) {
+          const contentType = cdnResponse.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await cdnResponse.json();
+            setViewDetailsItem({ ...data, type: data.type });
+            return;
+          }
+        }
+        
+        // Fallback to client credit notes
+        endpoint = cnEndpoint;
+      }
+      else {
+        console.error('Unknown approval type:', type);
+        return;
+      }
       
       const response = await fetch(endpoint, {
         headers: {
@@ -289,8 +318,17 @@ const Approvals = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setViewDetailsItem({ ...data, type });
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          setViewDetailsItem({ ...data, type });
+        } else {
+          console.error(`${type} endpoint returned non-JSON response`);
+          alert(`Unable to load ${type} details. Please contact support.`);
+        }
+      } else {
+        console.error(`Failed to fetch ${type} details:`, response.status);
+        alert(`Unable to load ${type} details. The item may not exist.`);
       }
     } catch (error) {
       console.error('Error fetching details:', error);
@@ -934,49 +972,123 @@ const Approvals = () => {
               {/* Purchase Order View */}
               {viewDetailsItem.type === 'Purchase Order' && (
                 <>
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3">Purchase Order Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div><span className="font-medium">PO Number:</span> {viewDetailsItem.poNumber}</div>
-                      <div><span className="font-medium">PO Date:</span> {new Date(viewDetailsItem.poDate).toLocaleDateString()}</div>
-                      <div><span className="font-medium">Vendor:</span> {viewDetailsItem.vendor}</div>
-                      <div><span className="font-medium">Delivery Date:</span> {viewDetailsItem.deliveryDate ? new Date(viewDetailsItem.deliveryDate).toLocaleDateString() : 'N/A'}</div>
+                  <div className="grid grid-cols-2 gap-6 mb-8">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Order Information</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">PO Number</label>
+                          <p className="text-lg font-semibold text-blue-600">{viewDetailsItem.poNumber}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Supplier</label>
+                          <p className="text-lg">{viewDetailsItem.supplier}</p>
+                        </div>
+                        {viewDetailsItem.gstNumber && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">GST Number</label>
+                            <p className="text-lg">{viewDetailsItem.gstNumber}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Dates</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Order Date</label>
+                          <p className="text-lg">{new Date(viewDetailsItem.poDate).toLocaleDateString()}</p>
+                        </div>
+                        {viewDetailsItem.deliveryDate && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Delivery Date</label>
+                            <p className="text-lg">{new Date(viewDetailsItem.deliveryDate).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Created By</label>
+                          <p className="text-lg">{viewDetailsItem.createdBy || 'N/A'}</p>
+                        </div>
+                        {viewDetailsItem.remarks && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Remarks</label>
+                            <p className="text-lg">{viewDetailsItem.remarks}</p>
+                          </div>
+                        )}
+                        {viewDetailsItem.deliveryAddress && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Delivery Address</label>
+                            <p className="text-lg whitespace-pre-line">{viewDetailsItem.deliveryAddress}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {viewDetailsItem.items && viewDetailsItem.items.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold mb-3">Items</h3>
+                    <div className="mb-8">
+                      <h3 className="text-lg font-semibold mb-4">Items</h3>
                       <div className="overflow-x-auto">
-                        <table className="w-full border border-gray-200 text-sm">
+                        <table className="w-full border border-gray-200 rounded-lg">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-3 py-2 border text-left">Product</th>
-                              <th className="px-3 py-2 border text-right">Qty</th>
-                              <th className="px-3 py-2 border text-right">Rate</th>
-                              <th className="px-3 py-2 border text-right">Total</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Item Name</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Qty</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Rate</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Discount%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">CGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">SGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">IGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Total</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {viewDetailsItem.items.map((item, index) => (
-                              <tr key={index}>
-                                <td className="px-3 py-2 border">{item.product || '-'}</td>
-                                <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
-                              </tr>
-                            ))}
+                            {viewDetailsItem.items.map((item, idx) => {
+                              const itemTotal = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
+                                               (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100);
+                              return (
+                                <tr key={idx} className="border-b">
+                                  <td className="px-4 py-3">{item.name}</td>
+                                  <td className="px-4 py-3">{item.hsn}</td>
+                                  <td className="px-4 py-3 text-right">{item.quantity}</td>
+                                  <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString()}</td>
+                                  <td className="px-4 py-3 text-right">{item.discount}%</td>
+                                  <td className="px-4 py-3 text-right">{item.cgstRate}%</td>
+                                  <td className="px-4 py-3 text-right">{item.sgstRate}%</td>
+                                  <td className="px-4 py-3 text-right">{item.igstRate}%</td>
+                                  <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toFixed(2)}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
                     </div>
                   )}
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Total Amount</p>
-                        <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.totalAmount || 0).toLocaleString()}</p>
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Sub Total:</span>
+                          <span>₹{viewDetailsItem.subTotal?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Discount:</span>
+                          <span>₹{viewDetailsItem.totalDiscount?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Tax:</span>
+                          <span>₹{viewDetailsItem.totalTax?.toLocaleString() || '0'}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600">Total Amount</div>
+                          <div className="text-2xl font-bold text-blue-600">₹{viewDetailsItem.totalAmount?.toLocaleString() || '0'}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1019,24 +1131,385 @@ const Approvals = () => {
               {/* Bill View */}
               {viewDetailsItem.type === 'Bill' && (
                 <>
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3">Bill Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div><span className="font-medium">Bill Number:</span> {viewDetailsItem.billNumber}</div>
-                      <div><span className="font-medium">Bill Date:</span> {new Date(viewDetailsItem.billDate).toLocaleDateString()}</div>
-                      <div><span className="font-medium">Vendor:</span> {viewDetailsItem.vendor}</div>
-                      <div><span className="font-medium">Due Date:</span> {viewDetailsItem.dueDate ? new Date(viewDetailsItem.dueDate).toLocaleDateString() : 'N/A'}</div>
+                  <div className="grid grid-cols-2 gap-6 mb-8">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Bill Information</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Bill Number</label>
+                          <p className="text-lg font-semibold text-blue-600">{viewDetailsItem.billNumber}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Vendor</label>
+                          <p className="text-lg">{viewDetailsItem.vendorName}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Reference Number</label>
+                          <p className="text-lg">{viewDetailsItem.referenceNumber || '-'}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Total Amount</p>
-                        <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.amount || 0).toLocaleString()}</p>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Dates & Details</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Bill Date</label>
+                          <p className="text-lg">{new Date(viewDetailsItem.billDate).toLocaleDateString()}</p>
+                        </div>
+                        {viewDetailsItem.dueDate && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-600">Due Date</label>
+                            <p className="text-lg">{new Date(viewDetailsItem.dueDate).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Payment Terms</label>
+                          <p className="text-lg">{viewDetailsItem.paymentTerms || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Place of Supply</label>
+                          <p className="text-lg">{viewDetailsItem.placeOfSupply || '-'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-4">Vendor Details</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Address</label>
+                          <p className="text-sm">{viewDetailsItem.vendorAddress || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">GSTIN</label>
+                          <p className="text-sm">{viewDetailsItem.vendorGSTIN || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">PAN</label>
+                          <p className="text-sm">{viewDetailsItem.vendorPAN || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Contact Person</label>
+                          <p className="text-sm">{viewDetailsItem.contactPerson || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {viewDetailsItem.items && viewDetailsItem.items.length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-lg font-semibold mb-4">Items</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border border-gray-200 rounded-lg">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">Product</th>
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-b">HSN Code</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Qty</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Unit Price</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Discount%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">CGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">SGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">IGST%</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border-b">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewDetailsItem.items.map((item, idx) => (
+                              <tr key={idx} className="border-b">
+                                <td className="px-4 py-3">{item.product}</td>
+                                <td className="px-4 py-3">{item.hsnCode}</td>
+                                <td className="px-4 py-3 text-right">{item.quantity}</td>
+                                <td className="px-4 py-3 text-right">₹{item.unitPrice?.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right">{item.discount}%</td>
+                                <td className="px-4 py-3 text-right">{item.cgstRate}%</td>
+                                <td className="px-4 py-3 text-right">{item.sgstRate}%</td>
+                                <td className="px-4 py-3 text-right">{item.igstRate}%</td>
+                                <td className="px-4 py-3 text-right font-semibold">₹{item.totalAmount?.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Financial Summary</h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>₹{viewDetailsItem.subtotal?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Discount:</span>
+                          <span>₹{viewDetailsItem.totalDiscount?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total CGST:</span>
+                          <span>₹{viewDetailsItem.totalCGST?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total SGST:</span>
+                          <span>₹{viewDetailsItem.totalSGST?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total IGST:</span>
+                          <span>₹{viewDetailsItem.totalIGST?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>TDS Amount:</span>
+                          <span>₹{viewDetailsItem.tdsAmount?.toLocaleString() || '0'}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div className="text-right">
+                          <div className="space-y-2">
+                            <div>
+                              <div className="text-sm text-gray-600">Grand Total</div>
+                              <div className="text-xl font-bold text-blue-600">₹{viewDetailsItem.grandTotal?.toLocaleString() || '0'}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-gray-600">Net Payable</div>
+                              <div className="text-lg font-semibold text-green-600">₹{((viewDetailsItem.grandTotal || 0) - (viewDetailsItem.tdsAmount || 0)).toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-gray-600">Paid Amount</div>
+                              <div className="text-lg font-semibold text-orange-600">₹{(viewDetailsItem.paidAmount || 0).toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-gray-600">Remaining Amount</div>
+                              <div className="text-lg font-bold text-red-600">₹{(((viewDetailsItem.grandTotal || 0) - (viewDetailsItem.tdsAmount || 0)) - (viewDetailsItem.paidAmount || 0)).toLocaleString()}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {viewDetailsItem.notes && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Notes</h3>
+                      <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{viewDetailsItem.notes}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Credit Note View (Client-facing from CreditNoteManagement) */}
+              {viewDetailsItem.type === 'Credit Note' && !viewDetailsItem.vendorName && (
+                <>
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><span className="font-medium">Name:</span> {viewDetailsItem.supplierName || 'N/A'}</div>
+                      <div><span className="font-medium">GSTIN:</span> {viewDetailsItem.supplierGSTIN || 'N/A'}</div>
+                      <div><span className="font-medium">PAN:</span> {viewDetailsItem.supplierPAN || 'N/A'}</div>
+                      <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewDetailsItem.supplierAddress || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3">Credit Note Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div><span className="font-medium">Credit Note Number:</span> {viewDetailsItem.creditNoteNumber}</div>
+                      <div><span className="font-medium">Date:</span> {new Date(viewDetailsItem.creditNoteDate).toLocaleDateString()}</div>
+                      <div><span className="font-medium">Original Invoice:</span> {viewDetailsItem.originalInvoiceNumber || 'N/A'}</div>
+                      <div><span className="font-medium">Original Invoice Date:</span> {viewDetailsItem.originalInvoiceDate ? new Date(viewDetailsItem.originalInvoiceDate).toLocaleDateString() : 'N/A'}</div>
+                      <div><span className="font-medium">Reason:</span> {viewDetailsItem.reason || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3">Customer Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><span className="font-medium">Name:</span> {viewDetailsItem.customerName}</div>
+                      <div><span className="font-medium">GSTIN:</span> {viewDetailsItem.customerGSTIN || 'N/A'}</div>
+                      <div><span className="font-medium">Customer Place:</span> {viewDetailsItem.customerPlace || 'N/A'}</div>
+                      <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewDetailsItem.customerAddress}</div>
+                    </div>
+                  </div>
+
+                  {viewDetailsItem.items && viewDetailsItem.items.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-3">Items</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 border text-left">Description</th>
+                              <th className="px-3 py-2 border text-left">HSN</th>
+                              <th className="px-3 py-2 border text-right">Qty</th>
+                              <th className="px-3 py-2 border text-right">Rate</th>
+                              <th className="px-3 py-2 border text-right">Taxable</th>
+                              <th className="px-3 py-2 border text-right">CGST</th>
+                              <th className="px-3 py-2 border text-right">SGST</th>
+                              <th className="px-3 py-2 border text-right">IGST</th>
+                              <th className="px-3 py-2 border text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewDetailsItem.items.map((item, i) => (
+                              <tr key={i}>
+                                <td className="px-3 py-2 border">{item.description}</td>
+                                <td className="px-3 py-2 border">{item.hsnCode}</td>
+                                <td className="px-3 py-2 border text-right">{item.quantity}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
+                                <td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>
+                                <td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount || 0).toFixed(2)})</td>
+                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3">Tax Computation</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Subtotal</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.subtotal || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Discount</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalDiscount || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Taxable Value</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">CGST</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalCGST || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">SGST</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalSGST || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">IGST</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalIGST || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Total Tax</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTax || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Grand Total</p>
+                          <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.grandTotal || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {viewDetailsItem.notes && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Notes</h3>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewDetailsItem.notes}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Credit/Debit Note View (Vendor-facing from Account Payable) */}
+              {(viewDetailsItem.type === 'Credit/Debit Note' || viewDetailsItem.type === 'Debit Note' || (viewDetailsItem.type === 'Credit Note' && viewDetailsItem.vendorName)) && (
+                <>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div><strong>Note Number:</strong> {viewDetailsItem.noteNumber}</div>
+                    <div><strong>Date:</strong> {new Date(viewDetailsItem.noteDate).toLocaleDateString()}</div>
+                    <div><strong>Type:</strong> <span className={`px-2 py-1 rounded text-xs ${viewDetailsItem.type === 'Credit Note' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>{viewDetailsItem.type}</span></div>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-2">Vendor Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><strong>Name:</strong> {viewDetailsItem.vendorName}</div>
+                      <div><strong>GSTIN:</strong> {viewDetailsItem.vendorGSTIN || 'N/A'}</div>
+                      <div className="col-span-2"><strong>Address:</strong> {viewDetailsItem.vendorAddress || 'N/A'}</div>
+                    </div>
+                  </div>
+                  
+                  {viewDetailsItem.items && viewDetailsItem.items.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-2">Items</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border border-gray-200 text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left border-b">Product</th>
+                              <th className="px-3 py-2 text-left border-b">Description</th>
+                              <th className="px-3 py-2 text-left border-b">HSN</th>
+                              <th className="px-3 py-2 text-left border-b">Qty</th>
+                              <th className="px-3 py-2 text-left border-b">Rate</th>
+                              <th className="px-3 py-2 text-left border-b">Discount</th>
+                              <th className="px-3 py-2 text-left border-b">CGST</th>
+                              <th className="px-3 py-2 text-left border-b">SGST</th>
+                              <th className="px-3 py-2 text-left border-b">IGST</th>
+                              <th className="px-3 py-2 text-right border-b">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewDetailsItem.items.map((item, index) => (
+                              <tr key={index} className="border-b">
+                                <td className="px-3 py-2">{item.product || '-'}</td>
+                                <td className="px-3 py-2">{item.description || '-'}</td>
+                                <td className="px-3 py-2">{item.hsnCode || '-'}</td>
+                                <td className="px-3 py-2">{item.quantity || 0}</td>
+                                <td className="px-3 py-2">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2">{item.discount || 0}%</td>
+                                <td className="px-3 py-2">{item.cgstRate || 0}%</td>
+                                <td className="px-3 py-2">{item.sgstRate || 0}%</td>
+                                <td className="px-3 py-2">{item.igstRate || 0}%</td>
+                                <td className="px-3 py-2 text-right">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-2">Summary</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><span>Subtotal:</span><span>₹{(viewDetailsItem.subtotal || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Total Discount:</span><span>₹{(viewDetailsItem.totalDiscount || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(viewDetailsItem.totalTaxableValue || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>CGST:</span><span>₹{(viewDetailsItem.totalCGST || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>SGST:</span><span>₹{(viewDetailsItem.totalSGST || 0).toFixed(2)}</span></div>
+                      {(viewDetailsItem.totalIGST || 0) > 0 && (
+                        <div className="flex justify-between"><span>IGST:</span><span>₹{(viewDetailsItem.totalIGST || 0).toFixed(2)}</span></div>
+                      )}
+                      {(viewDetailsItem.totalCESS || 0) > 0 && (
+                        <div className="flex justify-between"><span>CESS:</span><span>₹{(viewDetailsItem.totalCESS || 0).toFixed(2)}</span></div>
+                      )}
+                      {viewDetailsItem.tdsAmount > 0 && (
+                        <div className="flex justify-between text-red-600"><span>TDS ({viewDetailsItem.tdsPercentage}%):</span><span>-₹{(viewDetailsItem.tdsAmount || 0).toFixed(2)}</span></div>
+                      )}
+                      <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Grand Total:</span><span>₹{(viewDetailsItem.grandTotal || 0).toFixed(2)}</span></div>
+                      {viewDetailsItem.tdsAmount > 0 && (
+                        <div className="flex justify-between font-bold text-lg text-green-600 border-t pt-2"><span>Net Amount:</span><span>₹{((viewDetailsItem.grandTotal || 0) - (viewDetailsItem.tdsAmount || 0)).toFixed(2)}</span></div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {viewDetailsItem.notes && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Notes</h3>
+                      <p className="bg-gray-50 p-3 rounded">{viewDetailsItem.notes}</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
