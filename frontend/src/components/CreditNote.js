@@ -79,6 +79,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [invoices, setInvoices] = useState([]);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
+  const [maxRemainingAmount, setMaxRemainingAmount] = useState(0);
 
   useEffect(() => {
     if (editingCreditNote) {
@@ -347,23 +348,26 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   const handleInvoiceSelect = (invoice) => {
-    // Map invoice items to credit note items format
-    const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => ({
-      product: item.product || item.description || '',
-      description: item.description || '',
-      hsnCode: item.hsnCode || '',
-      quantity: item.quantity || 0,
-      unitPrice: item.unitPrice || 0,
-      discount: item.discount || 0,
-      taxableValue: item.taxableValue || 0,
-      cgstRate: item.cgstRate || 0,
-      sgstRate: item.sgstRate || 0,
-      igstRate: item.igstRate || 0,
-      cgstAmount: item.cgstAmount || 0,
-      sgstAmount: item.sgstAmount || 0,
-      igstAmount: item.igstAmount || 0,
-      totalAmount: item.totalAmount || 0
-    })) : [{
+    const remainingAmount = invoice.remainingAmount || 0;
+    setMaxRemainingAmount(remainingAmount);
+
+    const mappedItems = invoice.items && invoice.items.length > 0 ? [{
+      product: invoice.items[0]?.product || invoice.items[0]?.description || '',
+      description: 'Credit Note for remaining amount',
+      hsnCode: invoice.items[0]?.hsnCode || '',
+      quantity: 1,
+      unitPrice: remainingAmount,
+      discount: 0,
+      taxableValue: remainingAmount,
+      cgstRate: invoice.items[0]?.cgstRate || 0,
+      sgstRate: invoice.items[0]?.sgstRate || 0,
+      igstRate: invoice.items[0]?.igstRate || 0,
+      cgstAmount: 0,
+      sgstAmount: 0,
+      igstAmount: 0,
+      totalAmount: remainingAmount,
+      maxRemainingAmount: remainingAmount
+    }] : [{
       product: '',
       description: '',
       hsnCode: '',
@@ -377,7 +381,8 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       cgstAmount: 0,
       sgstAmount: 0,
       igstAmount: 0,
-      totalAmount: 0
+      totalAmount: 0,
+      maxRemainingAmount: 0
     }];
 
     setCreditNoteData(prev => ({
@@ -402,6 +407,17 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   const handleItemChange = (index, field, value) => {
+    if (field === 'unitPrice') {
+      const newValue = parseFloat(value) || 0;
+      const item = creditNoteData.items[index];
+      const maxAmount = item.maxRemainingAmount || maxRemainingAmount;
+      
+      if (maxAmount > 0 && newValue > maxAmount) {
+        alert(`Rate cannot exceed remaining amount of ₹${maxAmount.toFixed(2)}`);
+        return;
+      }
+    }
+    
     setCreditNoteData(prev => {
       const updatedItems = [...prev.items];
       updatedItems[index] = {

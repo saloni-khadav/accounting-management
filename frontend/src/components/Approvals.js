@@ -113,7 +113,7 @@ const Approvals = () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching approvals with token:', token);
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/pending', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/manager/pending`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -153,10 +153,11 @@ const Approvals = () => {
   const handleApprove = async (id, type) => {
     try {
       const token = localStorage.getItem('token');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       
       if (type === 'Payment') {
         // Use same manager action endpoint as bills
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -178,7 +179,7 @@ const Approvals = () => {
       
       if (type === 'Proforma Invoice') {
         // Handle Proforma Invoice approval
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -200,7 +201,7 @@ const Approvals = () => {
       
       if (type === 'Tax Invoice') {
         // Handle Tax Invoice approval
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -222,7 +223,7 @@ const Approvals = () => {
       
       if (type === 'Purchase Order') {
         // Handle Purchase Order approval
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -243,7 +244,7 @@ const Approvals = () => {
       }
       
       // Handle other approvals (bills, etc.)
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+      const response = await fetch(`${baseUrl}/api/manager/action`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -275,16 +276,18 @@ const Approvals = () => {
       const token = localStorage.getItem('token');
       let endpoint = '';
       
-      if (type === 'Bill') endpoint = `https://nextbook-backend.nextsphere.co.in/api/bills/${id}`;
-      else if (type === 'Payment') endpoint = `https://nextbook-backend.nextsphere.co.in/api/payments/${id}`;
-      else if (type === 'Purchase Order') endpoint = `https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${id}`;
-      else if (type === 'Proforma Invoice') endpoint = `https://nextbook-backend.nextsphere.co.in/api/pos/${id}`;
-      else if (type === 'Tax Invoice') endpoint = `https://nextbook-backend.nextsphere.co.in/api/invoices/${id}`;
-      else if (type === 'Debit Note' || type === 'Credit/Debit Note') endpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${id}`;
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      
+      if (type === 'Bill') endpoint = `${baseUrl}/api/bills/${id}`;
+      else if (type === 'Payment') endpoint = `${baseUrl}/api/payments/${id}`;
+      else if (type === 'Purchase Order') endpoint = `${baseUrl}/api/purchase-orders/${id}`;
+      else if (type === 'Proforma Invoice') endpoint = `${baseUrl}/api/pos/${id}`;
+      else if (type === 'Tax Invoice') endpoint = `${baseUrl}/api/invoices/${id}`;
+      else if (type === 'Debit Note' || type === 'Credit/Debit Note') endpoint = `${baseUrl}/api/credit-debit-notes/${id}`;
       else if (type === 'Credit Note') {
         // Try credit-debit-notes first (vendor credit note), fallback to credit-notes (client credit note)
-        const cdnEndpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${id}`;
-        const cnEndpoint = `https://nextbook-backend.nextsphere.co.in/api/credit-notes/${id}`;
+        const cdnEndpoint = `${baseUrl}/api/credit-debit-notes/${id}`;
+        const cnEndpoint = `${baseUrl}/api/credit-notes/${id}`;
         
         const cdnResponse = await fetch(cdnEndpoint, {
           headers: {
@@ -328,7 +331,11 @@ const Approvals = () => {
         }
       } else {
         console.error(`Failed to fetch ${type} details:`, response.status);
-        alert(`Unable to load ${type} details. The item may not exist.`);
+        if (response.status === 404) {
+          alert(`This ${type} has been deleted from the system but the approval record still exists. Please contact your administrator to clean up stale approval records.`);
+        } else {
+          alert(`Unable to load ${type} details. Error: ${response.status}`);
+        }
       }
     } catch (error) {
       console.error('Error fetching details:', error);
@@ -343,10 +350,11 @@ const Approvals = () => {
 
     try {
       const token = localStorage.getItem('token');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       
       if (rejectItem.type === 'Payment') {
         // Use same manager action endpoint as bills
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -376,7 +384,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Proforma Invoice') {
         // Handle Proforma Invoice rejection
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -406,7 +414,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Tax Invoice') {
         // Handle Tax Invoice rejection
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -436,7 +444,7 @@ const Approvals = () => {
       
       if (rejectItem.type === 'Purchase Order') {
         // Handle Purchase Order rejection
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -465,7 +473,7 @@ const Approvals = () => {
       }
       
       // Handle other rejections
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/manager/action', {
+      const response = await fetch(`${baseUrl}/api/manager/action`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
