@@ -26,32 +26,14 @@ const TDSReconciliation = () => {
     setLoading(false);
   };
 
-  // Calculate current month TDS (7th to 7th, except March 30th to 30th)
+  // Calculate current month TDS (1st to end of month)
   const getCurrentMonthRange = () => {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    const currentDate = today.getDate();
     
-    let startDate, endDate;
-    
-    if (currentMonth === 2) { // March (0-indexed)
-      if (currentDate >= 30) {
-        startDate = new Date(currentYear, 2, 30);
-        endDate = new Date(currentYear, 3, 30);
-      } else {
-        startDate = new Date(currentYear, 1, 28);
-        endDate = new Date(currentYear, 2, 30);
-      }
-    } else {
-      if (currentDate >= 7) {
-        startDate = new Date(currentYear, currentMonth, 7);
-        endDate = new Date(currentYear, currentMonth + 1, 7);
-      } else {
-        startDate = new Date(currentYear, currentMonth - 1, 7);
-        endDate = new Date(currentYear, currentMonth, 7);
-      }
-    }
+    const startDate = new Date(currentYear, currentMonth, 1);
+    const endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
     
     return { startDate, endDate };
   };
