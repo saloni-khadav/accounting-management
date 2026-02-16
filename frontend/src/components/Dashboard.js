@@ -393,40 +393,77 @@ const receivablesColumns = [
   ];
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {metricsData.map((metric, index) => (
-          <MetricsCard key={index} {...metric} />
-        ))}
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+            Dashboard Overview
+          </h1>
+          <p className="text-gray-500 text-base">Welcome back! Here's what's happening with your business today.</p>
+        </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <RevenueChart />
-        <ExpensesDonut />
-      </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {metricsData.map((metric, index) => (
+            <div key={index} className="transform transition-all duration-200 hover:-translate-y-1">
+              <MetricsCard {...metric} />
+            </div>
+          ))}
+        </div>
 
-      {/* Tables Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <DataTable 
-          title="Overdue Receivables"
-          columns={receivablesColumns}
-          data={overdueReceivables}
-        />
-        <DataTable 
-          title="Overdue Payables"
-          columns={payablesColumns}
-          data={overduePayables}
-        />
-      </div>
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <RevenueChart />
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <ExpensesDonut />
+          </div>
+        </div>
 
-      {/* Last Transactions */}
-      <DataTable 
-        title="Last 5 Transactions"
-        columns={transactionsColumns}
-        data={lastTransactions}
-      />
+        {/* Tables Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
+              <h3 className="text-lg font-semibold text-white">Overdue Receivables</h3>
+            </div>
+            <div className="p-5">
+              <DataTable 
+                title=""
+                columns={receivablesColumns}
+                data={overdueReceivables}
+              />
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
+              <h3 className="text-lg font-semibold text-white">Overdue Payables</h3>
+            </div>
+            <div className="p-5">
+              <DataTable 
+                title=""
+                columns={payablesColumns}
+                data={overduePayables}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Last Transactions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
+            <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
+          </div>
+          <div className="p-5">
+            <DataTable 
+              title=""
+              columns={transactionsColumns}
+              data={lastTransactions}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
