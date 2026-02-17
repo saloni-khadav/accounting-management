@@ -15,6 +15,24 @@ const InvoiceManagement = ({ setActivePage }) => {
   const [viewingInvoice, setViewingInvoice] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+  const handleDownloadAttachment = async (fileUrl, fileName) => {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'attachment';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Error downloading file');
+    }
+  };
+
   useEffect(() => {
     fetchInvoices();
   }, [statusFilter, dateFilter]);
@@ -443,53 +461,185 @@ const InvoiceManagement = ({ setActivePage }) => {
               </button>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Invoice Information</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Invoice Number:</span> {viewingInvoice.invoiceNumber}</p>
-                    <p><span className="font-medium">Date:</span> {new Date(viewingInvoice.invoiceDate).toLocaleDateString()}</p>
-                    <p><span className="font-medium">Reference:</span> {viewingInvoice.referenceNumber || 'N/A'}</p>
-                    <p><span className="font-medium">Status:</span> 
-                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(calculateInvoiceStatus(viewingInvoice))}`}>
-                        {calculateInvoiceStatus(viewingInvoice)}
-                      </span>
-                    </p>
-                  </div>
+              {/* Supplier Details */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><span className="font-medium">Name:</span> {viewingInvoice.supplierName || 'N/A'}</div>
+                  <div><span className="font-medium">GSTIN:</span> {viewingInvoice.supplierGSTIN || 'N/A'}</div>
+                  <div><span className="font-medium">PAN:</span> {viewingInvoice.supplierPAN || 'N/A'}</div>
+                  <div><span className="font-medium">Place of Supply:</span> {viewingInvoice.placeOfSupply || 'N/A'}</div>
+                  <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewingInvoice.supplierAddress || 'N/A'}</div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Customer Details</h3>
-                  <div className="space-y-2">
-                    <p><span className="font-medium">Name:</span> {viewingInvoice.customerName}</p>
-                    <p><span className="font-medium">Address:</span> {viewingInvoice.customerAddress}</p>
-                    <p><span className="font-medium">GSTIN:</span> {viewingInvoice.customerGSTIN || 'N/A'}</p>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Invoice Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div><span className="font-medium">Invoice Number:</span> {viewingInvoice.invoiceNumber}</div>
+                  <div><span className="font-medium">Invoice Date:</span> {new Date(viewingInvoice.invoiceDate).toLocaleDateString()}</div>
+                  <div><span className="font-medium">Reference/PI Number:</span> {viewingInvoice.referenceNumber || 'N/A'}</div>
+                  <div><span className="font-medium">PI Date:</span> {viewingInvoice.poDate ? new Date(viewingInvoice.poDate).toLocaleDateString() : 'N/A'}</div>
+                  <div><span className="font-medium">Due Date:</span> {viewingInvoice.dueDate ? new Date(viewingInvoice.dueDate).toLocaleDateString() : 'N/A'}</div>
+                  <div><span className="font-medium">Payment Terms:</span> {viewingInvoice.paymentTerms || 'N/A'}</div>
+                  <div><span className="font-medium">Approval Status:</span> 
+                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                      viewingInvoice.approvalStatus === 'Approved' ? 'bg-green-100 text-green-800' :
+                      viewingInvoice.approvalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {viewingInvoice.approvalStatus || 'Pending'}
+                    </span>
+                  </div>
+                  <div><span className="font-medium">Status:</span> 
+                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(calculateInvoiceStatus(viewingInvoice))}`}>
+                      {calculateInvoiceStatus(viewingInvoice)}
+                    </span>
                   </div>
                 </div>
               </div>
+
+              {/* Customer Details */}
+              <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Customer Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><span className="font-medium">Name:</span> {viewingInvoice.customerName}</div>
+                  <div><span className="font-medium">GSTIN:</span> {viewingInvoice.customerGSTIN || 'N/A'}</div>
+                  <div><span className="font-medium">Customer Place:</span> {viewingInvoice.customerPlace || 'N/A'}</div>
+                  <div><span className="font-medium">Contact Person:</span> {viewingInvoice.contactPerson || 'N/A'}</div>
+                  <div><span className="font-medium">Contact Details:</span> {viewingInvoice.contactDetails || 'N/A'}</div>
+                  <div className="md:col-span-2"><span className="font-medium">Billing Address:</span> {viewingInvoice.customerAddress}</div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              {viewingInvoice.items && viewingInvoice.items.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">Product/Service Details</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border border-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 border text-left">Product</th>
+                          <th className="px-3 py-2 border text-left">Description</th>
+                          <th className="px-3 py-2 border text-left">HSN/SAC</th>
+                          <th className="px-3 py-2 border text-right">Qty</th>
+                          <th className="px-3 py-2 border text-right">Rate</th>
+                          <th className="px-3 py-2 border text-right">Discount</th>
+                          <th className="px-3 py-2 border text-right">Taxable Value</th>
+                          <th className="px-3 py-2 border text-right">CGST</th>
+                          <th className="px-3 py-2 border text-right">SGST</th>
+                          <th className="px-3 py-2 border text-right">IGST</th>
+                          <th className="px-3 py-2 border text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingInvoice.items.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-3 py-2 border">{item.product || '-'}</td>
+                            <td className="px-3 py-2 border">{item.description || '-'}</td>
+                            <td className="px-3 py-2 border">{item.hsnCode || '-'}</td>
+                            <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
+                            <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">₹{(item.discount || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
+                            <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>
+                            <td className="px-3 py-2 border text-right">{item.igstRate || 0}% (₹{(item.igstAmount || 0).toFixed(2)})</td>
+                            <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-3">Financial Summary</h3>
+              {/* Financial Summary */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3">Tax Computation</h3>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
+                      <p className="text-sm text-gray-600">Subtotal</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.subtotal || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Discount</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalDiscount || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
                       <p className="text-sm text-gray-600">Taxable Value</p>
-                      <p className="text-lg font-semibold">₹{viewingInvoice.totalTaxableValue?.toLocaleString()}</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalTaxableValue || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">CGST</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalCGST || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">SGST</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalSGST || 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">IGST</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalIGST || 0).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Total Tax</p>
-                      <p className="text-lg font-semibold">₹{viewingInvoice.totalTax?.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Discount</p>
-                      <p className="text-lg font-semibold">₹{viewingInvoice.totalDiscount?.toLocaleString()}</p>
+                      <p className="text-lg font-semibold">₹{(viewingInvoice.totalTax || 0).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Grand Total</p>
-                      <p className="text-xl font-bold text-blue-600">₹{viewingInvoice.grandTotal?.toLocaleString()}</p>
+                      <p className="text-xl font-bold text-blue-600">₹{(viewingInvoice.grandTotal || 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Notes and Terms */}
+              {(viewingInvoice.notes || viewingInvoice.termsConditions) && (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewingInvoice.notes && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Notes</h3>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewingInvoice.notes}</p>
+                    </div>
+                  )}
+                  {viewingInvoice.termsConditions && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Terms & Conditions</h3>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewingInvoice.termsConditions}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Attachments */}
+              {viewingInvoice.attachments && viewingInvoice.attachments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">Attachments</h3>
+                  <div className="space-y-2">
+                    {viewingInvoice.attachments.map((attachment, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <div>
+                          <span className="text-sm font-medium">{attachment.fileName || `Attachment ${index + 1}`}</span>
+                          <span className="text-xs text-gray-500 ml-2">{attachment.fileSize ? `(${(attachment.fileSize / 1024).toFixed(2)} KB)` : ''}</span>
+                        </div>
+                        {attachment.fileUrl && (
+                          <button
+                            onClick={() => handleDownloadAttachment(attachment.fileUrl, attachment.fileName)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 flex items-center gap-1"
+                          >
+                            <Download size={14} />
+                            Download
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="mt-6 flex gap-3 justify-end">
                 <button

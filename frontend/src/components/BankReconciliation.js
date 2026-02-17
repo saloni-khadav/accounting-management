@@ -1,114 +1,324 @@
-import React from 'react';
-import { ChevronDown, FileText, TrendingUp, DollarSign } from 'lucide-react';
-import MetricsCard from './ui/MetricsCard';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 const BankReconciliation = () => {
-  const transactions = [
-    { date: '21 Apr', bankStatement: '₹ 18,500', books: 'Payment Received', status: 'matched' },
-    { date: '17 Apr', bankStatement: '₹ 20,000', books: '₹ 20,000', status: 'matched' },
-    { date: '12 Apr', bankStatement: '₹ 4,200', books: 'Rent', status: 'matched' },
-    { date: '12 Apr', bankStatement: '₹ 4,500', books: 'Refund fromsupplier', status: 'matched' },
-    { date: '5 Apr', bankStatement: '₹ 4,500', books: 'Electricity bill', status: 'matched' },
-    { date: '21 Apr', bankStatement: '₹ 18,500', books: 'Payment Received', status: 'matched' },
-    { date: '21 Apr', bankStatement: '₹ 20,000', books: 'Electricity Pay', status: 'matched' },
-  ];
+  const [collections, setCollections] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingNarration, setEditingNarration] = useState(null);
+  const [editingRemarks, setEditingRemarks] = useState(null);
+  const [selectedBank, setSelectedBank] = useState('All Banks');
+  const [selectedPeriod, setSelectedPeriod] = useState('All Time');
 
-  const metricsData = [
-    {
-      title: 'From Bank Statement',
-      value: '₹46,800.00',
-      icon: FileText,
-      color: 'primary'
-    },
-    {
-      title: 'From Books',
-      value: '₹45,200.00',
-      icon: TrendingUp,
-      color: 'success'
-    },
-    {
-      title: 'Difference',
-      value: '₹1,600.00',
-      icon: DollarSign,
-      color: 'warning'
+  const narrationOptions = ['Rent', 'Salary', 'Asset', 'Travel Expenses', 'Subscription'];
+  const bankOptions = ['All Banks', 'HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank'];
+  const periodOptions = ['All Time', 'January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026'];
+
+  const handleNarrationChange = async (index, value) => {
+    const transaction = filteredTransactions[index];
+    const updatedFiltered = [...filteredTransactions];
+    updatedFiltered[index].selectedNarration = value;
+    setFilteredTransactions(updatedFiltered);
+    
+    const originalIndex = transactions.findIndex(t => 
+      (t.type === 'collection' ? t.collectionId : t.paymentId) === 
+      (transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId)
+    );
+    const updatedTransactions = [...transactions];
+    updatedTransactions[originalIndex].selectedNarration = value;
+    setTransactions(updatedTransactions);
+    setEditingNarration(null);
+    
+    try {
+      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId,
+          transactionType: transaction.type,
+          narration: value,
+          remarks: transaction.remarks
+        })
+      });
+    } catch (error) {
+      console.error('Error saving narration:', error);
     }
-  ];
+  };
+
+  const handleRemarksChange = async (index, value) => {
+    const transaction = filteredTransactions[index];
+    const updatedFiltered = [...filteredTransactions];
+    updatedFiltered[index].remarks = value;
+    setFilteredTransactions(updatedFiltered);
+    
+    const originalIndex = transactions.findIndex(t => 
+      (t.type === 'collection' ? t.collectionId : t.paymentId) === 
+      (transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId)
+    );
+    const updatedTransactions = [...transactions];
+    updatedTransactions[originalIndex].remarks = value;
+    setTransactions(updatedTransactions);
+    
+    try {
+      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId,
+          transactionType: transaction.type,
+          narration: transaction.selectedNarration || '',
+          remarks: value
+        })
+      });
+    } catch (error) {
+      console.error('Error saving remarks:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    filterTransactions();
+  }, [transactions, selectedBank, selectedPeriod]);
+
+  const filterTransactions = () => {
+    let filtered = [...transactions];
+    
+    if (selectedBank !== 'All Banks') {
+      filtered = filtered.filter(t => {
+        // Normalize bank names for comparison
+        const transactionBank = (t.bankName || '').toLowerCase().replace(/\s+/g, '').replace(/ltd\.?|limited|bank/gi, '');
+        const selectedBankNorm = selectedBank.toLowerCase().replace(/\s+/g, '').replace(/ltd\.?|limited|bank/gi, '');
+        return transactionBank.includes(selectedBankNorm) || selectedBankNorm.includes(transactionBank);
+      });
+    }
+    
+    if (selectedPeriod !== 'All Time') {
+      filtered = filtered.filter(t => {
+        const [day, month, year] = t.date.split('/');
+        const transactionMonth = new Date(year, month - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+        return transactionMonth === selectedPeriod;
+      });
+    }
+    
+    setFilteredTransactions(filtered);
+  };
+
+  const loadSavedReconciliations = async (transactions) => {
+    try {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation');
+      const savedData = await response.json();
+      
+      return transactions.map(t => {
+        const saved = savedData.find(s => 
+          s.transactionId === (t.type === 'collection' ? t.collectionId : t.paymentId) && 
+          s.transactionType === t.type
+        );
+        return {
+          ...t,
+          selectedNarration: saved?.narration || '',
+          remarks: saved?.remarks || t.remarks
+        };
+      });
+    } catch (error) {
+      console.error('Error loading saved reconciliations:', error);
+      return transactions;
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const collectionsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
+      const collectionsData = await collectionsRes.json();
+      
+      const paymentsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+      const paymentsData = await paymentsRes.json();
+      
+      const invoicesRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
+      const invoicesData = await invoicesRes.json();
+      
+      const billsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
+      const billsData = await billsRes.json();
+      
+      const clientsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const clientsData = await clientsRes.json();
+      
+      const vendorsRes = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const vendorsData = await vendorsRes.json();
+      
+      setCollections(collectionsData);
+      
+      const formattedTransactions = [
+        ...collectionsData
+          .filter(col => col.approvalStatus === 'Approved')
+          .map(col => {
+            const invoice = invoicesData.find(inv => inv.invoiceNumber === col.invoiceNumber);
+            const client = clientsData.find(c => c.clientName === col.customer);
+            const bankAmt = invoice ? invoice.grandTotal : col.netAmount;
+            const bookAmt = col.netAmount;
+            const tdsAmt = col.tdsAmount || 0;
+            const bankName = client?.bankName || col.bankName || 'HDFC Bank';
+            return {
+              date: new Date(col.collectionDate).toLocaleDateString('en-IN'),
+              bankAmount: bankAmt,
+              bookAmount: bookAmt,
+              tdsAmount: tdsAmt,
+              bankName: bankName,
+              partyName: col.customer || 'N/A',
+              narration: '',
+              selectedNarration: '',
+              remarks: '',
+              status: bankAmt === bookAmt ? 'matched' : 'unmatched',
+              type: 'collection',
+              collectionId: col._id,
+              timestamp: new Date(col.createdAt || col.collectionDate)
+            };
+          }),
+        ...paymentsData
+          .filter(payment => payment.status === 'Completed')
+          .map(payment => {
+            const bill = billsData.find(b => b.billNumber === payment.invoiceNumber);
+            const vendor = vendorsData.find(v => v.vendorName === payment.vendor);
+            const bankAmt = bill ? bill.grandTotal : payment.netAmount;
+            const bookAmt = payment.netAmount;
+            // Get TDS from both payment and bill
+            const paymentTds = payment.tdsAmount || 0;
+            const billTds = bill ? (bill.tdsAmount || 0) : 0;
+            const tdsAmt = Math.max(paymentTds, billTds); // Use the higher TDS value
+            const bankName = vendor?.bankName || payment.bankName || 'HDFC Bank';
+            return {
+              date: new Date(payment.paymentDate).toLocaleDateString('en-IN'),
+              bankAmount: bankAmt,
+              bookAmount: bookAmt,
+              tdsAmount: tdsAmt,
+              bankName: bankName,
+              partyName: payment.vendor || 'N/A',
+              narration: '',
+              selectedNarration: '',
+              remarks: '',
+              status: bankAmt === bookAmt ? 'matched' : 'unmatched',
+              type: 'payment',
+              paymentId: payment._id,
+              timestamp: new Date(payment.createdAt || payment.paymentDate)
+            };
+          })
+      ];
+      
+      const sortedTransactions = formattedTransactions.sort((a, b) => b.timestamp - a.timestamp);
+      const transactionsWithSaved = await loadSavedReconciliations(sortedTransactions);
+      setTransactions(transactionsWithSaved);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
-        {/* Header Section */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
-            Bank Reconciliation
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">Reconcile your bank statements with your books.</p>
-        </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Bank Reconciliation</h1>
+        <p className="text-sm text-gray-600">Match bank transactions with your books</p>
+      </div>
 
-        {/* Dropdowns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      {loading && <div className="text-center py-8 text-gray-500">Loading...</div>}
+
+      <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200 mb-6">
+        <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Bank Account</label>
-            <div className="relative">
-              <select className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 text-gray-900 font-medium w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option>HDFC Bank</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
-            </div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Account</label>
+            <select 
+              value={selectedBank}
+              onChange={(e) => setSelectedBank(e.target.value)}
+              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+            >
+              {bankOptions.map(bank => <option key={bank} value={bank}>{bank}</option>)}
+            </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
-            <div className="relative">
-              <select className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 text-gray-900 font-medium w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option>April 2024</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
-            </div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Period</label>
+            <select 
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+            >
+              {periodOptions.map(period => <option key={period} value={period}>{period}</option>)}
+            </select>
           </div>
         </div>
+      </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
-          {metricsData.map((metric, index) => (
-            <div key={index} className="transform transition-all duration-200 hover:-translate-y-1">
-              <MetricsCard {...metric} />
-            </div>
-          ))}
+      <div className="grid grid-cols-4 gap-5 mb-6">
+        <div className="bg-blue-50 rounded-lg p-5 shadow-sm border border-blue-100">
+          <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-blue-700">Bank Total</div>
+          <div className="text-2xl font-bold text-blue-900">₹{filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
+        <div className="bg-green-50 rounded-lg p-5 shadow-sm border border-green-100">
+          <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-green-700">Books Total</div>
+          <div className="text-2xl font-bold text-green-900">₹{filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-5 shadow-sm border border-purple-100">
+          <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-purple-700">TDS Total</div>
+          <div className="text-2xl font-bold text-purple-900">₹{filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+        <div className="bg-red-50 rounded-lg p-5 shadow-sm border border-red-100">
+          <div className="text-xs font-semibold uppercase tracking-wide mb-2 text-red-700">Difference</div>
+          <div className="text-2xl font-bold text-red-900">₹{Math.abs(filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0) - filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0) + filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
+      </div>
 
-        {/* Transactions Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
-            <h3 className="text-base sm:text-lg font-semibold text-white">Reconciliation Transactions</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Date</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Bank Statement</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Books</th>
-                  <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Reconciliation Status</th>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Bank</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Book</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Party</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Narration</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider w-48">Remarks</th>
+                <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredTransactions.map((t, i) => (
+                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3.5 px-4 text-sm text-gray-900 font-medium">{t.date}</td>
+                  <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{(t.bankAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{(t.bookAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-3.5 px-4 text-sm text-gray-900">{t.partyName}</td>
+                  <td className="py-3.5 px-4 text-sm w-32">
+                    {editingNarration === i ? (
+                      <select value={t.selectedNarration || ''} onChange={(e) => handleNarrationChange(i, e.target.value)} onBlur={() => setEditingNarration(null)} autoFocus className="w-full px-2 py-1.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white shadow-sm">
+                        <option value="">Select...</option>
+                        {narrationOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <span onClick={() => setEditingNarration(i)} className="cursor-pointer text-gray-900 hover:text-blue-600 font-medium">{t.selectedNarration || 'Select'}</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4 text-sm w-48">
+                    {editingRemarks === i ? (
+                      <input type="text" value={t.remarks} onChange={(e) => handleRemarksChange(i, e.target.value)} onBlur={() => setEditingRemarks(null)} autoFocus className="w-full px-0 py-1 text-sm border-0 focus:outline-none bg-transparent" />
+                    ) : (
+                      <span onClick={() => setEditingRemarks(i)} className="cursor-pointer text-gray-600 hover:text-gray-900 block truncate">{t.remarks || 'Add remarks'}</span>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${t.status === 'matched' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {t.status === 'matched' ? 'Matched' : 'Unmatched'}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {transactions.map((transaction, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-gray-900">{transaction.date}</td>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{transaction.bankStatement}</td>
-                    <td className="py-4 px-6 text-gray-900">{transaction.books}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-green-700 font-medium capitalize">{transaction.status}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
+        {filteredTransactions.length === 0 && !loading && <div className="text-center py-12 text-gray-500 text-sm">No transactions found</div>}
       </div>
     </div>
   );

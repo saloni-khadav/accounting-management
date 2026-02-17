@@ -215,10 +215,11 @@ const CollectionRegister = () => {
       // Remove invoice if already selected
       updatedInvoices = formData.invoiceNumbers.filter(inv => inv.invoiceNumber !== invoice.invoiceNumber);
     } else {
-      // Add invoice if not selected
+      // Add invoice if not selected - use remainingAmount instead of grandTotal
       updatedInvoices = [...formData.invoiceNumbers, {
         invoiceNumber: invoice.invoiceNumber,
-        amount: invoice.grandTotal || 0
+        amount: invoice.remainingAmount || 0,
+        remainingAmount: invoice.remainingAmount || 0
       }];
     }
     
@@ -531,18 +532,25 @@ const CollectionRegister = () => {
                     type="number"
                     value={formData.amount}
                     onChange={(e) => {
-                      const newAmount = e.target.value;
+                      const newAmount = parseFloat(e.target.value) || 0;
+                      const maxAmount = formData.invoiceNumbers.reduce((sum, inv) => sum + (inv.remainingAmount || 0), 0);
+                      
+                      if (maxAmount > 0 && newAmount > maxAmount) {
+                        alert(`Amount cannot exceed remaining amount of ₹${maxAmount.toFixed(2)}`);
+                        return;
+                      }
+                      
                       let tdsAmount = 0;
                       if (formData.tdsSection) {
                         const selectedSection = tdsSection.find(s => s.code === formData.tdsSection);
                         if (selectedSection) {
-                          tdsAmount = (parseFloat(newAmount) * selectedSection.rate) / 100;
+                          tdsAmount = (newAmount * selectedSection.rate) / 100;
                         }
                       }
-                      const netAmount = parseFloat(newAmount) - tdsAmount;
+                      const netAmount = newAmount - tdsAmount;
                       setFormData({
                         ...formData,
-                        amount: newAmount,
+                        amount: e.target.value,
                         tdsAmount: tdsAmount.toString(),
                         netAmount: netAmount.toString()
                       });

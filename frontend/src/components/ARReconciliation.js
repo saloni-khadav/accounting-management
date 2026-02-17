@@ -76,7 +76,7 @@ const ARReconciliation = () => {
 
   const collectionsData = collections.map(col => ({
     date: new Date(col.collectionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-    invoiceNo: col.collectionNumber || col.invoiceNumber || '-',
+    invoiceNo: col.referenceNumber || col.collectionNumber || col.invoiceNumber || '-',
     customer: col.customer,
     type: 'Collection',
     amount: `₹${(parseFloat(col.netAmount) || parseFloat(col.amount) || 0).toLocaleString('en-IN')}`,

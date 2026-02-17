@@ -141,31 +141,12 @@ const ClientMaster = () => {
   );
 
   const handleDownloadFormat = () => {
-    const templateData = [{
-      'Client Code': '',
-      'Client Name': '',
-      'Contact Person': '',
-      'Contact Details': '',
-      'Email': '',
-      'Website': '',
-      'Billing Address': '',
-      'GST Number': '',
-      'PAN Number': '',
-      'Aadhar Number': '',
-      'Payment Terms': '',
-      'Credit Limit': '',
-      'Account Number': '',
-      'IFSC Code': '',
-      'Bank Name': '',
-      'Industry Type': '',
-      'Client Category': '',
-      'Contract Start Date': '',
-      'Contract End Date': '',
-      'Currency': 'INR',
-      'Status': 'Active',
-      'Account Manager': ''
-    }];
-    exportClientsToExcel(templateData, 'client_import_template');
+    const link = document.createElement('a');
+    link.href = '/client-template.xlsx';
+    link.download = 'client_import_template.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     alert('Client import template downloaded successfully!');
   };
 
