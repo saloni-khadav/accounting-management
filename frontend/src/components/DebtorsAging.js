@@ -135,26 +135,31 @@ const DebtorsAging = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Debtors Aging Report</h1>
-        <button 
-          onClick={handleExport}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Download size={16} />
-          Export
-        </button>
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Debtors Aging Report</h1>
+          <button 
+            onClick={handleExport}
+            className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center gap-2 font-medium transition-colors"
+          >
+            <Download size={16} />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Aging Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3">
+          <h2 className="text-lg font-semibold">Aging Analysis</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Invoice Number</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Date</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Customer</th>
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
+                <th className="text-left py-3 px-4 font-semibold text-blue-900 border-r border-gray-300">Invoice Number</th>
+                <th className="text-left py-3 px-4 font-semibold text-blue-900 border-r border-gray-300">Date</th>
+                <th className="text-left py-3 px-4 font-semibold text-blue-900 border-r border-gray-300">Customer</th>
                 <th className="text-center py-3 px-4 font-semibold text-white bg-green-500 border-r border-gray-300">&lt; 30 Days</th>
                 <th className="text-center py-3 px-4 font-semibold text-white bg-yellow-500 border-r border-gray-300">30 to 60 Days</th>
                 <th className="text-center py-3 px-4 font-semibold text-white bg-orange-500 border-r border-gray-300">60 to 90 Days</th>
@@ -164,7 +169,7 @@ const DebtorsAging = () => {
             </thead>
             <tbody>
               {invoicesData.map((invoice, index) => (
-                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                <tr key={index} className="border-b border-gray-200 hover:bg-blue-50">
                   <td className="py-3 px-4 text-blue-600 font-medium border-r border-gray-200">{invoice.invoiceNumber}</td>
                   <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{formatDate(invoice.invoiceDate)}</td>
                   <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{invoice.customerName}</td>

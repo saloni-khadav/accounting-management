@@ -114,54 +114,56 @@ const ARReconciliation = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">AR Reconciliation</h1>
-      </div>
-
-      {/* Header Actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-sm text-gray-500">
-          Last updated: {lastUpdated.toLocaleString()}
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={fetchData}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold">AR Reconciliation</h1>
+          <div className="flex items-center gap-4">
+            <div className="text-sm">
+              Last updated: {lastUpdated.toLocaleString()}
+            </div>
+            <button 
+              onClick={fetchData}
+              disabled={loading}
+              className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Total Receivable</h3>
           <p className="text-2xl font-bold text-gray-900">₹{totalReceivable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Total Collected</h3>
-          <p className="text-2xl font-bold text-green-600">₹{totalCollected.toLocaleString('en-IN')}</p>
+          <p className="text-2xl font-bold text-gray-900">₹{totalCollected.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Credit Notes</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
+          <p className="text-2xl font-bold text-gray-900">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Adjusted Receivable</h3>
           <p className="text-2xl font-bold text-gray-900">₹{adjustedReceivable.toLocaleString('en-IN')}</p>
         </div>
-        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Unreconciled</h3>
-          <p className="text-2xl font-bold text-red-600">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
+          <p className="text-2xl font-bold text-gray-900">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow-sm border border-gray-200">
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3 rounded-t-xl">
+          <h2 className="text-lg font-semibold">Filters</h2>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
           <div className="relative w-64">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input 
@@ -194,17 +196,18 @@ const ARReconciliation = () => {
             <option value="Rejected">Rejected</option>
             <option value="Issued">Issued</option>
           </select>
+          </div>
         </div>
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">AR Transactions ({filteredData.length})</h2>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3 flex justify-between items-center">
+          <h2 className="text-lg font-semibold">AR Transactions ({filteredData.length})</h2>
           <div className="flex gap-4 text-sm">
-            <span className="text-blue-600 font-medium">Invoices: {invoicesData.length}</span>
-            <span className="text-green-600 font-medium">Collections: {collectionsData.length}</span>
-            <span className="text-purple-600 font-medium">Credit Notes: {creditNotesData.length}</span>
+            <span className="font-medium">Invoices: {invoicesData.length}</span>
+            <span className="font-medium">Collections: {collectionsData.length}</span>
+            <span className="font-medium">Credit Notes: {creditNotesData.length}</span>
           </div>
         </div>
         {loading ? (
@@ -220,14 +223,14 @@ const ARReconciliation = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Customer</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Type</th>
-                  <th className="text-right py-4 px-6 font-semibold text-gray-900">Amount</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-900">Status</th>
+                  <th className="text-left py-4 px-6 font-semibold text-blue-900">Date</th>
+                  <th className="text-left py-4 px-6 font-semibold text-blue-900">Reference No.</th>
+                  <th className="text-left py-4 px-6 font-semibold text-blue-900">Customer</th>
+                  <th className="text-left py-4 px-6 font-semibold text-blue-900">Type</th>
+                  <th className="text-right py-4 px-6 font-semibold text-blue-900">Amount</th>
+                  <th className="text-left py-4 px-6 font-semibold text-blue-900">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -253,7 +256,7 @@ const ARReconciliation = () => {
                   };
                   
                   return (
-                    <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
+                    <tr key={index} className="border-t border-gray-100 hover:bg-blue-50">
                       <td className="py-4 px-6 text-gray-900">{row.date}</td>
                       <td className="py-4 px-6">
                         <span className={`font-medium ${row.type === 'Collection' ? 'text-green-600' : row.type === 'Credit Note' ? 'text-purple-600' : 'text-blue-600'}`}>{row.invoiceNo}</span>

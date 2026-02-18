@@ -100,136 +100,153 @@ const TDSReconciliation = () => {
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-sm">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-800">TDS Reconciliation</h1>
-        <button 
-          onClick={exportToExcel}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-        >
-          <Download size={18} />
-          Export to Excel
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">TDS Amount</p>
-              <p className="text-xs text-gray-500 mb-1">(This Month)</p>
-              <p className="text-2xl font-bold text-gray-900">₹ {currentMonthTDS.toLocaleString('en-IN')}</p>
-            </div>
-            <div className="p-3 rounded-lg text-green-600 bg-green-50">
-              <IndianRupee size={24} />
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">TDS Reconciliation</h1>
+            <p className="text-gray-500 text-sm sm:text-base">Monitor TDS deductions and compliance</p>
           </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Invoices with TDS</p>
-              <p className="text-2xl font-bold text-gray-900">{invoicesWithTDS}</p>
-            </div>
-            <div className="p-3 rounded-lg text-blue-600 bg-blue-50">
-              <FileText size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Not Deducted</p>
-              <p className="text-xs text-gray-500 mb-1">Where Applicable</p>
-              <p className="text-2xl font-bold text-red-600">{notDeducted}</p>
-            </div>
-            <div className="p-3 rounded-lg text-red-600 bg-red-50">
-              <AlertTriangle size={24} />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Due Date</p>
-              <p className="text-xl font-bold text-gray-900">{getNextDueDate()}</p>
-            </div>
-            <div className="p-3 rounded-lg text-purple-600 bg-purple-50">
-              <Calendar size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm">Section</span>
-          <select 
-            className="px-3 py-2 border border-gray-300 rounded-md"
-            value={selectedSection}
-            onChange={(e) => setSelectedSection(e.target.value)}
+          <button 
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
-            {tdsSections.map(section => (
-              <option key={section} value={section}>{section}</option>
-            ))}
-          </select>
+            <Download size={18} />
+            Export
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <select 
-            className="px-3 py-2 border border-gray-300 rounded-md"
-            value={selectedFilter}
-            onChange={(e) => setSelectedFilter(e.target.value)}
-          >
-            <option value="All">All</option>
-            <option value="Mismatch">Mismatch</option>
-            <option value="Not Deducted">Not Deducted</option>
-          </select>
+        
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">TDS Amount</p>
+                <p className="text-xs text-gray-400 mb-2">(This Month)</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{currentMonthTDS.toLocaleString('en-IN')}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <IndianRupee size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Invoices with TDS</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{invoicesWithTDS}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <FileText size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Not Deducted</p>
+                <p className="text-xs text-gray-400 mb-2">Where Applicable</p>
+                <p className="text-2xl sm:text-3xl font-bold text-red-600">{notDeducted}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <AlertTriangle size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Due Date</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{getNextDueDate()}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <Calendar size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
         </div>
-        <button 
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          onClick={applyFilters}
-        >
-          Apply Filters
-        </button>
-      </div>
 
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Invoice No.</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Party</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">TDS Section</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Taxable Amount</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">TDS Deducted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading...</td>
-              </tr>
-            ) : filteredData.length > 0 ? (
-              filteredData.map((item, index) => (
-                <tr key={index} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {new Date(item.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td className="px-4 py-3">{item.invoiceNo}</td>
-                  <td className="px-4 py-3">{item.vendorName}</td>
-                  <td className="px-4 py-3">{item.tdsSection || 'N/A'}</td>
-                  <td className="px-4 py-3">₹ {item.taxableValue.toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3">₹ {item.tdsAmount.toLocaleString('en-IN')}</td>
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8 lg:mb-10">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-gray-700">Section</label>
+                <select 
+                  className="px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                >
+                  {tdsSections.map(section => (
+                    <option key={section} value={section}>{section}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-gray-700">Filter</label>
+                <select 
+                  className="px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                  value={selectedFilter}
+                  onChange={(e) => setSelectedFilter(e.target.value)}
+                >
+                  <option value="All">All</option>
+                  <option value="Mismatch">Mismatch</option>
+                  <option value="Not Deducted">Not Deducted</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <h3 className="text-base sm:text-lg font-semibold text-white">TDS Records</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Invoice No.</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Party</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">TDS Section</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Taxable Amount</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">TDS Deducted</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-gray-500">No TDS records found</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">Loading...</td>
+                  </tr>
+                ) : filteredData.length > 0 ? (
+                  filteredData.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3.5 px-4 text-sm text-gray-900 font-medium">
+                        {new Date(item.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="py-3.5 px-4 text-sm text-gray-900">{item.invoiceNo}</td>
+                      <td className="py-3.5 px-4 text-sm text-gray-900">{item.vendorName}</td>
+                      <td className="py-3.5 px-4 text-sm text-gray-900">{item.tdsSection || 'N/A'}</td>
+                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{item.taxableValue.toLocaleString('en-IN')}</td>
+                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{item.tdsAmount.toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">No TDS records found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

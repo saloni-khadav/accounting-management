@@ -608,219 +608,226 @@ const AssetsEntry = () => {
   const totalValue = filteredAssets.reduce((sum, asset) => sum + asset.purchaseValue, 0);
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Assets Entry</h1>
-        <p className="text-gray-600 text-lg">Manage and track all your company assets</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Assets Entry</h1>
+          <p className="text-gray-500 text-sm sm:text-base">Manage and track all your company assets</p>
+        </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-blue-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-blue-800 mb-2">Total Assets</h3>
-              <p className="text-3xl font-bold text-blue-900">{filteredAssets.length}</p>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Assets</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{filteredAssets.length}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <Building size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
             </div>
-            <div className="w-12 h-12 bg-blue-300 rounded-lg flex items-center justify-center">
-              <Building className="w-6 h-6 text-blue-700" />
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Value</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{(totalValue/100000).toFixed(1)}L</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <DollarSign size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Active Assets</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{filteredAssets.filter(a => a.status === 'Active').length}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <CheckCircle size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Categories</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <Monitor size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
             </div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-green-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-green-800 mb-2">Total Value</h3>
-              <p className="text-3xl font-bold text-green-900">₹{(totalValue/100000).toFixed(1)}L</p>
-            </div>
-            <div className="w-12 h-12 bg-green-300 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-700" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-purple-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-purple-800 mb-2">Active Assets</h3>
-              <p className="text-3xl font-bold text-purple-900">{filteredAssets.filter(a => a.status === 'Active').length}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-300 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-purple-700" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-orange-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-orange-800 mb-2">Categories</h3>
-              <p className="text-3xl font-bold text-orange-900">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
-            </div>
-            <div className="w-12 h-12 bg-orange-300 rounded-lg flex items-center justify-center">
-              <Monitor className="w-6 h-6 text-orange-700" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Filters and Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
-        <div className="flex items-center mb-4">
-          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-          <h3 className="text-xl font-bold text-gray-900">Search & Filters</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search assets..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
-          
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-blue-400 cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md min-w-[180px]"
-          >
-            <option value="" className="py-2">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category} className="py-2">{category}</option>
-            ))}
-          </select>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-blue-400 cursor-pointer font-medium text-gray-700 shadow-sm hover:shadow-md min-w-[150px]"
-          >
-            <option value="" className="py-2">All Status</option>
-            {statuses.map(status => (
-              <option key={status} value={status} className="py-2">{status}</option>
-            ))}
-          </select>
+        {/* Filters and Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8 lg:mb-10">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search assets..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                />
+              </div>
+              
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all bg-white min-w-[180px]"
+              >
+                <option value="">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all bg-white min-w-[150px]"
+              >
+                <option value="">All Status</option>
+                {statuses.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
 
-          <div className="flex gap-2">
-            <button 
-              onClick={() => {
-                setEditingAsset(null);
-                resetForm();
-                generateAssetCode();
-                setIsFormOpen(true);
-              }}
-              className="bg-blue-500 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg text-sm whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Add Asset
-            </button>
-            <button 
-              onClick={handleExportToExcel}
-              className="bg-green-500 text-white px-3 py-2.5 rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => {
+                    setEditingAsset(null);
+                    resetForm();
+                    generateAssetCode();
+                    setIsFormOpen(true);
+                  }}
+                  className="bg-blue-500 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg text-sm whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Add Asset
+                </button>
+                <button 
+                  onClick={handleExportToExcel}
+                  className="bg-green-500 text-white px-3 py-2.5 rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center shadow-md hover:shadow-lg"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Assets Table */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-              <tr>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Asset Details</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Category</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Purchase Info</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Vendor</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Location</th>
-                <th className="text-left py-4 px-4 font-semibold text-gray-700 text-sm">Status</th>
-                <th className="text-center py-4 px-4 font-semibold text-gray-700 text-sm">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
-                    Loading assets...
-                  </td>
+        {/* Assets Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Assets List</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Asset Details</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Category</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Purchase Info</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Vendor</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Location</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="text-center py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
-              ) : filteredAssets.map((asset) => (
-                <tr key={asset._id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors duration-200">
-                  <td className="py-4 px-4">
-                    <div>
-                      <div className="font-medium text-gray-900">{asset.assetName}</div>
-                      <div className="text-sm text-gray-500">{asset.assetCode}</div>
-                      <div className="text-sm text-gray-500">S/N: {asset.serialNumber || 'N/A'}</div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center">
-                      {getCategoryIcon(asset.category)}
-                      <span className="ml-2 text-sm text-gray-900">{asset.category}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">₹{asset.purchaseValue.toLocaleString()}</div>
-                      <div className="text-sm text-gray-500">{new Date(asset.purchaseDate).toLocaleDateString()}</div>
-                      <div className="text-sm text-gray-500">Warranty: {asset.warrantyPeriod || 0}M</div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="text-sm text-gray-900">{asset.vendor || 'N/A'}</div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="text-sm text-gray-900">{asset.location || 'N/A'}</div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(asset.status)}`}>
-                      {asset.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex space-x-2 justify-center">
-                      <button 
-                        onClick={() => setViewingAsset(asset)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" onClick={() => setViewingAsset(asset)} />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(asset)}
-                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-                        title="Edit Asset"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(asset)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
-                        title="Delete Asset"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="7" className="py-8 text-center text-gray-500">
+                      Loading assets...
+                    </td>
+                  </tr>
+                ) : filteredAssets.map((asset) => (
+                  <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{asset.assetName}</div>
+                        <div className="text-xs text-gray-500">{asset.assetCode}</div>
+                        <div className="text-xs text-gray-500">S/N: {asset.serialNumber || 'N/A'}</div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center">
+                        {getCategoryIcon(asset.category)}
+                        <span className="ml-2 text-sm text-gray-900">{asset.category}</span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">₹{asset.purchaseValue.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500">{new Date(asset.purchaseDate).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-500">Warranty: {asset.warrantyPeriod || 0}M</div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="text-sm text-gray-900">{asset.vendor || 'N/A'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="text-sm text-gray-900">{asset.location || 'N/A'}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(asset.status)}`}>
+                        {asset.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex space-x-2 justify-center">
+                        <button 
+                          onClick={() => setViewingAsset(asset)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" onClick={() => setViewingAsset(asset)} />
+                        </button>
+                        <button 
+                          onClick={() => handleEdit(asset)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                          title="Edit Asset"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(asset)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 transform hover:scale-110"
+                          title="Delete Asset"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      {filteredAssets.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No assets found matching your criteria.</p>
-        </div>
-      )}
+        {filteredAssets.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No assets found matching your criteria.</p>
+          </div>
+        )}
 
-      {/* Add Asset Form Modal */}
-      {isFormOpen && (
+        {/* Add Asset Form Modal */}
+        {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -1911,7 +1918,8 @@ const AssetsEntry = () => {
             </div>
           </div>
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

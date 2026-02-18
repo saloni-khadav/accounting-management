@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, DollarSign, Clock, AlertTriangle, FileText } from 'lucide-react';
+import MetricsCard from './ui/MetricsCard';
 
 const ClientOutstanding = () => {
   const [clientData, setClientData] = useState([]);
@@ -150,70 +151,81 @@ const ClientOutstanding = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Client Outstanding</h1>
-        <button 
-          onClick={handleExportToExcel}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Download size={18} />
-          Export
-        </button>
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Client Outstanding</h1>
+          <button 
+            onClick={handleExportToExcel}
+            className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center gap-2 font-medium transition-colors"
+          >
+            <Download size={18} />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Outstanding</h3>
-          <p className="text-3xl font-bold text-gray-900">₹{totalOutstanding.toLocaleString('en-IN')}</p>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Current Outstanding</h3>
-          <p className="text-3xl font-bold text-gray-900">₹{currentOutstanding.toLocaleString('en-IN')}</p>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">60+ Days Outstanding</h3>
-          <p className="text-3xl font-bold text-red-600">₹{overdueOutstanding.toLocaleString('en-IN')}</p>
-        </div>
+        <MetricsCard
+          title="Total Outstanding"
+          value={`₹${totalOutstanding.toLocaleString('en-IN')}`}
+          icon={DollarSign}
+          color="primary"
+        />
+        <MetricsCard
+          title="Current Outstanding"
+          value={`₹${currentOutstanding.toLocaleString('en-IN')}`}
+          icon={Clock}
+          color="success"
+        />
+        <MetricsCard
+          title="60+ Days Outstanding"
+          value={`₹${overdueOutstanding.toLocaleString('en-IN')}`}
+          icon={AlertTriangle}
+          color="danger"
+        />
       </div>
 
       {/* Client Overview Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Client Overview</h2>
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3">
+          <h2 className="text-lg font-semibold">Client Overview</h2>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Client Name</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice No.</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice Date</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Invoice Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">TDS Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Total Received</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Total Outstanding</th>
+            <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
+              <tr>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Client Name</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Invoice No.</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Invoice Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Invoice Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">TDS Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Total Received</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm uppercase tracking-wider">Total Outstanding</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-8 px-6 text-center text-gray-500">
-                    Loading outstanding data...
+                  <td colSpan="7" className="py-12 px-6 text-center">
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+                      <p className="text-gray-500">Loading outstanding data...</p>
+                    </div>
                   </td>
                 </tr>
               ) : clientData.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-8 px-6 text-center text-gray-500">
-                    No outstanding data available
+                  <td colSpan="7" className="py-12 px-6 text-center">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 text-lg">No outstanding data available</p>
+                    <p className="text-gray-400 text-sm mt-1">Outstanding amounts will appear here</p>
                   </td>
                 </tr>
               ) : (
                 clientData.map((client, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <tr key={index} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
                     <td className="py-4 px-6 text-sm font-medium text-gray-900">{client.clientName}</td>
                     <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceNo}</td>
                     <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceDate}</td>
