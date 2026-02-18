@@ -3,11 +3,10 @@ const Invoice = require('../models/Invoice');
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const TDS = require('../models/TDS');
-const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/summary', auth, async (req, res) => {
+router.get('/summary', async (req, res) => {
   try {
     const { timePeriod = 'current_financial_year' } = req.query;
     

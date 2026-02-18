@@ -117,33 +117,68 @@ const CapitalWorkInProgress = () => {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Active Projects</h3>
-              <p className="text-2xl font-bold text-blue-600">{cwipProjects.length}</p>
-              <p className="text-sm text-gray-500 mt-1">Currently ongoing</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+            <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+              <div className="ml-2 flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Active Projects</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-700">{cwipProjects.length}</p>
+                  <p className="text-xs text-gray-400 mt-1">Currently ongoing</p>
+                </div>
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Construction size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Total Budget</h3>
-              <p className="text-2xl font-bold text-green-600">₹{totalBudget.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-gray-500 mt-1">Allocated budget</p>
+            <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+              <div className="ml-2 flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Budget</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{totalBudget.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-gray-400 mt-1">Allocated budget</p>
+                </div>
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <DollarSign size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Amount Spent</h3>
-              <p className="text-2xl font-bold text-orange-600">₹{totalSpent.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-gray-500 mt-1">{totalBudget > 0 ? ((totalSpent/totalBudget)*100).toFixed(1) : 0}% utilized</p>
+            <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+              <div className="ml-2 flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Amount Spent</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{totalSpent.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-gray-400 mt-1">{totalBudget > 0 ? ((totalSpent/totalBudget)*100).toFixed(1) : 0}% utilized</p>
+                </div>
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <CheckCircle size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Remaining</h3>
-              <p className="text-2xl font-bold text-purple-600">₹{totalRemaining.toLocaleString('en-IN')}</p>
-              <p className="text-sm text-gray-500 mt-1">Available budget</p>
+            <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+              <div className="ml-2 flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Remaining</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{totalRemaining.toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-gray-400 mt-1">Available budget</p>
+                </div>
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Clock size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Status Distribution</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 lg:mb-10">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+                <h3 className="text-base sm:text-lg font-semibold text-white">Project Status Distribution</h3>
+              </div>
+              <div className="p-4 sm:p-6">
               {statusData.length > 0 ? (
                 <>
                   <div className="h-80">
@@ -178,11 +213,15 @@ const CapitalWorkInProgress = () => {
               ) : (
                 <div className="text-center py-8 text-gray-500">No projects found</div>
               )}
+              </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly CWIP Spending</h3>
-              <div className="h-80">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+                <h3 className="text-base sm:text-lg font-semibold text-white">Monthly CWIP Spending</h3>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlySpending}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -192,6 +231,7 @@ const CapitalWorkInProgress = () => {
                     <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
@@ -203,23 +243,25 @@ const CapitalWorkInProgress = () => {
   const renderProjects = () => (
     <div className="space-y-6">
       {/* Filter */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Status</option>
-            <option value="Planning">Planning</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Near Completion">Near Completion</option>
-            <option value="On Hold">On Hold</option>
-          </select>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </button>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+        <div className="p-4 sm:p-6">
+          <div className="flex justify-between items-center">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+            >
+              <option value="">All Status</option>
+              <option value="Planning">Planning</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Near Completion">Near Completion</option>
+              <option value="On Hold">On Hold</option>
+            </select>
+            <button className="bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 flex items-center shadow-md hover:shadow-lg transition-all duration-200 font-medium">
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </button>
+          </div>
         </div>
       </div>
 
@@ -287,19 +329,17 @@ const CapitalWorkInProgress = () => {
   );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center">
-          <Construction className="mr-2 text-blue-600" />
-          Capital Work in Progress
-        </h1>
-        <p className="text-gray-600">Track and manage ongoing capital projects and construction work</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Capital Work in Progress</h1>
+          <p className="text-gray-500 text-sm sm:text-base">Track and manage ongoing capital projects and construction work</p>
+        </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8 lg:mb-10">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-4 sm:px-6">
             <button
               onClick={() => setActiveTab('overview')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -320,11 +360,12 @@ const CapitalWorkInProgress = () => {
             >
               Projects
             </button>
-          </nav>
-        </div>
-        <div className="p-6">
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'projects' && renderProjects()}
+            </nav>
+          </div>
+          <div className="p-4 sm:p-6">
+            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'projects' && renderProjects()}
+          </div>
         </div>
       </div>
     </div>

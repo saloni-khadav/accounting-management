@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronDown, Edit, Eye, Download, FileText, Search, Filter, Calendar } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Edit, Eye, Download, FileText, Search, Filter, Calendar, Clock, CheckCircle, XCircle } from 'lucide-react';
 import DatePicker from './ui/DatePicker';
+import MetricsCard from './ui/MetricsCard';
 import { generatePONumber } from '../utils/numberGenerator';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 
@@ -521,35 +522,49 @@ const CreatePO = () => {
   if (!showForm && !showViewModal) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Proforma Invoice Management</h1>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create Proforma Invoice
-          </button>
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-sm mb-6">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Proforma Invoice Management</h1>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Proforma Invoice
+            </button>
+          </div>
         </div>
 
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-yellow-500 text-white rounded-xl p-6">
-            <div className="text-lg mb-2">Pending Approval</div>
-            <div className="text-5xl font-bold">{stats.pending}</div>
-          </div>
-          <div className="bg-green-500 text-white rounded-xl p-6">
-            <div className="text-lg mb-2">Approved</div>
-            <div className="text-5xl font-bold">{stats.approved}</div>
-          </div>
-          <div className="bg-red-500 text-white rounded-xl p-6">
-            <div className="text-lg mb-2">Rejected</div>
-            <div className="text-5xl font-bold">{stats.rejected}</div>
-          </div>
+          <MetricsCard
+            title="Pending Approval"
+            value={stats.pending}
+            icon={Clock}
+            color="warning"
+          />
+          <MetricsCard
+            title="Approved"
+            value={stats.approved}
+            icon={CheckCircle}
+            color="success"
+          />
+          <MetricsCard
+            title="Rejected"
+            value={stats.rejected}
+            icon={XCircle}
+            color="danger"
+          />
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl shadow-sm mb-6">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3 rounded-t-xl">
+            <h2 className="text-lg font-semibold">Search & Filters</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -621,6 +636,8 @@ const CreatePO = () => {
                 className="pl-14 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
               />
             </div>
+            </div>
+          </div>
           </div>
         </div>
 
@@ -631,22 +648,35 @@ const CreatePO = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Table */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3">
+            <h2 className="text-lg font-semibold">Proforma Invoice List</h2>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PI Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">PI Number</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Supplier</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPOs.map((po) => (
-                  <tr key={po._id} className="hover:bg-gray-50">
+                {filteredPOs.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 text-lg">No proforma invoices found</p>
+                      <p className="text-gray-400 text-sm mt-1">Create your first proforma invoice to get started</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPOs.map((po) => (
+                  <tr key={po._id} className="hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {po.poNumber}
                     </td>
@@ -671,31 +701,32 @@ const CreatePO = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleView(po)}
-                          className="text-green-600 hover:text-green-900"
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="View Details"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-[18px] h-[18px]" />
                         </button>
                         <button
                           onClick={() => handleEdit(po)}
                           disabled={isProcessed(po)}
-                          className={`${isProcessed(po) ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-900'}`}
+                          className={`p-2 rounded-lg transition-colors ${isProcessed(po) ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
                           title={isProcessed(po) ? 'Cannot edit processed invoice' : 'Edit'}
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-[18px] h-[18px]" />
                         </button>
                         <button
                           onClick={() => handleDelete(po._id)}
                           disabled={isProcessed(po)}
-                          className={`${isProcessed(po) ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
+                          className={`p-2 rounded-lg transition-colors ${isProcessed(po) ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}`}
                           title={isProcessed(po) ? 'Cannot delete processed invoice' : 'Delete'}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-[18px] h-[18px]" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
