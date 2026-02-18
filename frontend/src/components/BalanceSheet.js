@@ -1,71 +1,69 @@
 import React from 'react';
 import { ChevronDown, Menu, Building, CreditCard, PieChart, TrendingUp } from 'lucide-react';
+import MetricsCard from './ui/MetricsCard';
 
 const BalanceSheet = () => {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 md:p-6 border-b border-gray-200 gap-4 sm:gap-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Balance Sheet</h1>
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className="relative">
-            <select className="appearance-none bg-white border border-gray-300 rounded-lg px-3 md:px-4 py-2 pr-8 md:pr-10 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option>This Year</option>
-            </select>
-            <ChevronDown className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold">Balance Sheet</h1>
+                  <p className="text-blue-100 mt-1">Financial position and statement overview</p>
+                </div>
+                <div className="flex items-center gap-2 md:gap-4">
+                  <div className="relative">
+                    <select className="appearance-none bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-lg px-3 md:px-4 py-2 pr-8 md:pr-10 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white/50">
+                      <option className="text-gray-900">This Year</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-white" size={14} />
+                  </div>
+                  <button className="p-2 bg-white/20 hover:bg-white/30 border border-white/30 rounded-lg transition-colors">
+                    <Menu size={18} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Menu size={18} />
-          </button>
         </div>
-      </div>
 
-      {/* Summary Cards */}
-      <div className="p-4 md:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Assets</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹8,200,000</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-blue-600 bg-blue-50 flex-shrink-0">
-                <Building className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8">
+          <div className="transform transition-all duration-200 hover:-translate-y-1">
+            <MetricsCard
+              title="Total Assets"
+              value="₹8,200,000"
+              icon={Building}
+              color="primary"
+            />
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Liabilities</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,000,000</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-red-600 bg-red-50 flex-shrink-0">
-                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
+          <div className="transform transition-all duration-200 hover:-translate-y-1">
+            <MetricsCard
+              title="Total Liabilities"
+              value="₹4,000,000"
+              icon={CreditCard}
+              color="danger"
+            />
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Equity</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">₹4,200,000</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-green-600 bg-green-50 flex-shrink-0">
-                <PieChart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
+          <div className="transform transition-all duration-200 hover:-translate-y-1">
+            <MetricsCard
+              title="Equity"
+              value="₹4,200,000"
+              icon={PieChart}
+              color="success"
+            />
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 md:p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Current Ratio</p>
-                <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 truncate">1.80</p>
-              </div>
-              <div className="p-2 sm:p-3 rounded-lg text-purple-600 bg-purple-50 flex-shrink-0">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
+          <div className="transform transition-all duration-200 hover:-translate-y-1">
+            <MetricsCard
+              title="Current Ratio"
+              value="1.80"
+              icon={TrendingUp}
+              color="warning"
+            />
           </div>
         </div>
 
@@ -73,10 +71,14 @@ const BalanceSheet = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
           {/* Left Column - Financial Data */}
           <div className="xl:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+                <h2 className="text-base sm:text-lg font-semibold text-white">Financial Statement</h2>
+              </div>
+              <div className="p-4 md:p-6">
               {/* Assets Section */}
               <div className="mb-6 md:mb-8">
-                <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Assets</h2>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-gray-900">Assets</h3>
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[500px]">
                   <thead>
@@ -119,7 +121,7 @@ const BalanceSheet = () => {
 
               {/* Liabilities Section */}
               <div className="mb-6 md:mb-8">
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Liabilities</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-gray-900">Liabilities</h3>
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[500px]">
                   <tbody>
@@ -145,7 +147,7 @@ const BalanceSheet = () => {
 
               {/* Equity Section */}
               <div>
-                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-blue-600">Equity</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-gray-900">Equity</h3>
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[500px]">
                   <tbody>
@@ -168,12 +170,17 @@ const BalanceSheet = () => {
                 </table>
                 </div>
               </div>
+              </div>
             </div>
           </div>
 
           {/* Right Column - Chart and Summary */}
           <div className="xl:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+                <h3 className="text-base sm:text-lg font-semibold text-white">Overview</h3>
+              </div>
+              <div className="p-4 md:p-6">
               {/* Bar Chart */}
               <div className="mb-6 md:mb-8">
                 <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
@@ -223,6 +230,7 @@ const BalanceSheet = () => {
                   <span className="text-gray-500 text-xs md:text-sm">vs</span>
                   <span className="text-blue-600 font-semibold text-xs md:text-sm">Liabilities</span>
                 </div>
+              </div>
               </div>
             </div>
           </div>
