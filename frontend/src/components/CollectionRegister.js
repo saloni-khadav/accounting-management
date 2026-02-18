@@ -349,14 +349,16 @@ const CollectionRegister = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Collection Register</h1>
+      <div className="bg-white rounded-xl shadow-sm mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl">
+          <h1 className="text-2xl font-bold">Collection Register</h1>
+        </div>
       </div>
 
       {/* Top Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Total Collections with Chart */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
           <div className="flex items-center gap-4">
             <div className="w-28 h-28">
               <ResponsiveContainer width="100%" height="100%">
@@ -386,13 +388,13 @@ const CollectionRegister = () => {
         </div>
 
         {/* Pending Invoices */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-lg font-medium text-gray-900 mb-3">Pending Invoices</h3>
           <p className="text-5xl font-bold text-gray-900">{stats.pendingInvoices}</p>
         </div>
 
         {/* Collected This Month */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
           <h3 className="text-lg font-medium text-gray-900 mb-3">Collected This Month</h3>
           <p className="text-5xl font-bold text-gray-900">₹{stats.monthlyAmount.toLocaleString('en-IN')}</p>
         </div>
@@ -707,26 +709,29 @@ const CollectionRegister = () => {
       )}
 
       {/* Collections Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-3">
+          <h2 className="text-lg font-semibold">Collections List</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Collection No.</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Date</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Customer Name</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Invoice</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Total Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">TDS Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Net Amount</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Mode</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Reference No.</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-900">Approval</th>
+            <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
+              <tr>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Collection No.</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Customer Name</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Invoice</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Total Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">TDS Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Net Amount</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Mode</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Reference No.</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Approval</th>
               </tr>
             </thead>
             <tbody>
               {collections.map((collection) => (
-                <tr key={collection._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <tr key={collection._id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
                   <td className="py-4 px-6 text-gray-900 font-medium">{collection.collectionNumber || '-'}</td>
                   <td className="py-4 px-6 text-gray-900">{formatDate(collection.collectionDate)}</td>
                   <td className="py-4 px-6 text-gray-900">{collection.customer}</td>

@@ -196,159 +196,164 @@ const Depreciation = () => {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-      {notification.show && (
-        <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
-          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        } text-white`}>
-          {notification.message}
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {notification.show && (
+          <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+            notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white`}>
+            {notification.message}
+          </div>
+        )}
+
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Depreciation Management</h1>
+          <p className="text-gray-500 text-sm sm:text-base">Calculate and manage asset depreciation schedules</p>
         </div>
-      )}
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center tracking-tight">
-          <Calculator className="mr-3 text-blue-600" size={32} />
-          Depreciation Management
-        </h1>
-        <p className="text-gray-600 text-lg">Calculate and manage asset depreciation schedules</p>
-      </div>
+        {/* Control Panel */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8 lg:mb-10">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Asset</label>
+                <select
+                  value={selectedAsset}
+                  onChange={(e) => setSelectedAsset(e.target.value)}
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                >
+                  <option value="">All Assets</option>
+                  {assets.map(asset => (
+                    <option key={asset._id} value={asset._id}>{asset.assetName}</option>
+                  ))}
+                </select>
+              </div>
 
-      {/* Control Panel */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
-        <div className="flex items-center mb-6">
-          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-          <h3 className="text-xl font-bold text-gray-900 flex items-center">
-            <Settings className="mr-2 text-blue-600" />
-            Depreciation Controls
-          </h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Asset</label>
-            <select
-              value={selectedAsset}
-              onChange={(e) => setSelectedAsset(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Assets</option>
-              {assets.map(asset => (
-                <option key={asset._id} value={asset._id}>{asset.assetName}</option>
-              ))}
-            </select>
-          </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Calculation Method</label>
+                <select
+                  value={calculationMethod}
+                  onChange={(e) => setCalculationMethod(e.target.value)}
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                >
+                  {depreciationMethods.map(method => (
+                    <option key={method.value} value={method.value}>{method.label}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Calculation Method</label>
-            <select
-              value={calculationMethod}
-              onChange={(e) => setCalculationMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {depreciationMethods.map(method => (
-                <option key={method.value} value={method.value}>{method.label}</option>
-              ))}
-            </select>
-          </div>
+              <div className="flex items-end">
+                <button
+                  onClick={handleCalculateDepreciation}
+                  disabled={isCalculating}
+                  className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+                >
+                  {isCalculating ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Calculator className="w-4 h-4 mr-2" />
+                  )}
+                  Calculate
+                </button>
+              </div>
 
-          <div className="flex items-end">
-            <button
-              onClick={handleCalculateDepreciation}
-              disabled={isCalculating}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
-            >
-              {isCalculating ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Calculator className="w-4 h-4 mr-2" />
-              )}
-              Calculate
-            </button>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={handleRunMonthlyDepreciation}
-              disabled={isCalculating}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2.5 rounded-lg hover:from-green-700 hover:to-green-800 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Run Monthly
-            </button>
+              <div className="flex items-end">
+                <button
+                  onClick={handleRunMonthlyDepreciation}
+                  disabled={isCalculating}
+                  className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Run Monthly
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-blue-700">Monthly Depreciation</h3>
-            <TrendingDown className="w-8 h-8 text-blue-400" />
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Monthly Depreciation</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.monthlyTotal.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-1">Current month</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <TrendingDown size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-blue-900">₹{depreciationData.monthlyTotal.toLocaleString()}</p>
-          <p className="text-sm text-blue-600 mt-2">Current month</p>
-        </div>
-        <div className="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-green-700">YTD Depreciation</h3>
-            <Calendar className="w-8 h-8 text-green-400" />
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">YTD Depreciation</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.ytdTotal.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-1">Year to date</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <Calendar size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-green-900">₹{depreciationData.ytdTotal.toLocaleString()}</p>
-          <p className="text-sm text-green-600 mt-2">Year to date</p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-purple-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-purple-700">Accumulated</h3>
-            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Accumulated</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.accumulatedTotal.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-1">Total accumulated</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <Calculator size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              </div>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-purple-900">₹{depreciationData.accumulatedTotal.toLocaleString()}</p>
-          <p className="text-sm text-purple-600 mt-2">Total accumulated</p>
-        </div>
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 border border-orange-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-orange-700">Net Book Value</h3>
-            <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
+            <div className="ml-2 flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Net Book Value</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.netBookValue.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-1">Current value</p>
+              </div>
+              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <TrendingDown size={20} className="sm:w-6 sm:h-6" strokeWidth={2} style={{ transform: 'rotate(180deg)' }} />
+              </div>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-orange-900">₹{depreciationData.netBookValue.toLocaleString()}</p>
-          <p className="text-sm text-orange-600 mt-2">Current value</p>
         </div>
-      </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Monthly Depreciation Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex items-center mb-6">
-            <div className="w-1 h-6 bg-red-600 rounded-full mr-3"></div>
-            <h3 className="text-xl font-bold text-gray-900 flex items-center">
-              <TrendingDown className="mr-2 text-red-600" />
-              Monthly Depreciation
-            </h3>
-          </div>
-          <div className="h-80">
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Monthly Depreciation</h3>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyDepreciation}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
                 <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Depreciation']} />
-                <Bar dataKey="depreciation" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="depreciation" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Depreciation Trend */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex items-center mb-6">
-            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h3 className="text-xl font-bold text-gray-900">Accumulated Depreciation Trend</h3>
-          </div>
-          <div className="h-80">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Accumulated Depreciation Trend</h3>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={displaySchedule}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -358,102 +363,102 @@ const Depreciation = () => {
                 <Line type="monotone" dataKey="accumulated" stroke="#3b82f6" strokeWidth={2} name="Accumulated Depreciation" />
                 <Line type="monotone" dataKey="closing" stroke="#10b981" strokeWidth={2} name="Net Book Value" />
               </LineChart>
-            </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Depreciation Schedule Table */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 mb-8">
-        <div className="flex items-center mb-6">
-          <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-          <h3 className="text-xl font-bold text-gray-900">Depreciation Schedule</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Period</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Opening Value</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Depreciation</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Accumulated</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Closing Value</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Rate %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {displaySchedule.map((item, index) => (
-                <tr key={index} className="hover:bg-blue-50 transition-colors duration-150">
-                  <td className="py-4 px-6 font-semibold text-gray-900">{item.year}</td>
-                  <td className="py-4 px-6 text-gray-700 font-medium">₹{item.opening.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-red-600 font-bold">₹{item.depreciation.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-orange-600 font-bold">₹{item.accumulated.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-green-600 font-bold">₹{item.closing.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-gray-700 font-medium">{item.rate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Asset-wise Depreciation */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h3 className="text-xl font-bold text-gray-900">Asset-wise Depreciation Summary</h3>
+        {/* Depreciation Schedule Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Depreciation Schedule</h3>
           </div>
-          <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{assets.length} Assets</span>
-        </div>
-        {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading assets...</div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Asset Name</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Asset Code</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Original Value</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Method</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Useful Life</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Monthly Dep.</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Accumulated</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Net Value</th>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Period</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Opening Value</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Depreciation</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Accumulated</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Closing Value</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Rate %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {assets
-                  .filter(asset => selectedAsset ? asset._id === selectedAsset : true)
-                  .map((asset) => {
-                  const salvageValue = asset.salvageValue || 0;
-                  const depreciableAmount = asset.purchaseValue - salvageValue;
-                  const monthlyDep = asset.usefulLife ? Math.round(depreciableAmount / (asset.usefulLife * 12)) : 0;
-                  const accumulated = Math.round(calculateRealTimeDepreciation(asset));
-                  const netValue = asset.purchaseValue - accumulated;
-                  
-                  return (
-                    <tr key={asset._id} className="hover:bg-blue-50 transition-colors duration-150">
-                      <td className="py-4 px-6 font-semibold text-gray-900">{asset.assetName}</td>
-                      <td className="py-4 px-6">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {asset.assetCode}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-gray-900 font-bold">₹{asset.purchaseValue.toLocaleString()}</td>
-                      <td className="py-4 px-6 text-gray-700 capitalize">{asset.depreciationMethod?.replace('-', ' ') || 'straight line'}</td>
-                      <td className="py-4 px-6 text-gray-700 font-medium">{asset.usefulLife ? `${asset.usefulLife} years` : '5 years'}</td>
-                      <td className="py-4 px-6 text-red-600 font-bold">₹{monthlyDep.toLocaleString()}</td>
-                      <td className="py-4 px-6 text-orange-600 font-bold">₹{accumulated.toLocaleString()}</td>
-                      <td className="py-4 px-6 text-green-600 font-bold">₹{netValue.toLocaleString()}</td>
-                    </tr>
-                  );
-                })}
+                {displaySchedule.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm">{item.year}</td>
+                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">₹{item.opening.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-red-600 font-semibold text-sm">₹{item.depreciation.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm">₹{item.accumulated.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-green-600 font-semibold text-sm">₹{item.closing.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">{item.rate}%</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+
+        {/* Asset-wise Depreciation */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Asset-wise Depreciation Summary</h3>
+              <span className="text-xs sm:text-sm text-white bg-white/20 px-3 py-1 rounded-full">{assets.length} Assets</span>
+            </div>
+          </div>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading assets...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Asset Name</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Asset Code</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Original Value</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Method</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Useful Life</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Monthly Dep.</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Accumulated</th>
+                    <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Net Value</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {assets
+                    .filter(asset => selectedAsset ? asset._id === selectedAsset : true)
+                    .map((asset) => {
+                    const salvageValue = asset.salvageValue || 0;
+                    const depreciableAmount = asset.purchaseValue - salvageValue;
+                    const monthlyDep = asset.usefulLife ? Math.round(depreciableAmount / (asset.usefulLife * 12)) : 0;
+                    const accumulated = Math.round(calculateRealTimeDepreciation(asset));
+                    const netValue = asset.purchaseValue - accumulated;
+                    
+                    return (
+                      <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm">{asset.assetName}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                            {asset.assetCode}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-gray-900 font-semibold text-sm">₹{asset.purchaseValue.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-gray-700 capitalize text-sm">{asset.depreciationMethod?.replace('-', ' ') || 'straight line'}</td>
+                        <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">{asset.usefulLife ? `${asset.usefulLife} years` : '5 years'}</td>
+                        <td className="py-3.5 px-4 text-red-600 font-semibold text-sm">₹{monthlyDep.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm">₹{accumulated.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-green-600 font-semibold text-sm">₹{netValue.toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

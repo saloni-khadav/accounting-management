@@ -394,17 +394,17 @@ const receivablesColumns = [
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8 max-w-[1600px] mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
             Dashboard Overview
           </h1>
-          <p className="text-gray-500 text-base">Welcome back! Here's what's happening with your business today.</p>
+          <p className="text-gray-500 text-sm sm:text-base">Welcome back! Here's what's happening with your business today.</p>
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
           {metricsData.map((metric, index) => (
             <div key={index} className="transform transition-all duration-200 hover:-translate-y-1">
               <MetricsCard {...metric} />
@@ -413,7 +413,7 @@ const receivablesColumns = [
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 lg:mb-10">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
             <RevenueChart />
           </div>
@@ -423,12 +423,12 @@ const receivablesColumns = [
         </div>
 
         {/* Tables Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 lg:mb-10">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
-              <h3 className="text-lg font-semibold text-white">Overdue Receivables</h3>
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Overdue Receivables</h3>
             </div>
-            <div className="p-5">
+            <div className="p-3 sm:p-5">
               <DataTable 
                 title=""
                 columns={receivablesColumns}
@@ -437,10 +437,10 @@ const receivablesColumns = [
             </div>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
-              <h3 className="text-lg font-semibold text-white">Overdue Payables</h3>
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Overdue Payables</h3>
             </div>
-            <div className="p-5">
+            <div className="p-3 sm:p-5">
               <DataTable 
                 title=""
                 columns={payablesColumns}
@@ -452,10 +452,10 @@ const receivablesColumns = [
 
         {/* Last Transactions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-700">
-            <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Recent Transactions</h3>
           </div>
-          <div className="p-5">
+          <div className="p-3 sm:p-5">
             <DataTable 
               title=""
               columns={transactionsColumns}

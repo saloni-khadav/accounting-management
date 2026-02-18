@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Calendar, Users, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import MetricsCard from './ui/MetricsCard';
 
 const VendorsAging = () => {
   const [billsData, setBillsData] = useState([]);
@@ -123,6 +124,10 @@ const VendorsAging = () => {
     moreThan180: acc.moreThan180 + bill.moreThan180
   }), { lessThan30: 0, days30to60: 0, days60to90: 0, days90to180: 0, moreThan180: 0 });
 
+  const totalOutstanding = totals.lessThan30 + totals.days30to60 + totals.days60to90 + totals.days90to180 + totals.moreThan180;
+  const totalVendors = [...new Set(billsData.map(bill => bill.vendorName))].length;
+  const overdueAmount = totals.days30to60 + totals.days60to90 + totals.days90to180 + totals.moreThan180;
+
   if (loading) {
     return <div className="p-6 bg-gray-50 min-h-screen"><div className="text-center py-8">Loading...</div></div>;
   }
@@ -130,52 +135,117 @@ const VendorsAging = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Vendors Aging Report</h1>
-        <button 
-          onClick={handleExport}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Download size={16} />
-          Export
-        </button>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center">
+                <Calendar className="mr-3" size={28} />
+                Vendors Aging Report
+              </h1>
+              <p className="text-blue-100 mt-1">Track outstanding vendor payments by aging periods</p>
+            </div>
+            <button 
+              onClick={handleExport}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+            >
+              <Download size={18} />
+              Export
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Aging Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Aging Analysis</h2>
+            <span className="text-blue-100 text-sm">{billsData.length} Outstanding Bills</span>
+          </div>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Bill Number</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Date</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Vendor</th>
-                <th className="text-center py-3 px-4 font-semibold text-white bg-green-500 border-r border-gray-300">&lt; 30 Days</th>
-                <th className="text-center py-3 px-4 font-semibold text-white bg-yellow-500 border-r border-gray-300">30 to 60 Days</th>
-                <th className="text-center py-3 px-4 font-semibold text-white bg-orange-500 border-r border-gray-300">60 to 90 Days</th>
-                <th className="text-center py-3 px-4 font-semibold text-white bg-red-500 border-r border-gray-300">90 to 180 Days</th>
-                <th className="text-center py-3 px-4 font-semibold text-white bg-red-700">&gt; 180 Days</th>
+          <table className="min-w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Bill Number</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-green-500 text-sm">&lt; 30 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-yellow-500 text-sm">30-60 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-orange-500 text-sm">60-90 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-red-500 text-sm">90-180 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-red-700 text-sm">&gt; 180 Days</th>
               </tr>
             </thead>
             <tbody>
-              {billsData.map((bill, index) => (
-                <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-blue-600 font-medium border-r border-gray-200">{bill.billNumber}</td>
-                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{formatDate(bill.billDate)}</td>
-                  <td className="py-3 px-4 text-gray-700 border-r border-gray-200">{bill.vendorName}</td>
-                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(bill.lessThan30)}</td>
-                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(bill.days30to60)}</td>
-                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(bill.days60to90)}</td>
-                  <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">{formatAmount(bill.days90to180)}</td>
-                  <td className="py-3 px-4 text-center text-gray-700">{formatAmount(bill.moreThan180)}</td>
-                </tr>
-              ))}
-              {billsData.length === 0 && (
+              {billsData.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-gray-500">No bills found</td>
+                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                    <Calendar size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No outstanding bills found</p>
+                    <p className="text-sm">All vendor payments are up to date</p>
+                  </td>
                 </tr>
+              ) : (
+                billsData.map((bill, index) => (
+                  <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                    <td className="py-4 px-6">
+                      <span className="text-blue-600 font-medium">{bill.billNumber}</span>
+                    </td>
+                    <td className="py-4 px-6 text-gray-600">{new Date(bill.billDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                    <td className="py-4 px-6 text-gray-900 font-medium">{bill.vendorName}</td>
+                    <td className="py-4 px-6 text-center font-semibold">
+                      <span className={bill.lessThan30 > 0 ? 'text-green-700' : 'text-gray-400'}>
+                        {bill.lessThan30 > 0 ? `₹${bill.lessThan30.toLocaleString('en-IN')}` : '-'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold">
+                      <span className={bill.days30to60 > 0 ? 'text-yellow-700' : 'text-gray-400'}>
+                        {bill.days30to60 > 0 ? `₹${bill.days30to60.toLocaleString('en-IN')}` : '-'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold">
+                      <span className={bill.days60to90 > 0 ? 'text-orange-700' : 'text-gray-400'}>
+                        {bill.days60to90 > 0 ? `₹${bill.days60to90.toLocaleString('en-IN')}` : '-'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold">
+                      <span className={bill.days90to180 > 0 ? 'text-red-700' : 'text-gray-400'}>
+                        {bill.days90to180 > 0 ? `₹${bill.days90to180.toLocaleString('en-IN')}` : '-'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center font-semibold">
+                      <span className={bill.moreThan180 > 0 ? 'text-red-800' : 'text-gray-400'}>
+                        {bill.moreThan180 > 0 ? `₹${bill.moreThan180.toLocaleString('en-IN')}` : '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
+            {billsData.length > 0 && (
+              <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                <tr>
+                  <td colSpan="3" className="py-4 px-6 font-bold text-gray-900">TOTAL</td>
+                  <td className="py-4 px-6 text-center font-bold text-green-700">
+                    ₹{totals.lessThan30.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-4 px-6 text-center font-bold text-yellow-700">
+                    ₹{totals.days30to60.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-4 px-6 text-center font-bold text-orange-700">
+                    ₹{totals.days60to90.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-4 px-6 text-center font-bold text-red-700">
+                    ₹{totals.days90to180.toLocaleString('en-IN')}
+                  </td>
+                  <td className="py-4 px-6 text-center font-bold text-red-800">
+                    ₹{totals.moreThan180.toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

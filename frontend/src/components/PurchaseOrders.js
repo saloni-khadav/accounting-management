@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download } from 'lucide-react';
+import { Search, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download, ShoppingCart, Clock, CheckCircle } from 'lucide-react';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
+import MetricsCard from './ui/MetricsCard';
 
 const PurchaseOrders = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -387,6 +388,27 @@ const PurchaseOrders = () => {
     rejected: purchaseOrders.filter(po => po.status === 'Rejected' || po.approvalStatus === 'rejected').length
   };
 
+  const metricsData = [
+    {
+      title: 'Pending Approval',
+      value: stats.pending.toString(),
+      icon: Clock,
+      color: 'warning'
+    },
+    {
+      title: 'Approved',
+      value: stats.approved.toString(),
+      icon: CheckCircle,
+      color: 'success'
+    },
+    {
+      title: 'Rejected',
+      value: stats.rejected.toString(),
+      icon: X,
+      color: 'danger'
+    }
+  ];
+
   const getStatusColor = (status, approvalStatus) => {
     if (approvalStatus === 'pending' || status === 'Pending Approval') {
       return 'bg-yellow-100 text-yellow-800';
@@ -405,191 +427,207 @@ const PurchaseOrders = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Purchase Orders</h1>
-        <button 
-          onClick={() => {
-            setEditingOrder(null);
-            setFormData({
-              supplier: '',
-              poNumber: '',
-              poDate: new Date().toISOString().split('T')[0],
-              deliveryDate: '',
-              gstNumber: '',
-              deliveryAddress: '',
-              remarks: ''
-            });
-            setSupplierSearch('');
-            setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
-            setShowCreateForm(true);
-          }}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-        >
-          Create New
-        </button>
-      </div>
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-yellow-500 text-white rounded-xl p-6">
-          <div className="text-lg mb-2">Pending Approval</div>
-          <div className="text-5xl font-bold">{stats.pending}</div>
-        </div>
-        <div className="bg-green-500 text-white rounded-xl p-6">
-          <div className="text-lg mb-2">Approved</div>
-          <div className="text-5xl font-bold">{stats.approved}</div>
-        </div>
-        <div className="bg-red-500 text-white rounded-xl p-6">
-          <div className="text-lg mb-2">Rejected</div>
-          <div className="text-5xl font-bold">{stats.rejected}</div>
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg p-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Search by PO number or supplier..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 flex items-center">
+                <ShoppingCart className="mr-3" />
+                Purchase Orders
+              </h1>
+              <p className="text-gray-500 text-sm sm:text-base">Manage purchase orders and supplier transactions</p>
+            </div>
+            <button 
+              onClick={() => {
+                setEditingOrder(null);
+                setFormData({
+                  supplier: '',
+                  poNumber: '',
+                  poDate: new Date().toISOString().split('T')[0],
+                  deliveryDate: '',
+                  gstNumber: '',
+                  deliveryAddress: '',
+                  remarks: ''
+                });
+                setSupplierSearch('');
+                setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+                setShowCreateForm(true);
+              }}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
             >
-              <Filter size={16} />
-              <span>Filter</span>
-              <ChevronDown size={16} />
+              <Plus className="w-4 h-4" />
+              Create New
             </button>
-            {showFilterDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                <div className="p-2">
-                  <button
-                    onClick={() => { setActiveFilter('All'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'All' ? 'bg-blue-50 text-blue-700' : ''}`}
-                  >
-                    All ({purchaseOrders.length})
-                  </button>
-                  <button
-                    onClick={() => { setActiveFilter('Pending Approval'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Pending Approval' ? 'bg-yellow-50 text-yellow-700' : ''}`}
-                  >
-                    Pending Approval ({stats.pending})
-                  </button>
-                  <button
-                    onClick={() => { setActiveFilter('Approved'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Approved' ? 'bg-green-50 text-green-700' : ''}`}
-                  >
-                    Approved ({stats.approved})
-                  </button>
-                  <button
-                    onClick={() => { setActiveFilter('Rejected'); setShowFilterDropdown(false); }}
-                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 ${activeFilter === 'Rejected' ? 'bg-red-50 text-red-700' : ''}`}
-                  >
-                    Rejected ({stats.rejected})
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">PO Number</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Vendor</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Order Date</th>
-              <th className="text-left py-4 px-6 font-semibold text-gray-900 text-base">Status</th>
-              <th className="text-right py-4 px-6 font-semibold text-gray-900 text-base">Amount</th>
-              <th className="text-center py-4 px-6 font-semibold text-gray-900 text-base">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-500">
-                  Loading purchase orders...
-                </td>
-              </tr>
-            ) : ordersData.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-500">
-                  No purchase orders found
-                </td>
-              </tr>
-            ) : (
-              ordersData.map((order, index) => (
-                <tr key={order._id || index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  <td className="py-5 px-6">
-                    <span className="text-blue-600 font-medium">{order.poNumber}</span>
-                  </td>
-                  <td className="py-5 px-6 text-gray-900">{order.supplier}</td>
-                  <td className="py-5 px-6 text-gray-900">{new Date(order.poDate).toLocaleDateString()}</td>
-                  <td className="py-5 px-6">
-                    <span className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap ${getStatusColor(order.status, order.approvalStatus)}`}>
-                      {order.approvalStatus === 'pending' ? 'Pending Approval' : 
-                       order.approvalStatus === 'approved' ? 'Approved' :
-                       order.approvalStatus === 'rejected' ? 'Rejected' :
-                       order.status || 'Draft'}
-                    </span>
-                  </td>
-                  <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>
-                  <td className="py-5 px-6">
-                    <div className="flex items-center justify-center gap-2">
+        {/* Status Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+          {metricsData.map((metric, index) => (
+            <div key={index} className="transform transition-all duration-200 hover:-translate-y-1">
+              <MetricsCard {...metric} />
+            </div>
+          ))}
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Search & Filter</h3>
+          </div>
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search by PO number or supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                >
+                  <Filter size={16} />
+                  <span>Filter</span>
+                  <ChevronDown size={16} />
+                </button>
+                {showFilterDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <div className="p-2">
                       <button
-                        onClick={() => handleView(order)}
-                        className="p-2 rounded-lg transition-colors text-green-600 hover:text-green-800 hover:bg-green-50"
-                        title="View Purchase Order Details"
+                        onClick={() => { setActiveFilter('All'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${activeFilter === 'All' ? 'bg-blue-50 text-blue-700' : ''}`}
                       >
-                        <Eye size={16} />
+                        All ({purchaseOrders.length})
                       </button>
                       <button
-                        onClick={() => handleEdit(order)}
-                        disabled={isApproved(order)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          isApproved(order)
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
-                        }`}
-                        title={isApproved(order) ? 'Cannot edit approved order' : 'Edit Purchase Order'}
+                        onClick={() => { setActiveFilter('Pending Approval'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${activeFilter === 'Pending Approval' ? 'bg-yellow-50 text-yellow-700' : ''}`}
                       >
-                        <Edit size={16} />
+                        Pending Approval ({stats.pending})
                       </button>
                       <button
-                        onClick={() => handleDelete(order._id)}
-                        disabled={isApproved(order)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          isApproved(order)
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-red-600 hover:text-red-800 hover:bg-red-50'
-                        }`}
-                        title={isApproved(order) ? 'Cannot delete approved order' : 'Delete Purchase Order'}
+                        onClick={() => { setActiveFilter('Approved'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${activeFilter === 'Approved' ? 'bg-green-50 text-green-700' : ''}`}
                       >
-                        <Trash size={16} />
+                        Approved ({stats.approved})
+                      </button>
+                      <button
+                        onClick={() => { setActiveFilter('Rejected'); setShowFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 transition-colors ${activeFilter === 'Rejected' ? 'bg-red-50 text-red-700' : ''}`}
+                      >
+                        Rejected ({stats.rejected})
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
-      {/* View PO Modal */}
-      {showViewModal && viewingOrder && (
+        {/* Orders Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-white">Purchase Orders</h3>
+              <span className="text-sm text-blue-100 bg-blue-500 px-3 py-1 rounded-full">{ordersData.length} Orders</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">PO Number</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vendor</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Order Date</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Status</th>
+                  <th className="text-right py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Amount</th>
+                  <th className="text-center py-4 px-6 font-semibold text-gray-700 text-sm uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      Loading purchase orders...
+                    </td>
+                  </tr>
+                ) : ordersData.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="py-8 text-center text-gray-500">
+                      No purchase orders found
+                    </td>
+                  </tr>
+                ) : (
+                  ordersData.map((order, index) => (
+                    <tr key={order._id || index} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-5 px-6">
+                        <span className="text-blue-600 font-medium">{order.poNumber}</span>
+                      </td>
+                      <td className="py-5 px-6 text-gray-900 font-medium">{order.supplier}</td>
+                      <td className="py-5 px-6 text-gray-700">{new Date(order.poDate).toLocaleDateString()}</td>
+                      <td className="py-5 px-6">
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(order.status, order.approvalStatus)}`}>
+                          {order.approvalStatus === 'pending' ? 'Pending Approval' : 
+                           order.approvalStatus === 'approved' ? 'Approved' :
+                           order.approvalStatus === 'rejected' ? 'Rejected' :
+                           order.status || 'Draft'}
+                        </span>
+                      </td>
+                      <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>
+                      <td className="py-5 px-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleView(order)}
+                            className="p-2 rounded-lg transition-colors text-green-600 hover:text-green-800 hover:bg-green-50"
+                            title="View Purchase Order Details"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(order)}
+                            disabled={isApproved(order)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              isApproved(order)
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
+                            }`}
+                            title={isApproved(order) ? 'Cannot edit approved order' : 'Edit Purchase Order'}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(order._id)}
+                            disabled={isApproved(order)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              isApproved(order)
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                            }`}
+                            title={isApproved(order) ? 'Cannot delete approved order' : 'Delete Purchase Order'}
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* View PO Modal */}
+        {showViewModal && viewingOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
             <div className="p-8">
@@ -1174,6 +1212,7 @@ const PurchaseOrders = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
