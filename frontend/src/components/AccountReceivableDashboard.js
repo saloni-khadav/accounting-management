@@ -3,6 +3,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { BarChart3, DollarSign, AlertTriangle, Clock, FileText, Users } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
+const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+
 const AccountReceivableDashboard = () => {
   const [stats, setStats] = useState({
     totalReceivable: 0,
@@ -30,7 +32,7 @@ const AccountReceivableDashboard = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const response = await fetch(`${baseUrl}/api/clients`);
       if (response.ok) {
         const data = await response.json();
         setClients(data);
@@ -48,12 +50,12 @@ const AccountReceivableDashboard = () => {
       if (selectedClient !== 'All Clients') params.append('client', selectedClient);
       
       const queryString = params.toString();
-      const baseUrl = 'https://nextbook-backend.nextsphere.co.in/api/ar-dashboard';
+      const apiUrl = `${baseUrl}/api/ar-dashboard`;
       
       const [statsRes, revenueRes, overdueRes] = await Promise.all([
-        fetch(`${baseUrl}/stats?${queryString}`),
-        fetch(`${baseUrl}/monthly-revenue?${queryString}`),
-        fetch(`${baseUrl}/overdue-invoices?${queryString}`)
+        fetch(`${apiUrl}/stats?${queryString}`),
+        fetch(`${apiUrl}/monthly-revenue?${queryString}`),
+        fetch(`${apiUrl}/overdue-invoices?${queryString}`)
       ]);
 
       if (statsRes.ok) {

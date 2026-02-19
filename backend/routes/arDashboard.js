@@ -109,8 +109,39 @@ router.get('/stats', async (req, res) => {
       sum + (parseFloat(col.tdsAmount) || 0), 0
     );
     
-    // Calculate outstanding (receivable - collected - TDS)
-    const outstanding = Math.max(0, totalReceivable - totalCollected - totalTDS);
+    // Calculate outstanding using same logic as Client Outstanding page
+    let calculatedOutstanding = 0;
+    
+    invoices.forEach(invoice => {
+      const invoiceAmount = invoice.grandTotal || 0;
+      
+      const invoiceCollections = collections.filter(col => 
+        col.invoiceNumber?.includes(invoice.invoiceNumber)
+      );
+      const totalCollected = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.netAmount) || parseFloat(col.amount) || 0), 0
+      );
+      
+      const invoiceCreditNotes = creditNotes.filter(cn => 
+        cn.originalInvoiceNumber === invoice.invoiceNumber
+      );
+      const totalCredited = invoiceCreditNotes.reduce((sum, cn) => 
+        sum + (parseFloat(cn.grandTotal) || 0), 0
+      );
+      
+      const totalTDS = invoiceCollections.reduce((sum, col) => 
+        sum + (parseFloat(col.tdsAmount) || 0), 0
+      );
+      
+      const totalSettled = totalCollected + totalCredited;
+      const invoiceOutstanding = invoiceAmount - totalSettled - totalTDS;
+      
+      if (invoiceOutstanding > 0) {
+        calculatedOutstanding += invoiceOutstanding;
+      }
+    });
+    
+    const outstanding = calculatedOutstanding;
     
     // Calculate overdue and aging
     const currentDate = new Date();
