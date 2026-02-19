@@ -87,178 +87,191 @@ const ImportExport = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Import & Export Data</h2>
-        <p className="text-gray-600">Manage your accounting data with bulk import and export operations</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex mb-6 border-b">
-        <button
-          onClick={() => setActiveTab('import')}
-          className={`px-6 py-3 font-medium ${
-            activeTab === 'import'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Upload className="inline w-4 h-4 mr-2" />
-          Import Data
-        </button>
-        <button
-          onClick={() => setActiveTab('export')}
-          className={`px-6 py-3 font-medium ${
-            activeTab === 'export'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Download className="inline w-4 h-4 mr-2" />
-          Export Data
-        </button>
-      </div>
-
-      {/* Import Tab */}
-      {activeTab === 'import' && (
-        <div className="space-y-6">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
-              <p className="text-yellow-800 text-sm">
-                Ensure your data follows the required format. Download templates below.
-              </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
+              <h1 className="text-2xl sm:text-3xl font-bold">Import & Export Data</h1>
+              <p className="text-blue-100 mt-1">Manage your accounting data with bulk import and export operations</p>
             </div>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Data Type
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {importTypes.map((type) => {
-                const Icon = type.icon;
-                return (
-                  <button
-                    key={type.id}
-                    onClick={() => setSelectedDataType(type.id)}
-                    className={`p-4 border rounded-lg text-left transition-colors ${
-                      selectedDataType === type.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-6 h-6 mb-2 text-gray-600" />
-                    <div className="font-medium text-gray-900">{type.label}</div>
-                  </button>
-                );
-              })}
-            </div>
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow mb-6">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab('import')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'import'
+                  ? 'bg-gradient-to-r from-blue-300 to-blue-400 text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Upload className="inline w-4 h-4 mr-2" />
+              Import Data
+            </button>
+            <button
+              onClick={() => setActiveTab('export')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'export'
+                  ? 'bg-gradient-to-r from-blue-300 to-blue-400 text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Download className="inline w-4 h-4 mr-2" />
+              Export Data
+            </button>
           </div>
 
-          {selectedDataType && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Upload File (CSV, Excel)
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">
-                    {file ? file.name : 'Click to upload or drag and drop'}
+          {/* Import Tab */}
+          {activeTab === 'import' && (
+            <div className="p-6 space-y-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+                  <p className="text-yellow-800 text-sm">
+                    Ensure your data follows the required format. Download templates below.
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">CSV, XLSX up to 10MB</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select Data Type
                 </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {importTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.id}
+                        onClick={() => setSelectedDataType(type.id)}
+                        className={`p-4 border rounded-lg text-left transition-colors ${
+                          selectedDataType === type.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon className="w-6 h-6 mb-2 text-gray-600" />
+                        <div className="font-medium text-gray-900">{type.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selectedDataType && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Upload File (CSV, Excel)
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">
+                        {file ? file.name : 'Click to upload or drag and drop'}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">CSV, XLSX up to 10MB</p>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {file && selectedDataType && (
+                <button
+                  onClick={handleImport}
+                  disabled={isProcessing}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isProcessing ? 'Processing...' : 'Import Data'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Export Tab */}
+          {activeTab === 'export' && (
+            <div className="p-6 space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800 text-sm">
+                  Export your data in CSV format for backup or analysis purposes.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {exportTypes.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <div
+                      key={type.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex items-center">
+                        <Icon className="w-6 h-6 text-gray-600 mr-3" />
+                        <div>
+                          <div className="font-medium text-gray-900">{type.label}</div>
+                          <div className="text-sm text-gray-500">
+                            {getExportDescription(type.id)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleExport(type.id, 'excel')}
+                          disabled={isProcessing}
+                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
+                        >
+                          Excel
+                        </button>
+                        <button
+                          onClick={() => handleExport(type.id, 'pdf')}
+                          disabled={isProcessing}
+                          className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm"
+                        >
+                          PDF
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
-
-          {file && selectedDataType && (
-            <button
-              onClick={handleImport}
-              disabled={isProcessing}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isProcessing ? 'Processing...' : 'Import Data'}
-            </button>
-          )}
         </div>
-      )}
 
-      {/* Export Tab */}
-      {activeTab === 'export' && (
-        <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800 text-sm">
-              Export your data in CSV format for backup or analysis purposes.
-            </p>
+        {/* Templates Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+            <h3 className="text-lg font-semibold text-white">Download Templates</h3>
           </div>
-
-          <div className="grid gap-4">
-            {exportTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <div
-                  key={type.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {importTypes.map((type) => (
+                <button
+                  key={`template-${type.id}`}
+                  className="p-3 border border-gray-200 rounded-lg text-center hover:bg-gray-50 transition-colors"
+                  onClick={() => {
+                    const templateData = generateTemplate(type.id);
+                    exportToCSV(templateData, `${type.id}_template.csv`);
+                  }}
                 >
-                  <div className="flex items-center">
-                    <Icon className="w-6 h-6 text-gray-600 mr-3" />
-                    <div>
-                      <div className="font-medium text-gray-900">{type.label}</div>
-                      <div className="text-sm text-gray-500">
-                        {getExportDescription(type.id)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleExport(type.id, 'excel')}
-                      disabled={isProcessing}
-                      className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
-                    >
-                      Excel
-                    </button>
-                    <button
-                      onClick={() => handleExport(type.id, 'pdf')}
-                      disabled={isProcessing}
-                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm"
-                    >
-                      PDF
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  <FileText className="w-6 h-6 text-gray-600 mx-auto mb-2" />
+                  <div className="text-sm font-medium text-gray-900">{type.label}</div>
+                  <div className="text-xs text-gray-500">Template</div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Templates Section */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Download Templates</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {importTypes.map((type) => (
-            <button
-              key={`template-${type.id}`}
-              className="p-3 border border-gray-200 rounded-lg text-center hover:bg-gray-50"
-              onClick={() => {
-                const templateData = generateTemplate(type.id);
-                exportToCSV(templateData, `${type.id}_template.csv`);
-              }}
-            >
-              <FileText className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-              <div className="text-sm font-medium text-gray-900">{type.label}</div>
-              <div className="text-xs text-gray-500">Template</div>
-            </button>
-          ))}
         </div>
       </div>
     </div>
