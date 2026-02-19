@@ -331,173 +331,232 @@ const Profile = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="p-6">
-        <div className="flex items-center mb-6">
-          <Building className="w-8 h-8 text-blue-600 mr-3" />
-          <h1 className="text-3xl font-bold text-gray-800">Company Profile</h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <div className="flex items-center mb-3">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3 rounded-xl mr-4">
+              <Building className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">Company Profile</h1>
+              <p className="text-gray-500 text-sm sm:text-base mt-1">Manage your company information and settings</p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company Logo</label>
-              <div className="flex items-center space-x-4">
-                {profileData.companyLogo ? (
-                  <img src={URL.createObjectURL(profileData.companyLogo)} alt="Logo" className="w-20 h-20 object-cover rounded-lg border" />
-                ) : profileData.companyLogoUrl ? (
-                  <img src={profileData.companyLogoUrl} alt="Logo" className="w-20 h-20 object-cover rounded-lg border" />
-                ) : (
-                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <Building className="w-8 h-8 text-gray-400" />
-                  </div>
-                )}
-                <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Logo
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload('companyLogo', e.target.files[0])} className="hidden" />
-                </label>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Company Logo Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+                <h3 className="text-lg font-semibold text-white">Company Logo</h3>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center space-x-6">
+                  {profileData.companyLogo ? (
+                    <img src={URL.createObjectURL(profileData.companyLogo)} alt="Logo" className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200 shadow-sm" />
+                  ) : profileData.companyLogoUrl ? (
+                    <img src={profileData.companyLogoUrl} alt="Logo" className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200 shadow-sm" />
+                  ) : (
+                    <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-gray-200">
+                      <Building className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <label className="cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center transition-all duration-200 shadow-sm hover:shadow-md">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Logo
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload('companyLogo', e.target.files[0])} className="hidden" />
+                  </label>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company GST Number *</label>
-              <div className="space-y-3">
-                <input type="text" value={profileData.gstNumber} onChange={(e) => handleInputChange('gstNumber', e.target.value.toUpperCase())} maxLength="15" placeholder="Enter 15-digit GST Number" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <label className={`cursor-pointer bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {/* GST Information Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+                <h3 className="text-lg font-semibold text-white">GST Information *</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
+                  <input type="text" value={profileData.gstNumber} onChange={(e) => handleInputChange('gstNumber', e.target.value.toUpperCase())} maxLength="15" placeholder="Enter 15-digit GST Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                </div>
+                <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <Upload className="w-4 h-4 mr-2" />
                   {isProcessing ? 'Processing...' : 'Upload GST Certificate'}
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0])} className="hidden" disabled={isProcessing} />
                 </label>
-                {profileData.gstCertificate && <p className="text-sm text-green-600">✓ Certificate uploaded</p>}
+                {profileData.gstCertificate && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> Certificate uploaded</p>}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trade Name</label>
-              <input type="text" value={profileData.tradeName} onChange={(e) => handleInputChange('tradeName', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          {/* Basic Information Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+              <h3 className="text-lg font-semibold text-white">Basic Information</h3>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company PAN Number</label>
-              <div className="relative">
-                <input type="text" value={showPanFull ? profileData.panNumber : maskPanNumber(profileData.panNumber)} onChange={(e) => handleInputChange('panNumber', e.target.value)} className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <button onClick={() => setShowPanFull(!showPanFull)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
-                  {showPanFull ? <EyeOff size={16} /> : <Eye size={16} />}
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Trade Name</label>
+                  <input type="text" value={profileData.tradeName} onChange={(e) => handleInputChange('tradeName', e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="Enter trade name" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Company PAN Number</label>
+                  <div className="relative">
+                    <input type="text" value={showPanFull ? profileData.panNumber : maskPanNumber(profileData.panNumber)} onChange={(e) => handleInputChange('panNumber', e.target.value)} className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="Enter PAN number" />
+                    <button onClick={() => setShowPanFull(!showPanFull)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors">
+                      {showPanFull ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Address & MCA Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+              <h3 className="text-lg font-semibold text-white">Address & Registration Details</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
+                  <textarea value={profileData.address} onChange={(e) => handleInputChange('address', e.target.value)} rows="4" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none" placeholder="Enter complete address" />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">MCA Number</label>
+                    <input type="text" value={profileData.mcaNumber} onChange={(e) => handleInputChange('mcaNumber', e.target.value)} placeholder="Enter MCA Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                  </div>
+                  <label className="cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload MCA Certificate
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('mcaFile', e.target.files[0])} className="hidden" />
+                  </label>
+                  {profileData.mcaFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.mcaFile.name}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MSME Registration Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+              <h3 className="text-lg font-semibold text-white">MSME Registration</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">MSME Status</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center cursor-pointer">
+                      <input type="radio" name="msme" value="No" checked={profileData.msmeStatus === 'No'} onChange={(e) => handleInputChange('msmeStatus', e.target.value)} className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                      <span className="text-gray-700">No</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input type="radio" name="msme" value="Yes" checked={profileData.msmeStatus === 'Yes'} onChange={(e) => handleInputChange('msmeStatus', e.target.value)} className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                      <span className="text-gray-700">Yes</span>
+                    </label>
+                  </div>
+                </div>
+                {profileData.msmeStatus === 'Yes' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">MSME Number</label>
+                      <input type="text" value={profileData.msmeNumber} onChange={(e) => handleInputChange('msmeNumber', e.target.value)} placeholder="Enter MSME Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">MSME Certificate</label>
+                      <label className={`cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <Upload className="w-4 h-4 mr-2" />
+                        {isProcessing ? 'Processing...' : 'Upload Certificate'}
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])} className="hidden" disabled={isProcessing} />
+                      </label>
+                      {profileData.msmeFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.msmeFile.name}</p>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bank Accounts Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-white">Bank Accounts</h3>
+                <button onClick={addBankAccount} className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-all duration-200">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Bank
                 </button>
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-              <textarea value={profileData.address} onChange={(e) => handleInputChange('address', e.target.value)} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">MCA Number</label>
-              <div className="space-y-2">
-                <input type="text" value={profileData.mcaNumber} onChange={(e) => handleInputChange('mcaNumber', e.target.value)} placeholder="Enter MCA Number" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <label className="cursor-pointer bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload MCA Certificate
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('mcaFile', e.target.files[0])} className="hidden" />
-                </label>
-                {profileData.mcaFile && <p className="text-sm text-green-600 mt-1">✓ File uploaded: {profileData.mcaFile.name}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-gray-700 mb-2">MSME Registration</label>
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input type="radio" name="msme" value="No" checked={profileData.msmeStatus === 'No'} onChange={(e) => handleInputChange('msmeStatus', e.target.value)} className="mr-2" />
-                  No
-                </label>
-                <label className="flex items-center">
-                  <input type="radio" name="msme" value="Yes" checked={profileData.msmeStatus === 'Yes'} onChange={(e) => handleInputChange('msmeStatus', e.target.value)} className="mr-2" />
-                  Yes
-                </label>
-              </div>
-              {profileData.msmeStatus === 'Yes' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">MSME Number</label>
-                    <input type="text" value={profileData.msmeNumber} onChange={(e) => handleInputChange('msmeNumber', e.target.value)} placeholder="Enter MSME Number" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div className="p-6">
+              {profileData.bankAccounts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                    <Building className="w-8 h-8 text-gray-400" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">MSME Certificate</label>
-                    <label className={`cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      {isProcessing ? 'Processing...' : 'Upload Certificate'}
-                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])} className="hidden" disabled={isProcessing} />
-                    </label>
-                    {profileData.msmeFile && <p className="text-sm text-green-600 mt-1">✓ File uploaded: {profileData.msmeFile.name}</p>}
-                  </div>
+                  <p className="text-gray-500 text-lg">No bank accounts added</p>
+                  <p className="text-gray-400 text-sm mt-1">Click "Add Bank" to add your first bank account</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {profileData.bankAccounts.map((account, index) => (
+                    <div key={index} className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <h4 className="font-semibold text-gray-800">Bank Account {index + 1}</h4>
+                            <div className="flex items-center">
+                              <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const file = e.target.files[0]; if (file) extractBankDetails(file, index); }} className="hidden" id={`bankFile${index}`} />
+                              <label htmlFor={`bankFile${index}`} className="px-4 py-2 bg-blue-100 border border-blue-300 rounded-lg cursor-pointer hover:bg-blue-200 text-sm flex items-center font-medium text-blue-700 transition-colors">
+                                {uploadStates[`bank_${index}`]?.loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div> : <Upload className="w-4 h-4 mr-2" />}
+                                Upload Statement
+                              </label>
+                            </div>
+                          </div>
+                          <button onClick={() => removeBankAccount(index)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                            <input type="text" value={account.bankName} onChange={(e) => updateBankAccount(index, 'bankName', e.target.value)} placeholder="Enter Bank Name" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                            <input type="text" value={account.accountNumber} onChange={(e) => updateBankAccount(index, 'accountNumber', e.target.value)} placeholder="9-18 digits" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">IFSC Code</label>
+                            <input type="text" value={account.ifscCode} onChange={(e) => updateBankAccount(index, 'ifscCode', e.target.value.toUpperCase())} maxLength="11" placeholder="11 characters" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Branch Name</label>
+                            <input type="text" value={account.branchName} onChange={(e) => updateBankAccount(index, 'branchName', e.target.value)} placeholder="Enter Branch Name" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-3">
-              <label className="block text-sm font-medium text-gray-700">Bank Accounts</label>
-              <button onClick={addBankAccount} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm">
-                <Plus className="w-4 h-4 mr-1" />
-                Add Bank
-              </button>
-            </div>
-            {profileData.bankAccounts.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No bank accounts added. Click "Add Bank" to add one.</p>
-            ) : (
-              <div className="space-y-4">
-                {profileData.bankAccounts.map((account, index) => (
-                  <div key={index} className="bg-white p-4 rounded-lg border border-green-200">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-700">Bank Account {index + 1}</h3>
-                        <div className="flex items-center">
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const file = e.target.files[0]; if (file) extractBankDetails(file, index); }} className="hidden" id={`bankFile${index}`} />
-                          <label htmlFor={`bankFile${index}`} className="px-3 py-1.5 bg-blue-100 border border-blue-300 rounded-lg cursor-pointer hover:bg-blue-200 text-sm flex items-center">
-                            {uploadStates[`bank_${index}`]?.loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div> : <Upload className="w-4 h-4 mr-1" />}
-                            Upload Bank Statement
-                          </label>
-                        </div>
-                      </div>
-                      <button onClick={() => removeBankAccount(index)} className="text-red-600 hover:text-red-800">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
-                        <input type="text" value={account.bankName} onChange={(e) => updateBankAccount(index, 'bankName', e.target.value)} placeholder="Enter Bank Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
-                        <input type="text" value={account.accountNumber} onChange={(e) => updateBankAccount(index, 'accountNumber', e.target.value)} placeholder="9-18 digits" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
-                        <input type="text" value={account.ifscCode} onChange={(e) => updateBankAccount(index, 'ifscCode', e.target.value.toUpperCase())} maxLength="11" placeholder="11 characters" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
-                        <input type="text" value={account.branchName} onChange={(e) => updateBankAccount(index, 'branchName', e.target.value)} placeholder="Enter Branch Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-              <Save className="w-4 h-4 mr-2" />
+          {/* Save Button */}
+          <div className="flex justify-end pt-6">
+            <button onClick={handleSave} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5">
+              <Save className="w-5 h-5 mr-3" />
               Save Profile
             </button>
           </div>
