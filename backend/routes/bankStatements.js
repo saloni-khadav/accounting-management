@@ -65,7 +65,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 
 router.get('/list', auth, async (req, res) => {
   try {
-    const statements = await BankStatement.find({ userId: req.user.id }).sort({ uploadDate: -1 });
+    const statements = await BankStatement.find().sort({ uploadDate: -1 });
     res.json({ success: true, data: statements });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -74,7 +74,7 @@ router.get('/list', auth, async (req, res) => {
 
 router.get('/download/:id', auth, async (req, res) => {
   try {
-    const statement = await BankStatement.findOne({ _id: req.params.id, userId: req.user.id });
+    const statement = await BankStatement.findById(req.params.id);
     
     if (!statement) {
       return res.status(404).json({ success: false, message: 'Statement not found' });
@@ -92,7 +92,7 @@ router.get('/download/:id', auth, async (req, res) => {
 
 router.delete('/delete/:id', auth, async (req, res) => {
   try {
-    const statement = await BankStatement.findOne({ _id: req.params.id, userId: req.user.id });
+    const statement = await BankStatement.findById(req.params.id);
     
     if (!statement) {
       return res.status(404).json({ success: false, message: 'Statement not found' });
