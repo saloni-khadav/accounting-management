@@ -4,6 +4,11 @@ import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 
 const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
+  console.log('🔵 VendorBill component loaded');
+  
+  // API URL - uses local from env, falls back to production
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const [vendors, setVendors] = useState([]);
@@ -154,7 +159,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -212,7 +217,14 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           totalAmount: 0
         }]
       });
-      setAttachments(editingBill.attachments || []);
+      // Set attachments with proper structure for existing files
+      const existingAttachments = (editingBill.attachments || []).map(att => ({
+        fileName: att.fileName,
+        fileSize: att.fileSize,
+        fileUrl: att.fileUrl, // This is the filename stored in DB
+        uploadedAt: att.uploadedAt || new Date()
+      }));
+      setAttachments(existingAttachments);
       setVendorSearchTerm(editingBill.vendorName);
     } else {
       // Reset form for new bill but keep supplier details
@@ -292,7 +304,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+        const response = await fetch(`${baseUrl}/api/vendors`);
         if (response.ok) {
           const vendorsData = await response.json();
           setVendors(vendorsData);
@@ -324,13 +336,13 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const fetchApprovedPOs = async () => {
       try {
         // Use the new available POs endpoint
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/available');
+        const response = await fetch(`${baseUrl}/api/purchase-orders/available`);
         if (response.ok) {
           const availablePOsData = await response.json();
           setAvailablePOs(availablePOsData);
           
           // Also fetch all approved POs for reference
-          const allPOsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders');
+          const allPOsResponse = await fetch(`${baseUrl}/api/purchase-orders`);
           if (allPOsResponse.ok) {
             const allPOsData = await allPOsResponse.json();
             const approved = allPOsData.filter(po => 
@@ -705,6 +717,26 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    console.log('📎 Files selected:', files.length, files.map(f => f.name));
+    
+    // Calculate total size including existing attachments
+    const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    const newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
+    const totalSize = existingSize + newFilesSize;
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
+    
+    console.log('📎 File upload:', {
+      existing: (existingSize / 1024 / 1024).toFixed(2) + 'MB',
+      new: (newFilesSize / 1024 / 1024).toFixed(2) + 'MB',
+      total: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
+      limit: '10MB'
+    });
+    
+    if (totalSize > maxTotalSize) {
+      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+      return;
+    }
+    
     const newAttachments = files.map(file => ({
       fileName: file.name,
       fileSize: file.size,
@@ -712,6 +744,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       fileUrl: URL.createObjectURL(file),
       uploadedAt: new Date()
     }));
+    console.log('📎 New attachments created:', newAttachments.length);
     setAttachments(prev => [...prev, ...newAttachments]);
   };
 
@@ -721,7 +754,14 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const downloadAttachment = (attachment) => {
     const link = document.createElement('a');
-    link.href = attachment.fileUrl;
+    // Check if it's a new file (blob URL) or existing file (filename)
+    if (attachment.fileUrl.startsWith('blob:')) {
+      // New file - use blob URL
+      link.href = attachment.fileUrl;
+    } else {
+      // Existing file - use backend download endpoint
+      link.href = `${baseUrl}/api/bills/download/${attachment.fileUrl}`;
+    }
     link.download = attachment.fileName;
     document.body.appendChild(link);
     link.click();
@@ -729,6 +769,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   };
 
   const handleSave = async () => {
+    console.log('📤 Save button clicked');
+    
     if (!billData.vendorName || !billData.vendorName.trim()) {
       alert('Vendor name is required');
       return;
@@ -758,9 +800,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       return;
     }
 
+    // Check total attachment size (max 10MB total)
+    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
+    if (totalSize > maxTotalSize) {
+      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      const userResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const userResponse = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await userResponse.json();
@@ -791,8 +841,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
       const isEditing = editingBill && editingBill._id;
       const url = isEditing 
-        ? `https://nextbook-backend.nextsphere.co.in/api/bills/${editingBill._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/bills';
+        ? `${baseUrl}/api/bills/${editingBill._id}`
+        : `${baseUrl}/api/bills`;
       const method = isEditing ? 'PUT' : 'POST';
 
       // Create FormData for file upload
@@ -807,11 +857,40 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         }
       });
       
-      // Add attachment files
+      // Separate existing attachments from new files
+      const existingAttachments = [];
+      const newFiles = [];
+      
       attachments.forEach((attachment) => {
         if (attachment.file) {
-          formData.append('attachments', attachment.file);
+          // New file with File object
+          newFiles.push(attachment);
+        } else {
+          // Existing attachment (already saved in DB)
+          existingAttachments.push({
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl,
+            fileSize: attachment.fileSize,
+            uploadedAt: attachment.uploadedAt
+          });
         }
+      });
+      
+      console.log('📤 Sending to backend:', {
+        existingAttachments: existingAttachments.length,
+        newFiles: newFiles.length,
+        newFileNames: newFiles.map(f => f.fileName)
+      });
+      
+      // Add existing attachments as JSON
+      if (existingAttachments.length > 0) {
+        formData.append('existingAttachments', JSON.stringify(existingAttachments));
+      }
+      
+      // Add new attachment files
+      newFiles.forEach((attachment) => {
+        console.log('📤 Adding file to FormData:', attachment.fileName, attachment.file);
+        formData.append('attachments', attachment.file);
       });
 
       const response = await fetch(url, {
@@ -832,7 +911,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         
         // Refresh available POs after saving bill
         if (billData.referenceNumber) {
-          const availablePOsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/available');
+          const availablePOsResponse = await fetch(`${baseUrl}/api/purchase-orders/available`);
           if (availablePOsResponse.ok) {
             const availablePOsData = await availablePOsResponse.json();
             setAvailablePOs(availablePOsData);
@@ -848,6 +927,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           onSave(savedBill);
         }
         onClose();
+      } else if (response.status === 413) {
+        alert('Files too large! Total attachment size exceeds server limit.\n\nPlease remove some files and try again.');
       } else {
         const error = await response.json();
         console.error('Server error:', error);
@@ -855,7 +936,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert('Network error. Please check if backend is running.');
+      if (error.message.includes('Failed to fetch')) {
+        alert('Request too large or network error.\n\nTotal attachment size may exceed limit. Please remove some files and try again.');
+      } else {
+        alert('Network error. Please check if backend is running.');
+      }
     }
   };
 
@@ -1511,7 +1596,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <label className="flex flex-col items-center cursor-pointer">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600">Click to upload files</span>
-                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
+                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB total)</span>
                   <input
                     type="file"
                     multiple
