@@ -223,4 +223,18 @@ router.get('/download/:filename', (req, res) => {
   }
 });
 
+// View document
+router.get('/view/:filename', (req, res) => {
+  try {
+    const filePath = path.join(uploadsDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

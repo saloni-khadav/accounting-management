@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const invoiceItemSchema = new mongoose.Schema({
+  product: {
+    type: String,
+    trim: true
+  },
   description: {
     type: String,
     required: true,

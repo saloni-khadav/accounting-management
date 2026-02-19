@@ -1,8 +1,10 @@
 import React from 'react';
-import { X, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Calendar, Download } from 'lucide-react';
+import { X, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Calendar, Download, Eye } from 'lucide-react';
 
 const ClientDetails = ({ client, isOpen, onClose }) => {
   if (!isOpen || !client) return null;
+
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -209,98 +211,147 @@ const ClientDetails = ({ client, isOpen, onClose }) => {
           </div>
 
           {/* Documents */}
-          {client.documents && (client.documents.panCard || client.documents.aadharCard || client.documents.gstCertificate || client.documents.bankStatement || (client.documents.otherDocuments && client.documents.otherDocuments.length > 0)) && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <FileText className="mr-2" size={20} />
-                Documents
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {client.documents.panCard && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <FileText className="mr-2" size={20} />
+              Documents
+            </h3>
+            {client.documents && (client.documents.panCard || client.documents.aadharCard || client.documents.gstCertificate || client.documents.bankStatement || (client.documents.otherDocuments && client.documents.otherDocuments.length > 0)) ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {client.documents?.panCard && (
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-700">PAN Card</p>
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
-                    <button
-                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.panCard}`, '_blank')}
-                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                    >
-                      <Download size={16} className="mr-1" />
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/view/${client.documents.panCard}`, '_blank')}
+                        className="text-green-600 hover:text-green-800 flex items-center text-sm"
+                      >
+                        <Eye size={16} className="mr-1" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/download/${client.documents.panCard}`, '_blank')}
+                        className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                      >
+                        <Download size={16} className="mr-1" />
+                        Download
+                      </button>
+                    </div>
                   </div>
                 )}
-                {client.documents.aadharCard && (
+                {client.documents?.aadharCard && (
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-700">Aadhar Card</p>
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
-                    <button
-                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.aadharCard}`, '_blank')}
-                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                    >
-                      <Download size={16} className="mr-1" />
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/view/${client.documents.aadharCard}`, '_blank')}
+                        className="text-green-600 hover:text-green-800 flex items-center text-sm"
+                      >
+                        <Eye size={16} className="mr-1" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/download/${client.documents.aadharCard}`, '_blank')}
+                        className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                      >
+                        <Download size={16} className="mr-1" />
+                        Download
+                      </button>
+                    </div>
                   </div>
                 )}
-                {client.documents.gstCertificate && (
+                {client.documents?.gstCertificate && (
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-700">GST Certificate</p>
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
-                    <button
-                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.gstCertificate}`, '_blank')}
-                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                    >
-                      <Download size={16} className="mr-1" />
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/view/${client.documents.gstCertificate}`, '_blank')}
+                        className="text-green-600 hover:text-green-800 flex items-center text-sm"
+                      >
+                        <Eye size={16} className="mr-1" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/download/${client.documents.gstCertificate}`, '_blank')}
+                        className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                      >
+                        <Download size={16} className="mr-1" />
+                        Download
+                      </button>
+                    </div>
                   </div>
                 )}
-                {client.documents.bankStatement && (
+                {client.documents?.bankStatement && (
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-700">Bank Statement</p>
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
-                    <button
-                      onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${client.documents.bankStatement}`, '_blank')}
-                      className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                    >
-                      <Download size={16} className="mr-1" />
-                      Download
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/view/${client.documents.bankStatement}`, '_blank')}
+                        className="text-green-600 hover:text-green-800 flex items-center text-sm"
+                      >
+                        <Eye size={16} className="mr-1" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => window.open(`${baseUrl}/api/clients/download/${client.documents.bankStatement}`, '_blank')}
+                        className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                      >
+                        <Download size={16} className="mr-1" />
+                        Download
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div>
-              {client.documents.otherDocuments && client.documents.otherDocuments.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Other Documents</p>
-                  <div className="space-y-2">
-                    {client.documents.otherDocuments.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
-                        <div>
-                          <p className="text-sm text-gray-700">{typeof doc === 'string' ? `Document ${index + 1}` : doc.name || `Document ${index + 1}`}</p>
-                          <p className="text-xs text-green-600">✓ Uploaded</p>
-                        </div>
-                        <button
-                          onClick={() => window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${doc}`, '_blank')}
-                          className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
-                        >
-                          <Download size={16} className="mr-1" />
-                          Download
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              )}
-            </div>
-          )}
+                {client.documents?.otherDocuments && client.documents.otherDocuments.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Other Documents</p>
+                    <div className="space-y-2">
+                      {client.documents.otherDocuments.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                          <div>
+                            <p className="text-sm text-gray-700">{typeof doc === 'string' ? `Document ${index + 1}` : doc.name || `Document ${index + 1}`}</p>
+                            <p className="text-xs text-green-600">✓ Uploaded</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => window.open(`${baseUrl}/api/clients/view/${doc}`, '_blank')}
+                              className="text-green-600 hover:text-green-800 flex items-center text-sm"
+                            >
+                              <Eye size={16} className="mr-1" />
+                              View
+                            </button>
+                            <button
+                              onClick={() => window.open(`${baseUrl}/api/clients/download/${doc}`, '_blank')}
+                              className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+                            >
+                              <Download size={16} className="mr-1" />
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-gray-500 text-sm">No documents uploaded yet</p>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end p-6 border-t">

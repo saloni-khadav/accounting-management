@@ -112,6 +112,25 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
       invoiceData.items = JSON.parse(invoiceData.items);
     }
     
+    // Clean up boolean fields - remove if empty string
+    if (invoiceData.reminderSent === '' || invoiceData.reminderSent === 'false') {
+      delete invoiceData.reminderSent;
+    }
+    
+    // Clean up date fields - remove if empty string
+    ['reminderSentAt', 'approvedAt', 'rejectedAt', 'dueDate', 'poDate', 'piDate'].forEach(field => {
+      if (invoiceData[field] === '') {
+        delete invoiceData[field];
+      }
+    });
+    
+    // Clean up reference fields - remove if empty string
+    ['reminderSentBy', 'createdBy', 'updatedBy'].forEach(field => {
+      if (invoiceData[field] === '') {
+        delete invoiceData[field];
+      }
+    });
+    
     // Handle file attachments
     if (req.files && req.files.length > 0) {
       const newAttachments = req.files.map(file => ({
@@ -363,6 +382,34 @@ router.get('/:invoiceNumber/remaining-amount', async (req, res) => {
       remainingAmount,
       status: invoice.status
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Download invoice attachment
+router.get('/download/:filename', (req, res) => {
+  try {
+    const filePath = path.join(__dirname, '../uploads/invoices', req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// View invoice attachment
+router.get('/view/:filename', (req, res) => {
+  try {
+    const filePath = path.join(__dirname, '../uploads/invoices', req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
