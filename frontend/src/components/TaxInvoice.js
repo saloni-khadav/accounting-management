@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock, Upload, X, Paperclip } from 'lucide-react';
+import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock, Upload, X, Paperclip, Eye } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { exportToExcel } from '../utils/excelExport';
 import { generateTaxInvoicePDF } from '../utils/pdfGenerator';
@@ -261,9 +261,10 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch clients data
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchClients = async () => {
       try {
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+        const response = await fetch(`${baseUrl}/api/clients`);
         if (response.ok) {
           const clientsData = await response.json();
           setClients(clientsData);
@@ -280,6 +281,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch approved proforma invoices for selected client
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchApprovedProformas = async () => {
       if (!selectedClient) {
         setApprovedProformas([]);
@@ -287,7 +289,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       }
       
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/proforma-invoices?customerName=${encodeURIComponent(selectedClient.clientName)}&status=Approved`);
+        const response = await fetch(`${baseUrl}/api/proforma-invoices?customerName=${encodeURIComponent(selectedClient.clientName)}&status=Approved`);
         if (response.ok) {
           const proformas = await response.json();
           setApprovedProformas(proformas);
@@ -351,6 +353,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch user profile data
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchUserProfile = async () => {
       if (!isOpen) return;
       
@@ -358,7 +361,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -695,15 +698,36 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const downloadAttachment = (attachment) => {
-    const link = document.createElement('a');
-    link.href = attachment.fileUrl;
-    link.download = attachment.fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    if (attachment.file) {
+      // New file - use local URL
+      const link = document.createElement('a');
+      link.href = attachment.fileUrl;
+      link.download = attachment.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (attachment.fileUrl) {
+      // Existing file from backend
+      const filename = attachment.fileUrl.split('/').pop();
+      window.open(`${baseUrl}/api/invoices/download/${filename}`, '_blank');
+    }
+  };
+
+  const viewAttachment = (attachment) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    if (attachment.file) {
+      // New file - use local URL
+      window.open(attachment.fileUrl, '_blank');
+    } else if (attachment.fileUrl) {
+      // Existing file from backend
+      const filename = attachment.fileUrl.split('/').pop();
+      window.open(`${baseUrl}/api/invoices/view/${filename}`, '_blank');
+    }
   };
 
   const handleSave = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     // Validate required fields
     if (!invoiceData.customerName || !invoiceData.customerName.trim()) {
       alert('Customer name is required');
@@ -720,13 +744,13 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     
     // Validate items
     const hasValidItems = invoiceData.items && invoiceData.items.some(item => 
-      item.description && item.description.trim() && 
+      item.product && item.product.trim() && 
       item.hsnCode && item.hsnCode.trim() && 
       item.quantity > 0 && item.unitPrice > 0
     );
     
     if (!hasValidItems) {
-      alert('At least one valid item with description, HSN code, quantity, and unit price is required');
+      alert('At least one valid item with product name, HSN code, quantity, and unit price is required');
       return;
     }
 
@@ -737,10 +761,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         status: editingInvoice ? invoiceData.status : 'Not Received',
         approvalStatus: editingInvoice ? invoiceData.approvalStatus : 'Pending',
         items: (invoiceData.items || []).filter(item => 
-          item.description && item.description.trim() && 
+          item.product && item.product.trim() && 
           item.hsnCode && item.hsnCode.trim()
         ).map(item => ({
           ...item,
+          description: item.product,
           id: undefined,
           _id: undefined
         }))
@@ -748,8 +773,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
       const isEditing = editingInvoice && editingInvoice._id;
       const url = isEditing 
-        ? `https://nextbook-backend.nextsphere.co.in/api/invoices/${editingInvoice._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/invoices';
+        ? `${baseUrl}/api/invoices/${editingInvoice._id}`
+        : `${baseUrl}/api/invoices`;
       const method = isEditing ? 'PUT' : 'POST';
 
       // Create FormData for file upload
@@ -759,6 +784,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       Object.keys(cleanedData).forEach(key => {
         if (key === 'items') {
           formData.append(key, JSON.stringify(cleanedData[key]));
+        } else if (key === 'attachments') {
+          // Skip attachments here, we'll handle them separately
         } else if (typeof cleanedData[key] === 'object' && cleanedData[key] !== null) {
           formData.append(key, JSON.stringify(cleanedData[key]));
         } else {
@@ -766,7 +793,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         }
       });
       
-      // Add attachment files
+      // Add only new attachment files (not existing ones)
       attachments.forEach((attachment) => {
         if (attachment.file) {
           formData.append('attachments', attachment.file);
@@ -1195,8 +1222,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           <table className="w-full border border-gray-200 rounded-lg">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
@@ -1219,15 +1245,6 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                       onChange={(e) => handleItemChange(index, 'product', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       placeholder="Product/Item"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      placeholder="Description"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -1434,6 +1451,13 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => viewAttachment(attachment)}
+                      className="text-green-600 hover:text-green-800 p-1"
+                      title="View"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => downloadAttachment(attachment)}
                       className="text-blue-600 hover:text-blue-800 p-1"

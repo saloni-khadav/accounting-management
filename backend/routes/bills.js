@@ -5,6 +5,7 @@ const fs = require('fs');
 const router = express.Router();
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
+const { compressFile } = require('../utils/fileCompressor');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/bills');
@@ -25,12 +26,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+    if (allowed.includes(ext)) {
       cb(null, true);
     } else {
       cb(new Error('Only PDF, JPG, PNG, DOC, DOCX files are allowed'));
@@ -134,6 +134,16 @@ router.get('/:id', async (req, res) => {
 
 // Create bill
 router.post('/', upload.array('attachments', 10), async (req, res) => {
+  console.log('📥 Bill POST request received');
+  console.log('📥 Files received:', req.files?.length || 0);
+  if (req.files && req.files.length > 0) {
+    console.log('📥 File details:', req.files.map(f => ({
+      original: f.originalname,
+      saved: f.filename,
+      path: f.path,
+      size: f.size
+    })));
+  }
   try {
     const billData = { ...req.body };
     
@@ -150,6 +160,14 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
       billData.items = JSON.parse(billData.items);
     }
     
+    // Convert numeric fields from strings to numbers
+    const numericFields = ['subtotal', 'totalDiscount', 'totalTaxableValue', 'totalCGST', 'totalSGST', 'totalIGST', 'totalCESS', 'totalTax', 'grandTotal', 'tdsPercentage', 'tdsAmount'];
+    numericFields.forEach(field => {
+      if (billData[field] !== undefined && billData[field] !== '') {
+        billData[field] = Number(billData[field]);
+      }
+    });
+    
     // Clean up empty/invalid fields
     Object.keys(billData).forEach(key => {
       if (billData[key] === '' || billData[key] === 'undefined') {
@@ -157,13 +175,34 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
       }
     });
     
-    // Handle file uploads
+    // Handle file uploads with compression
     if (req.files && req.files.length > 0) {
-      billData.attachments = req.files.map(file => ({
-        fileName: file.originalname,
-        fileUrl: file.filename,
-        fileSize: file.size
-      }));
+      console.log('📥 Processing', req.files.length, 'files...');
+      const processedFiles = [];
+      
+      for (const file of req.files) {
+        console.log('📥 Processing file:', file.originalname, 'at', file.path);
+        try {
+          await compressFile(file.path);
+          const stats = fs.statSync(file.path);
+          console.log('✅ File compressed and saved:', file.filename, 'size:', stats.size);
+          processedFiles.push({
+            fileName: file.originalname,
+            fileUrl: file.filename,
+            fileSize: stats.size
+          });
+        } catch (error) {
+          console.error('❌ Compression failed:', error);
+          processedFiles.push({
+            fileName: file.originalname,
+            fileUrl: file.filename,
+            fileSize: file.size
+          });
+        }
+      }
+      
+      console.log('📥 Total processed files:', processedFiles.length);
+      billData.attachments = processedFiles;
     }
     
     const bill = new Bill(billData);
@@ -204,6 +243,14 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
       updateData.items = JSON.parse(updateData.items);
     }
     
+    // Convert numeric fields from strings to numbers
+    const numericFields = ['subtotal', 'totalDiscount', 'totalTaxableValue', 'totalCGST', 'totalSGST', 'totalIGST', 'totalCESS', 'totalTax', 'grandTotal', 'tdsPercentage', 'tdsAmount'];
+    numericFields.forEach(field => {
+      if (updateData[field] !== undefined && updateData[field] !== '') {
+        updateData[field] = Number(updateData[field]);
+      }
+    });
+    
     // Clean up empty/invalid fields
     Object.keys(updateData).forEach(key => {
       if (updateData[key] === '' || updateData[key] === 'undefined') {
@@ -211,16 +258,46 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
       }
     });
     
-    // Handle file uploads - append to existing attachments
-    if (req.files && req.files.length > 0) {
-      const newAttachments = req.files.map(file => ({
-        fileName: file.originalname,
-        fileUrl: file.filename,
-        fileSize: file.size
-      }));
-      
-      updateData.attachments = [...(existingBill.attachments || []), ...newAttachments];
+    // Handle attachments - preserve existing and add new
+    let allAttachments = [];
+    
+    // Get existing attachments from request
+    if (req.body.existingAttachments) {
+      try {
+        const existingAttachments = JSON.parse(req.body.existingAttachments);
+        allAttachments = [...existingAttachments];
+      } catch (error) {
+        console.error('Error parsing existing attachments:', error);
+      }
     }
+    
+    // Handle new file uploads with compression
+    if (req.files && req.files.length > 0) {
+      const processedFiles = [];
+      
+      for (const file of req.files) {
+        try {
+          await compressFile(file.path);
+          const stats = fs.statSync(file.path);
+          processedFiles.push({
+            fileName: file.originalname,
+            fileUrl: file.filename,
+            fileSize: stats.size
+          });
+        } catch (error) {
+          console.error('Compression failed:', error);
+          processedFiles.push({
+            fileName: file.originalname,
+            fileUrl: file.filename,
+            fileSize: file.size
+          });
+        }
+      }
+      
+      allAttachments = [...allAttachments, ...processedFiles];
+    }
+    
+    updateData.attachments = allAttachments;
     
     const bill = await Bill.findByIdAndUpdate(
       req.params.id,

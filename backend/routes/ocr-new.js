@@ -142,6 +142,7 @@ const performOCR = async (fileBuffer, mimeType, fileName) => {
 
 // Regex patterns for extraction
 const patterns = {
+  pan: /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/g,
   gst: /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/g,
   mca: /\b[A-Z]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}\b/g,
   accountNumber: /(?:Account\s*(?:No|Number)|A\/C\s*(?:No|Number)|Acc\s*No)\s*:?\s*(\d{9,18})\b/gi,
@@ -152,6 +153,7 @@ const patterns = {
 
 // Extract data using regex
 const extractData = (text, documentType) => {
+  const panMatches = text.match(patterns.pan) || [];
   const gstMatches = text.match(patterns.gst) || [];
   const mcaMatches = text.match(patterns.mca) || [];
   
@@ -170,8 +172,77 @@ const extractData = (text, documentType) => {
   // Only extract Aadhar for Aadhar documents, not bank statements
   const aadharMatches = documentType === 'aadharCard' ? (text.match(patterns.aadhar) || []) : [];
 
+  // Extract address for GST certificate
+  let billingAddress = '';
+  if (documentType === 'gstCertificate' && gstMatches.length > 0) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    let addressStartIndex = -1;
+    
+    // Multiple address keywords to handle different formats
+    const addressKeywords = [
+      /Address of Principal Place.*Building/i,
+      /Principal Place of Business.*Building/i,
+      /Registered Office.*Building/i,
+      /Business Address.*Building/i,
+      /Address of Principal Place of Business/i,
+      /Principal Place of Business/i,
+      /Registered Office Address/i,
+      /Business Address/i,
+      /Office Address/i
+    ];
+    
+    // Try to find address section
+    for (let i = 0; i < lines.length; i++) {
+      for (const keyword of addressKeywords) {
+        if (lines[i].match(keyword)) {
+          addressStartIndex = i;
+          break;
+        }
+      }
+      if (addressStartIndex !== -1) break;
+    }
+    
+    if (addressStartIndex !== -1) {
+      const addressParts = [];
+      
+      // Extract Building No from same line if present
+      if (lines[addressStartIndex].match(/Building/i)) {
+        const match = lines[addressStartIndex].match(/Building.*?:\s*(.+)/i);
+        if (match && match[1]) {
+          addressParts.push('Building No./Flat No.: ' + match[1]);
+        }
+        addressStartIndex++;
+      }
+      
+      // Extract remaining address lines
+      for (let i = addressStartIndex; i < Math.min(addressStartIndex + 25, lines.length); i++) {
+        const line = lines[i];
+        
+        // Stop conditions - next section indicators
+        if (line.match(/^(6\.|7\.|Date of Liability|Period of Validity|Nature of Business|Type of Registration|Gods and Serves|Signature)/i)) break;
+        
+        // Skip standalone section labels
+        if (line.match(/^(Business|Constitution|Address|Principal|Registered|Office)$/i)) continue;
+        
+        // Add valid address lines
+        if (line.length > 0) {
+          addressParts.push(line);
+        }
+        
+        // IMMEDIATELY stop after PIN Code - don't process any more lines
+        if (line.match(/PIN Code.*\d{6}/i) || line.match(/Pincode.*\d{6}/i) || line.match(/Pin.*\d{6}/i)) {
+          break; // Stop immediately, don't read next line
+        }
+      }
+      
+      billingAddress = addressParts.join(', ');
+    }
+  }
+
   return {
+    panNumber: panMatches[0] || '',
     gstNumber: gstMatches[0] || '',
+    billingAddress: billingAddress,
     mcaNumber: mcaMatches[0] || '',
     accountNumber: accountNumber,
     ifscCode: ifscMatches[0] || '',
@@ -225,6 +296,13 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     // Extract structured data
     const extractedData = extractData(rawText, documentType);
     
+    console.log('Extracted data from extractData function:', extractedData);
+    console.log('Document type:', documentType);
+    console.log('PAN number found:', extractedData.panNumber);
+    console.log('GST number found:', extractedData.gstNumber);
+    console.log('Billing address found:', extractedData.billingAddress);
+    console.log('Billing address length:', extractedData.billingAddress?.length);
+    
     // Force extract UDYAM number for MSME certificates
     if (documentType === 'msmeCertificate') {
       console.log('Processing MSME certificate...');
@@ -241,6 +319,7 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     
     // Check if relevant data was found based on document type
     let hasRelevantData = false;
+    if (documentType === 'panCard' && extractedData.panNumber) hasRelevantData = true;
     if (documentType === 'gstCertificate' && extractedData.gstNumber) hasRelevantData = true;
     if (documentType === 'mcaCertificate' && extractedData.mcaNumber) hasRelevantData = true;
     if (documentType === 'msmeCertificate' && extractedData.msmeNumber) hasRelevantData = true;
@@ -248,12 +327,17 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     if (documentType === 'aadharCard' && extractedData.aadharNumber) hasRelevantData = true;
 
     console.log('Has relevant data:', hasRelevantData);
+    console.log('Checking conditions:');
+    console.log('- panCard check:', documentType === 'panCard', extractedData.panNumber);
+    console.log('- gstCertificate check:', documentType === 'gstCertificate', extractedData.gstNumber);
 
     if (!hasRelevantData) {
+      console.log('No relevant data found, returning error');
+      console.log('Raw text sample:', rawText.substring(0, 200));
       return res.json({
         success: false,
-        data: {},
-        message: `No ${documentType === 'bankStatement' ? 'bank details' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'relevant data'} found in this document. Please upload the correct document.`
+        data: extractedData,
+        message: `No ${documentType === 'panCard' ? 'PAN number' : documentType === 'bankStatement' ? 'bank details' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'relevant data'} found in this document. Please upload the correct document.`
       });
     }
 

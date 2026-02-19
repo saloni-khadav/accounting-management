@@ -17,20 +17,28 @@ const InvoiceManagement = ({ setActivePage }) => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const handleDownloadAttachment = async (fileUrl, fileName) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName || 'attachment';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Extract filename from fileUrl
+      const filename = fileUrl.split('/').pop();
+      const downloadUrl = `${baseUrl}/api/invoices/download/${filename}`;
+      window.open(downloadUrl, '_blank');
     } catch (error) {
       console.error('Error downloading file:', error);
       alert('Error downloading file');
+    }
+  };
+
+  const handleViewAttachment = async (fileUrl, fileName) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    try {
+      // Extract filename from fileUrl
+      const filename = fileUrl.split('/').pop();
+      const viewUrl = `${baseUrl}/api/invoices/view/${filename}`;
+      window.open(viewUrl, '_blank');
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      alert('Error viewing file');
     }
   };
 
@@ -54,11 +62,12 @@ const InvoiceManagement = ({ setActivePage }) => {
   }, []);
 
   const fetchInvoices = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     setLoading(true);
     console.log('Fetching invoices...');
     try {
       const token = localStorage.getItem('token');
-      let url = 'https://nextbook-backend.nextsphere.co.in/api/invoices';
+      let url = `${baseUrl}/api/invoices`;
       const params = new URLSearchParams();
       
       if (statusFilter) params.append('status', statusFilter);
@@ -72,14 +81,14 @@ const InvoiceManagement = ({ setActivePage }) => {
       console.log('Invoices fetched:', data.length);
       
       // Fetch collections and credit notes to calculate received amounts
-      const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
+      const collectionsResponse = await fetch(`${baseUrl}/api/collections`);
       let collections = [];
       if (collectionsResponse.ok) {
         collections = await collectionsResponse.json();
         console.log('Collections fetched:', collections.length);
       }
       
-      const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
+      const creditNotesResponse = await fetch(`${baseUrl}/api/credit-notes`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -141,9 +150,10 @@ const InvoiceManagement = ({ setActivePage }) => {
   };
 
   const handleDeleteInvoice = async (invoiceId) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/invoices/${invoiceId}`, {
+        const response = await fetch(`${baseUrl}/api/invoices/${invoiceId}`, {
           method: 'DELETE',
         });
         
@@ -158,8 +168,9 @@ const InvoiceManagement = ({ setActivePage }) => {
   };
 
   const handleApprovalChange = async (invoiceId, newApprovalStatus) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/invoices/${invoiceId}/approval`, {
+      const response = await fetch(`${baseUrl}/api/invoices/${invoiceId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -431,15 +442,25 @@ const InvoiceManagement = ({ setActivePage }) => {
                         </button>
                         <button 
                           onClick={() => handleEditInvoice(invoice)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
+                          className={`p-2 rounded-lg transition-colors ${
+                            invoice.approvalStatus === 'Approved' 
+                              ? 'text-gray-400 cursor-not-allowed' 
+                              : 'text-blue-600 hover:bg-blue-50'
+                          }`}
+                          title={invoice.approvalStatus === 'Approved' ? 'Cannot edit approved invoice' : 'Edit'}
+                          disabled={invoice.approvalStatus === 'Approved'}
                         >
                           <Edit size={18} />
                         </button>
                         <button 
                           onClick={() => handleDeleteInvoice(invoice._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
+                          className={`p-2 rounded-lg transition-colors ${
+                            invoice.approvalStatus === 'Approved' 
+                              ? 'text-gray-400 cursor-not-allowed' 
+                              : 'text-red-600 hover:bg-red-50'
+                          }`}
+                          title={invoice.approvalStatus === 'Approved' ? 'Cannot delete approved invoice' : 'Delete'}
+                          disabled={invoice.approvalStatus === 'Approved'}
                         >
                           <Trash2 size={18} />
                         </button>
@@ -535,7 +556,6 @@ const InvoiceManagement = ({ setActivePage }) => {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-3 py-2 border text-left">Product</th>
-                          <th className="px-3 py-2 border text-left">Description</th>
                           <th className="px-3 py-2 border text-left">HSN/SAC</th>
                           <th className="px-3 py-2 border text-right">Qty</th>
                           <th className="px-3 py-2 border text-right">Rate</th>
@@ -550,8 +570,7 @@ const InvoiceManagement = ({ setActivePage }) => {
                       <tbody>
                         {viewingInvoice.items.map((item, index) => (
                           <tr key={index}>
-                            <td className="px-3 py-2 border">{item.product || '-'}</td>
-                            <td className="px-3 py-2 border">{item.description || '-'}</td>
+                            <td className="px-3 py-2 border">{item.product || item.description || '-'}</td>
                             <td className="px-3 py-2 border">{item.hsnCode || '-'}</td>
                             <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
                             <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
@@ -640,13 +659,22 @@ const InvoiceManagement = ({ setActivePage }) => {
                           <span className="text-xs text-gray-500 ml-2">{attachment.fileSize ? `(${(attachment.fileSize / 1024).toFixed(2)} KB)` : ''}</span>
                         </div>
                         {attachment.fileUrl && (
-                          <button
-                            onClick={() => handleDownloadAttachment(attachment.fileUrl, attachment.fileName)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 flex items-center gap-1"
-                          >
-                            <Download size={14} />
-                            Download
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleViewAttachment(attachment.fileUrl, attachment.fileName)}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 flex items-center gap-1"
+                            >
+                              <Eye size={14} />
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(attachment.fileUrl, attachment.fileName)}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 flex items-center gap-1"
+                            >
+                              <Download size={14} />
+                              Download
+                            </button>
+                          </div>
                         )}
                       </div>
                     ))}
