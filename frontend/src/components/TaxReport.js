@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, FileText, Receipt, AlertCircle, DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell, LabelList } from 'recharts';
 import axios from 'axios';
 
@@ -113,23 +113,38 @@ const TaxReport = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GST</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalGST?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GST</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalGST?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <FileText className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GSTR1</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.gstr1AccountReceivable?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GSTR1</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.gstr1AccountReceivable?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Receipt className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GSTR2B</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.gstr2b?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total GSTR2B</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.gstr2b?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Receipt className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
         </div>
@@ -138,30 +153,50 @@ const TaxReport = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Mismatched Amount</p>
-              <p className="text-2xl sm:text-3xl font-bold text-red-600">₹{taxData?.mismatchedAmount?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Mismatched Amount</p>
+                <p className="text-2xl sm:text-3xl font-bold text-red-600">₹{taxData?.mismatchedAmount?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-lg">
+                <AlertCircle className="text-red-600" size={24} />
+              </div>
             </div>
           </div>
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Payable</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSPayable?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Payable</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSPayable?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <TrendingDown className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Received</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSReceived?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Received</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSReceived?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <DollarSign className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
           <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Receivable</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSReceivable?.toLocaleString('en-IN') || '0'}</p>
+            <div className="ml-2 flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total TDS Receivable</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{taxData?.totalTDSReceivable?.toLocaleString('en-IN') || '0'}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <TrendingUp className="text-blue-600" size={24} />
+              </div>
             </div>
           </div>
         </div>

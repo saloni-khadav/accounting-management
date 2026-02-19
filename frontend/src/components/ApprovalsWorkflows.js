@@ -287,17 +287,15 @@ const ApprovalsWorkflows = () => {
                   <td className="p-4 font-semibold text-green-600">{item.amount}</td>
                   <td className="p-4">{item.requestedBy || 'You'}</td>
                   <td className="p-4">{item.requestDate}</td>
-                  <td className="p-4">
-                    <div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        (item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending') ? 'bg-yellow-100 text-yellow-800' :
-                        (item.status === 'approved' || item.status === 'Approved') ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        <Clock size={12} className="inline mr-1" />
-                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                      </span>
-                    </div>
+                  <td className="p-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      (item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending') ? 'bg-yellow-100 text-yellow-800' :
+                      (item.status === 'approved' || item.status === 'Approved') ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      <Clock size={12} className="inline mr-1" />
+                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                    </span>
                   </td>
                   <td className="p-4">
                     {(item.status === 'Approved' || item.status === 'approved') && item.approvedAt ? (
