@@ -333,7 +333,7 @@ const ClientMaster = () => {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
         <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold flex items-center">
                 <Users className="mr-3" size={28} />
@@ -341,17 +341,17 @@ const ClientMaster = () => {
               </h1>
               <p className="text-blue-100 mt-1">Manage client information</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col lg:flex-row gap-2">
               <button
                 onClick={handleDownloadFormat}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 <Download size={18} />
                 Download Format
               </button>
               <button
                 onClick={handleImportClick}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                 disabled={loading}
               >
                 <Upload size={18} />
@@ -366,14 +366,14 @@ const ClientMaster = () => {
               />
               <button
                 onClick={handleExportToExcel}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 <Download size={18} />
                 Export
               </button>
               <button
                 onClick={() => setIsFormOpen(true)}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 <Plus size={18} />
                 Add Client
