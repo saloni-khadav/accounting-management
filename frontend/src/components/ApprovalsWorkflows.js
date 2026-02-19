@@ -213,7 +213,7 @@ const ApprovalsWorkflows = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
           <div className="transform transition-all duration-200 hover:-translate-y-1">
             <MetricsCard
               title="Pending Requests"

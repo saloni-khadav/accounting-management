@@ -300,19 +300,19 @@ const Bills = () => {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
         <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <h1 className="text-2xl font-bold">Bills Management</h1>
-            <div className="flex gap-3">
+            <div className="flex flex-col lg:flex-row gap-3">
               <button 
                 onClick={exportToExcel}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 <Download size={18} />
                 Export
               </button>
               <button 
                 onClick={handleCreateNew}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 <Plus size={18} />
                 Create New
