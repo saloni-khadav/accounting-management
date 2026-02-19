@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Eye, Download, Upload } from 'lucide-react';
+import { Users, Plus, Edit, Search, Eye, Download, Upload } from 'lucide-react';
 import ClientForm from './ClientForm';
 import ClientDetails from './ClientDetails';
 import { exportClientsToExcel } from '../utils/excelExport';
@@ -15,6 +15,8 @@ const ClientMaster = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+
   useEffect(() => {
     fetchClients();
   }, []);
@@ -22,7 +24,7 @@ const ClientMaster = () => {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const response = await fetch(`${baseUrl}/api/clients`);
       const data = await response.json();
       setClients(data);
     } catch (error) {
@@ -34,8 +36,8 @@ const ClientMaster = () => {
   const handleAddClient = async (clientData) => {
     try {
       const url = editingClient 
-        ? `https://nextbook-backend.nextsphere.co.in/api/clients/${editingClient._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/clients';
+        ? `${baseUrl}/api/clients/${editingClient._id}`
+        : `${baseUrl}/api/clients`;
       const method = editingClient ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
@@ -76,7 +78,7 @@ const ClientMaster = () => {
   const handleDeleteClient = async (clientId) => {
     if (window.confirm('Are you sure you want to delete this client?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/clients/${clientId}`, {
+        const response = await fetch(`${baseUrl}/api/clients/${clientId}`, {
           method: 'DELETE',
         });
         
@@ -93,7 +95,7 @@ const ClientMaster = () => {
   const handleViewDetails = async (client) => {
     try {
       // Fetch full client details by ID to ensure we have all data
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/clients/${client._id}`);
+      const response = await fetch(`${baseUrl}/api/clients/${client._id}`);
       if (response.ok) {
         const fullClientData = await response.json();
         setSelectedClient(fullClientData);
@@ -116,7 +118,7 @@ const ClientMaster = () => {
       console.log('Editing client:', client); // Debug log
       
       // Fetch full client details by ID to ensure we have all data
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/clients/${client._id}`);
+      const response = await fetch(`${baseUrl}/api/clients/${client._id}`);
       if (response.ok) {
         const fullClientData = await response.json();
         console.log('Full client data:', fullClientData); // Debug log
@@ -279,7 +281,7 @@ const ClientMaster = () => {
         }
 
         try {
-          const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients', {
+          const response = await fetch(`${baseUrl}/api/clients`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -465,13 +467,6 @@ const ClientMaster = () => {
                           title="Edit"
                         >
                           <Edit size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteClient(client._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
                         </button>
                         <button 
                           onClick={() => exportClientsToExcel([client])}

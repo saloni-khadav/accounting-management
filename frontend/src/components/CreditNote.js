@@ -111,10 +111,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         originalInvoiceNumber: '',
         originalInvoiceDate: '',
         reason: '',
-        supplierName: 'ABC Enterprises',
-        supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
-        supplierGSTIN: '29ABCDE1234F1Z5',
-        supplierPAN: 'ABCDE1234F',
+        supplierName: '',
+        supplierAddress: '',
+        supplierGSTIN: '',
+        supplierPAN: '',
         customerName: '',
         customerAddress: '',
         customerGSTIN: '',
@@ -172,7 +172,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           
           setCreditNoteData(prev => ({
             ...prev,
-            supplierName: userData.user.companyName || profile.tradeName || prev.supplierName,
+            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN
@@ -351,21 +351,26 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     const remainingAmount = invoice.remainingAmount || 0;
     setMaxRemainingAmount(remainingAmount);
 
+    // Calculate taxable value from remaining amount (remove GST)
+    const firstItem = invoice.items && invoice.items.length > 0 ? invoice.items[0] : null;
+    const totalGSTRate = firstItem ? (firstItem.cgstRate || 0) + (firstItem.sgstRate || 0) + (firstItem.igstRate || 0) : 0;
+    const taxableValue = totalGSTRate > 0 ? remainingAmount / (1 + totalGSTRate / 100) : remainingAmount;
+
     const mappedItems = invoice.items && invoice.items.length > 0 ? [{
       product: invoice.items[0]?.product || invoice.items[0]?.description || '',
       description: 'Credit Note for remaining amount',
       hsnCode: invoice.items[0]?.hsnCode || '',
       quantity: 1,
-      unitPrice: remainingAmount,
+      unitPrice: taxableValue,
       discount: 0,
-      taxableValue: remainingAmount,
+      taxableValue: taxableValue,
       cgstRate: invoice.items[0]?.cgstRate || 0,
       sgstRate: invoice.items[0]?.sgstRate || 0,
       igstRate: invoice.items[0]?.igstRate || 0,
       cgstAmount: 0,
       sgstAmount: 0,
       igstAmount: 0,
-      totalAmount: remainingAmount,
+      totalAmount: taxableValue,
       maxRemainingAmount: remainingAmount
     }] : [{
       product: '',
@@ -816,8 +821,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           <table className="w-full border border-gray-200 rounded-lg">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
@@ -840,15 +844,6 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'product', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       placeholder="Product/Item"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      placeholder="Description"
                     />
                   </td>
                   <td className="px-3 py-2">

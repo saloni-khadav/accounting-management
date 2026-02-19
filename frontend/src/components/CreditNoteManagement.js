@@ -320,15 +320,25 @@ const CreditNoteManagement = ({ setActivePage }) => {
                       </button>
                       <button 
                         onClick={() => handleEditCreditNote(creditNote)}
-                        className="text-green-600 hover:text-green-800 p-1" 
-                        title="Edit"
+                        className={`p-1 ${
+                          creditNote.approvalStatus === 'Approved'
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-green-600 hover:text-green-800'
+                        }`}
+                        title={creditNote.approvalStatus === 'Approved' ? 'Cannot edit approved credit note' : 'Edit'}
+                        disabled={creditNote.approvalStatus === 'Approved'}
                       >
                         <Edit size={16} />
                       </button>
                       <button 
                         onClick={() => handleDeleteCreditNote(creditNote._id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Delete"
+                        className={`p-1 ${
+                          creditNote.approvalStatus === 'Approved'
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-red-600 hover:text-red-800'
+                        }`}
+                        title={creditNote.approvalStatus === 'Approved' ? 'Cannot delete approved credit note' : 'Delete'}
+                        disabled={creditNote.approvalStatus === 'Approved'}
                       >
                         <Trash2 size={16} />
                       </button>

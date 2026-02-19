@@ -43,6 +43,7 @@ const performOCR = async (fileBuffer) => {
 
 // Regex patterns for extraction
 const patterns = {
+  pan: /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/g,
   gst: /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/g,
   accountNumber: /\b\d{9,18}\b/g,
   ifsc: /\b[A-Z]{4}0[A-Z0-9]{6}\b/gi,
@@ -54,6 +55,7 @@ const patterns = {
 
 // Extract data using regex
 const extractData = (text, documentType) => {
+  const panMatches = text.match(patterns.pan) || [];
   const gstMatches = text.match(patterns.gst) || [];
   const accountMatches = text.match(patterns.accountNumber) || [];
   const ifscMatches = text.match(patterns.ifsc) || [];
@@ -63,6 +65,7 @@ const extractData = (text, documentType) => {
   const mcaMatches = text.match(patterns.mcaNumber) || [];
 
   const baseData = {
+    panNumber: panMatches[0] || '',
     gstNumber: gstMatches[0] || '',
     accountNumber: accountMatches[0] || '',
     ifscCode: ifscMatches[0] || '',
@@ -150,6 +153,7 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     
     // Check if relevant data was found based on document type
     let hasRelevantData = false;
+    if (documentType === 'panCard' && extractedData.panNumber) hasRelevantData = true;
     if (documentType === 'gstCertificate' && extractedData.gstNumber) hasRelevantData = true;
     if (documentType === 'bankStatement' && (extractedData.accountNumber || extractedData.ifscCode || extractedData.bankName)) hasRelevantData = true;
     if (documentType === 'aadharCard' && extractedData.aadharNumber) hasRelevantData = true;

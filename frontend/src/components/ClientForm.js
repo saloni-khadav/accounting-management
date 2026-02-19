@@ -114,9 +114,10 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   }, [editingClient]);
 
   const generateClientCode = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       // First try to get existing clients to calculate next code
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const response = await fetch(`${baseUrl}/api/clients`);
       if (response.ok) {
         const clients = await response.json();
         
@@ -250,6 +251,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
@@ -278,14 +280,18 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     formDataUpload.append('documentType', documentType);
 
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', {
+      const response = await fetch(`${baseUrl}/api/ocr/extract`, {
         method: 'POST',
         body: formDataUpload
       });
 
       const result = await response.json();
+      console.log('OCR API Response:', result);
+      console.log('Document Type:', documentType);
+      console.log('Result Success:', result.success);
+      console.log('Result Data:', result.data);
 
-      if (result.success) {
+      if (result.success && result.data) {
         const updates = {};
         let dataFound = false;
         
@@ -315,10 +321,16 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             const updatedGSTNumbers = [...formData.gstNumbers];
             if (gstIndex !== null) {
               updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
+              if (result.data.billingAddress) {
+                updatedGSTNumbers[gstIndex].billingAddress = result.data.billingAddress;
+              }
               updatedGSTNumbers[gstIndex].hasDocument = true;
             }
             updates.gstNumbers = updatedGSTNumbers;
             updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
+            if (updatedGSTNumbers[gstIndex]?.isDefault && result.data.billingAddress) {
+              updates.billingAddress = result.data.billingAddress;
+            }
             dataFound = true;
           }
         }
@@ -370,18 +382,20 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         } else {
           setUploadStates(prev => ({
             ...prev,
-            [stateKey]: { loading: false, error: `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
+            [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
           }));
           
-          alert(`${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
+          alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
         }
       } else {
+        console.log('OCR failed - result.success is false');
+        console.log('Result message:', result.message);
         setUploadStates(prev => ({
           ...prev,
-          [stateKey]: { loading: false, error: `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
+          [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
         }));
         
-        alert(`${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
+        alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
       }
     } catch (error) {
       console.error('OCR error:', error);
@@ -406,6 +420,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const downloadDocument = (file, index) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
@@ -416,8 +431,17 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      // Handle existing uploaded files (file paths)
-      window.open(`https://nextbook-backend.nextsphere.co.in/api/clients/download/${file}`, '_blank');
+      window.open(`${baseUrl}/api/clients/download/${file}`, '_blank');
+    }
+  };
+
+  const viewDocument = (file) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    if (file instanceof File) {
+      const url = URL.createObjectURL(file);
+      window.open(url, '_blank');
+    } else if (typeof file === 'string') {
+      window.open(`${baseUrl}/api/clients/download/${file}`, '_blank');
     }
   };
 
@@ -433,6 +457,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleSubmit = async (e) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
     
     // Validate GST numbers
@@ -496,8 +521,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingClient 
-        ? `https://nextbook-backend.nextsphere.co.in/api/clients/${editingClient._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/clients';
+        ? `${baseUrl}/api/clients/${editingClient._id}`
+        : `${baseUrl}/api/clients`;
       const method = editingClient ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
@@ -1105,6 +1130,15 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                         {file instanceof File ? file.name : file}
                       </span>
                       <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => viewDocument(file)}
+                          className="text-green-600 hover:text-green-800 text-sm flex items-center"
+                          title="View"
+                        >
+                          <FileText size={16} className="mr-1" />
+                          View
+                        </button>
                         <button
                           type="button"
                           onClick={() => downloadDocument(file, index)}
