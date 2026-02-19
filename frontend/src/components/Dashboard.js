@@ -4,7 +4,7 @@ import RevenueChart from './charts/RevenueChart';
 import ExpensesDonut from './charts/ExpensesDonut';
 import DataTable from './ui/DataTable';
 import { 
-  DollarSign, 
+  IndianRupee, 
   Wallet, 
   TrendingUp, 
   Building, 
@@ -286,19 +286,19 @@ const Dashboard = () => {
   const metricsData = [
     {
       title: 'Closing Bank Balance',
-      value: '$125,430',
+      value: '₹125,430',
       icon: Banknote,
       color: 'primary'
     },
     {
       title: 'Cash-in-hand',
-      value: '$8,250',
+      value: '₹8,250',
       icon: Wallet,
       color: 'success'
     },
     {
       title: 'Profit',
-      value: '$45,680',
+      value: '₹45,680',
       icon: TrendingUp,
       color: 'success'
     },
@@ -310,7 +310,7 @@ const Dashboard = () => {
     },
     {
       title: 'GST',
-      value: '$12,450',
+      value: '₹12,450',
       icon: FileText,
       color: 'warning'
     },
@@ -323,7 +323,7 @@ const Dashboard = () => {
     {
       title: 'Revenue',
       value: `₹${totalRevenue.toLocaleString('en-IN')}`,
-      icon: DollarSign,
+      icon: IndianRupee,
       color: 'success'
     },
     {
