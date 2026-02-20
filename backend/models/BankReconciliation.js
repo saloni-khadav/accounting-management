@@ -18,6 +18,11 @@ const bankReconciliationSchema = new mongoose.Schema({
   remarks: {
     type: String,
     trim: true
+  },
+  status: {
+    type: String,
+    enum: ['matched', 'unmatched'],
+    trim: true
   }
 }, {
   timestamps: true
