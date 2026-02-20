@@ -32,7 +32,8 @@ const BankReconciliation = () => {
     setEditingNarration(null);
     
     try {
-      await fetch('http://localhost:5001/api/bank-reconciliation/update', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,7 +63,8 @@ const BankReconciliation = () => {
     setTransactions(updatedTransactions);
     
     try {
-      await fetch('http://localhost:5001/api/bank-reconciliation/update', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,7 +95,8 @@ const BankReconciliation = () => {
     setEditingStatus(null);
     
     try {
-      await fetch('http://localhost:5001/api/bank-reconciliation/update', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,7 +145,8 @@ const BankReconciliation = () => {
 
   const loadSavedReconciliations = async (transactions) => {
     try {
-      const response = await fetch('http://localhost:5001/api/bank-reconciliation');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/bank-reconciliation`);
       const savedData = await response.json();
       
       return transactions.map(t => {
