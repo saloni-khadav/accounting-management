@@ -412,8 +412,16 @@ const APReport = () => {
         </div>
         <div className="transform transition-all duration-200 hover:-translate-y-1">
           <MetricsCard
-            title="Credit Notes"
-            value={loading ? '...' : `${totalCreditNotesCount} (₹${totalCreditNotesAmount.toLocaleString('en-IN')})`}
+            title="Credit Notes Count"
+            value={loading ? '...' : totalCreditNotesCount}
+            icon={CreditCard}
+            color="primary"
+          />
+        </div>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Credit Notes Amount"
+            value={loading ? '...' : `₹${totalCreditNotesAmount.toLocaleString('en-IN')}`}
             icon={CreditCard}
             color="primary"
           />
