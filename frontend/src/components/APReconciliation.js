@@ -144,7 +144,7 @@ const APReconciliation = () => {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
         <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-t-xl">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold flex items-center">
                 <BarChart3 className="mr-3" size={28} />
@@ -152,14 +152,14 @@ const APReconciliation = () => {
               </h1>
               <p className="text-blue-100 mt-1">Reconcile accounts payable transactions</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start lg:items-center gap-3">
               <div className="text-blue-100 text-sm">
                 <span className="font-medium">Last updated:</span> {lastUpdated.toLocaleString()}
               </div>
               <button 
                 onClick={fetchData}
                 disabled={loading}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
               >
                 <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                 Refresh

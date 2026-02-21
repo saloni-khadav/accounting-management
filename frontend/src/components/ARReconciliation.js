@@ -115,20 +115,22 @@ const ARReconciliation = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm mb-6">
-        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
-          <h1 className="text-2xl font-bold">AR Reconciliation</h1>
-          <div className="flex items-center gap-4">
-            <div className="text-sm">
-              Last updated: {lastUpdated.toLocaleString()}
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-4 rounded-t-xl">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <h1 className="text-2xl font-bold">AR Reconciliation</h1>
+            <div className="flex flex-col sm:flex-row items-start lg:items-center gap-4">
+              <div className="text-sm">
+                Last updated: {lastUpdated.toLocaleString()}
+              </div>
+              <button 
+                onClick={fetchData}
+                disabled={loading}
+                className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
             </div>
-            <button 
-              onClick={fetchData}
-              disabled={loading}
-              className="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
           </div>
         </div>
       </div>

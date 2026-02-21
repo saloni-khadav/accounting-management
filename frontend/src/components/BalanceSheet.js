@@ -15,16 +15,11 @@ const BalanceSheet = () => {
                   <h1 className="text-2xl sm:text-3xl font-bold">Balance Sheet</h1>
                   <p className="text-blue-100 mt-1">Financial position and statement overview</p>
                 </div>
-                <div className="flex items-center gap-2 md:gap-4">
-                  <div className="relative">
-                    <select className="appearance-none bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-lg px-3 md:px-4 py-2 pr-8 md:pr-10 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white/50">
-                      <option className="text-gray-900">This Year</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-white" size={14} />
-                  </div>
-                  <button className="p-2 bg-white/20 hover:bg-white/30 border border-white/30 rounded-lg transition-colors">
-                    <Menu size={18} className="text-white" />
-                  </button>
+                <div className="relative">
+                  <select className="appearance-none bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-lg px-3 md:px-4 py-2 pr-8 md:pr-10 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-white/50">
+                    <option className="text-gray-900">This Year</option>
+                  </select>
+                  <ChevronDown className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-white" size={14} />
                 </div>
               </div>
             </div>

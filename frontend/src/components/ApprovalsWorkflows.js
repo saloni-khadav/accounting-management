@@ -213,7 +213,7 @@ const ApprovalsWorkflows = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
           <div className="transform transition-all duration-200 hover:-translate-y-1">
             <MetricsCard
               title="Pending Requests"
@@ -287,17 +287,15 @@ const ApprovalsWorkflows = () => {
                   <td className="p-4 font-semibold text-green-600">{item.amount}</td>
                   <td className="p-4">{item.requestedBy || 'You'}</td>
                   <td className="p-4">{item.requestDate}</td>
-                  <td className="p-4">
-                    <div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        (item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending') ? 'bg-yellow-100 text-yellow-800' :
-                        (item.status === 'approved' || item.status === 'Approved') ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        <Clock size={12} className="inline mr-1" />
-                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                      </span>
-                    </div>
+                  <td className="p-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      (item.status === 'pending' || item.status === 'Draft' || item.status === 'Pending') ? 'bg-yellow-100 text-yellow-800' :
+                      (item.status === 'approved' || item.status === 'Approved') ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      <Clock size={12} className="inline mr-1" />
+                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                    </span>
                   </td>
                   <td className="p-4">
                     {(item.status === 'Approved' || item.status === 'approved') && item.approvedAt ? (

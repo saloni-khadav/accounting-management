@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus, FileText, Upload, Banknote, Wallet, CreditCard } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import MetricsCard from './ui/MetricsCard';
 
 const BankDashboard = () => {
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
   const inflowOutflowData = [
     { month: 'May', inflow: 1.5, outflow: 0.8 },
     { month: 'Jun', inflow: 1.2, outflow: 1.0 },
@@ -51,6 +54,46 @@ const BankDashboard = () => {
       color: 'warning'
     }
   ];
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert('Please select a file');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('bankName', 'Default Bank');
+    formData.append('period', new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+
+    try {
+      const token = localStorage.getItem('token');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/bank-statements/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (response.ok && result.success) {
+        alert('Bank statement uploaded successfully!');
+        setShowUploadModal(false);
+        setSelectedFile(null);
+        window.location.href = '/bank-statement-upload';
+      } else {
+        alert(result.message || 'Upload failed');
+      }
+    } catch (error) {
+      alert('Error uploading file');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -168,19 +211,19 @@ const BankDashboard = () => {
             </div>
             <div className="p-4 sm:p-6">
               <div className="space-y-3">
-                <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button onClick={() => window.location.href = '/payments'} className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
                     <Plus className="w-5 h-5 text-blue-600" />
                   </div>
                   <span className="text-gray-900">Add Payment</span>
                 </button>
-                <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button onClick={() => window.location.href = '/collections'} className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
                     <FileText className="w-5 h-5 text-blue-600" />
                   </div>
                   <span className="text-gray-900">Add Receipt</span>
                 </button>
-                <button className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button onClick={() => setShowUploadModal(true)} className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
                     <Upload className="w-5 h-5 text-blue-600" />
                   </div>
@@ -214,6 +257,29 @@ const BankDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Upload Bank Statement</h3>
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept=".pdf" 
+              onChange={handleFileSelect}
+              className="w-full mb-4 p-2 border rounded" 
+            />
+            {selectedFile && (
+              <p className="text-sm text-gray-600 mb-4">Selected: {selectedFile.name}</p>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => { setShowUploadModal(false); setSelectedFile(null); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={handleUpload} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Upload</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
