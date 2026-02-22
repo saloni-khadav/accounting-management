@@ -7,6 +7,7 @@ const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
+const { notifyPaymentCreated, notifyPaymentApproved } = require('../utils/notificationHelper');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/payments');
@@ -111,6 +112,11 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
     const payment = new Payment(paymentData);
     const savedPayment = await payment.save();
     
+    // Create notification for payment creation
+    if (req.user && req.user.id) {
+      await notifyPaymentCreated(req.user.id, savedPayment);
+    }
+    
     res.status(201).json(savedPayment);
   } catch (error) {
     console.error('Error creating payment:', error);
@@ -131,6 +137,11 @@ router.patch('/:id/approval', async (req, res) => {
     if (action === 'approve') {
       payment.approvalStatus = 'approved';
       payment.status = 'Completed';
+      
+      // Create notification for payment approval
+      if (req.user && req.user.id) {
+        await notifyPaymentApproved(req.user.id, payment);
+      }
       
       // Update bill status when payment is approved
       if (payment.billId) {

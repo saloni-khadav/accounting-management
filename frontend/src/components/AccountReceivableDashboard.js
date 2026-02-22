@@ -336,3 +336,4 @@ const AccountReceivableDashboard = () => {
 };
 
 export default AccountReceivableDashboard;
+

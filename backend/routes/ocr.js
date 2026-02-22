@@ -4,9 +4,8 @@ const vision = require('@google-cloud/vision');
 const Document = require('../models/Document');
 const router = express.Router();
 
-// Initialize Vision client
+// Initialize Vision client with API key (credentials file not needed)
 const client = new vision.ImageAnnotatorClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
   apiKey: process.env.GOOGLE_OCR_KEY
 });
 
@@ -14,10 +13,10 @@ const client = new vision.ImageAnnotatorClient({
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 20 * 1024 * 1024 // 20MB limit for PDFs
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -26,19 +25,31 @@ const upload = multer({
   }
 });
 
-// Google Vision API function
-const performOCR = async (fileBuffer) => {
-  const request = {
-    image: {
-      content: fileBuffer
-    },
-    features: [{
-      type: 'DOCUMENT_TEXT_DETECTION'
-    }]
-  };
+// Google Vision API function for PDF and images
+const performOCR = async (fileBuffer, mimetype) => {
+  try {
+    const request = {
+      image: {
+        content: fileBuffer.toString('base64')
+      },
+      features: [
+        { type: 'DOCUMENT_TEXT_DETECTION' },
+        { type: 'TEXT_DETECTION' }
+      ]
+    };
 
-  const [result] = await client.annotateImage(request);
-  return result;
+    const [result] = await client.annotateImage(request);
+    console.log('OCR Result:', {
+      hasFullText: !!result.fullTextAnnotation,
+      hasTextAnnotations: !!result.textAnnotations,
+      textLength: result.fullTextAnnotation?.text?.length || 0,
+      error: result.error
+    });
+    return result;
+  } catch (error) {
+    console.error('OCR API Error:', error);
+    throw error;
+  }
 };
 
 // Regex patterns for extraction
@@ -97,97 +108,82 @@ const extractData = (text, documentType) => {
   return baseData;
 };
 
-// OCR processing endpoint
+// Auto-detect document type from extracted text
+const detectDocumentType = (text) => {
+  const detectedTypes = [];
+  
+  if (patterns.pan.test(text)) detectedTypes.push('panCard');
+  if (patterns.gst.test(text)) detectedTypes.push('gstCertificate');
+  if (patterns.aadhar.test(text)) detectedTypes.push('aadharCard');
+  if (patterns.ifsc.test(text) || patterns.bankName.test(text)) detectedTypes.push('bankStatement');
+  
+  return detectedTypes;
+};
+
+// OCR processing endpoint with auto-detection
 router.post('/extract', upload.single('document'), async (req, res) => {
   try {
-    console.log('OCR Extract request received');
-    console.log('File:', req.file ? req.file.originalname : 'No file');
-    console.log('Document Type:', req.body.documentType);
+    console.log('Upload received:', req.file?.originalname, req.file?.mimetype);
     
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const { documentType } = req.body;
+    let { documentType } = req.body;
 
-    console.log('Starting OCR processing...');
+    console.log('Starting OCR...');
     const result = await performOCR(req.file.buffer, req.file.mimetype);
-    console.log('OCR completed');
-    console.log('Vision API response keys:', Object.keys(result));
-    console.log('Has fullTextAnnotation:', !!result.fullTextAnnotation);
-    console.log('Has textAnnotations:', !!result.textAnnotations);
-    console.log('Error in result:', result.error);
     
-    const rawText = result.fullTextAnnotation ? result.fullTextAnnotation.text : 
-                   (result.textAnnotations && result.textAnnotations.length > 0 ? result.textAnnotations[0].description : '');
-    console.log('textAnnotations length:', result.textAnnotations ? result.textAnnotations.length : 0);
-    if (result.textAnnotations && result.textAnnotations.length > 0) {
-      console.log('First textAnnotation:', result.textAnnotations[0]);
-    }
+    const rawText = result.fullTextAnnotation?.text || 
+                   result.textAnnotations?.[0]?.description || '';
+
     console.log('Extracted text length:', rawText.length);
-    if (rawText.length > 0) {
-      console.log('Raw text preview:', rawText.substring(0, 500));
-    }
+    console.log('Text preview:', rawText.substring(0, 200));
 
     if (!rawText || result.error) {
-      console.log('OCR failed, no text extracted');
+      console.error('OCR Error:', result.error);
       return res.json({
         success: false,
-        message: 'Could not extract text from document',
-        data: {}
+        message: 'Could not extract text from document. Please ensure the document is clear and readable.',
+        data: {},
+        error: result.error?.message
       });
     }
 
-    // Extract structured data
+    // Auto-detect document type if not provided
+    if (!documentType) {
+      const detectedTypes = detectDocumentType(rawText);
+      documentType = detectedTypes[0] || 'unknown';
+      console.log('Detected types:', detectedTypes);
+    }
+
+    // Extract all possible data
     const extractedData = extractData(rawText, documentType);
-    console.log('After extractData, msmeNumber:', extractedData.msmeNumber);
     
-    // Force extract UDYAM number for MSME certificates - ALWAYS
-    if (documentType === 'msmeCertificate') {
-      console.log('Processing MSME certificate...');
-      extractedData.msmeNumber = 'UDYAM-OD-17-0043573'; // Direct assignment for testing
-      console.log('Hardcoded UDYAM number for testing');
-    }
-    
-    console.log('Final extracted data:', extractedData);
-    
-    // Check if relevant data was found based on document type
-    let hasRelevantData = false;
-    if (documentType === 'panCard' && extractedData.panNumber) hasRelevantData = true;
-    if (documentType === 'gstCertificate' && extractedData.gstNumber) hasRelevantData = true;
-    if (documentType === 'bankStatement' && (extractedData.accountNumber || extractedData.ifscCode || extractedData.bankName)) hasRelevantData = true;
-    if (documentType === 'aadharCard' && extractedData.aadharNumber) hasRelevantData = true;
-    console.log('Has relevant data:', hasRelevantData);
+    // Determine what data was found
+    const foundData = {};
+    if (extractedData.panNumber) foundData.panNumber = extractedData.panNumber;
+    if (extractedData.gstNumber) foundData.gstNumber = extractedData.gstNumber;
+    if (extractedData.aadharNumber) foundData.aadharNumber = extractedData.aadharNumber;
+    if (extractedData.accountNumber) foundData.accountNumber = extractedData.accountNumber;
+    if (extractedData.ifscCode) foundData.ifscCode = extractedData.ifscCode;
+    if (extractedData.bankName) foundData.bankName = extractedData.bankName;
 
-    // For MSME certificates, always try to extract UDYAM number
-    if (documentType === 'msmeCertificate') {
-      const udyamMatch = rawText.match(/UDYAM-[A-Z]{2}-\d{2}-\d{7}/i);
-      if (udyamMatch) {
-        extractedData.msmeNumber = udyamMatch[0];
-        console.log('Force extracted UDYAM:', udyamMatch[0]);
-        hasRelevantData = true;
-      }
-    }
-
-    if (!hasRelevantData) {
-      // Return extracted data even if no specific match found for debugging
-      return res.json({
-        success: true,
-        data: extractedData,
-        message: 'Partial data extracted'
-      });
-    }
+    console.log('Found data:', foundData);
 
     res.json({
       success: true,
-      data: extractedData
+      data: foundData,
+      detectedType: documentType,
+      rawTextPreview: rawText.substring(0, 500),
+      message: Object.keys(foundData).length > 0 ? 'Data extracted successfully' : 'No relevant data found'
     });
 
   } catch (error) {
     console.error('OCR Error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Upload failed. Please try again.',
+      message: 'Upload failed: ' + error.message,
       error: error.message
     });
   }
