@@ -54,7 +54,7 @@ const Settings = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -74,7 +74,7 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/settings', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -99,7 +99,7 @@ const Settings = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/settings', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

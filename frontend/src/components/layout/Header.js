@@ -59,7 +59,7 @@ const Header = ({ setActivePage, onLogout }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -86,7 +86,7 @@ const Header = ({ setActivePage, onLogout }) => {
         }
 
         console.log('Fetching notifications...');
-        const response = await fetch('http://localhost:5001/api/notifications', {
+        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -115,7 +115,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const handleNotificationClick = async (notification) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5001/api/notifications/${notification._id}/read`, {
+      await fetch(`https://nextbook-backend.nextsphere.co.in/api/notifications/${notification._id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -137,7 +137,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:5001/api/notifications/read-all', {
+      await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications/read-all', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -152,7 +152,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const createTestNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/notifications/test/create', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications/test/create', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -383,3 +383,5 @@ const Header = ({ setActivePage, onLogout }) => {
 };
 
 export default Header;
+
+

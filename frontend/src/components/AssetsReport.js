@@ -471,3 +471,4 @@ const AssetsReport = () => {
 };
 
 export default AssetsReport;
+

@@ -55,7 +55,7 @@ const Payments = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -72,7 +72,7 @@ const Payments = () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Token:', token); // Debug log
-      const response = await fetch('http://localhost:5001/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await response.json();
@@ -85,7 +85,7 @@ const Payments = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/vendors');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -98,19 +98,19 @@ const Payments = () => {
   const fetchBillsByVendor = async (vendorName) => {
     try {
       console.log('Fetching bills for vendor:', vendorName);
-      const response = await fetch(`http://localhost:5001/api/bills?vendorName=${encodeURIComponent(vendorName)}`);
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills?vendorName=${encodeURIComponent(vendorName)}`);
       if (response.ok) {
         const data = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('http://localhost:5001/api/payments');
+        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();
         }
         
         // Fetch credit/debit notes to calculate adjustments
-        const creditDebitResponse = await fetch('http://localhost:5001/api/credit-debit-notes/reconciliation');
+        const creditDebitResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/reconciliation');
         let creditDebitNotes = [];
         if (creditDebitResponse.ok) {
           creditDebitNotes = await creditDebitResponse.json();
@@ -160,7 +160,7 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/payments');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
       if (response.ok) {
         const data = await response.json();
         setPayments(data);
@@ -173,7 +173,7 @@ const Payments = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/payments/stats/summary');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments/stats/summary');
       if (response.ok) {
         const data = await response.json();
         setStats({
@@ -359,7 +359,7 @@ const Payments = () => {
         formDataToSend.append('attachments', file);
       });
       
-      const response = await fetch('http://localhost:5001/api/payments', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
         method: 'POST',
         body: formDataToSend,
       });
@@ -401,7 +401,7 @@ const Payments = () => {
   const handlePaymentApproval = async (paymentId, action) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/payments/${paymentId}/approval`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/payments/${paymentId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1026,3 +1026,4 @@ const Payments = () => {
 };
 
 export default Payments;
+
