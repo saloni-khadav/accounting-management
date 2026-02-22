@@ -579,7 +579,11 @@ const Approvals = () => {
               return item.description?.toLowerCase().includes(search) ||
                      item.requestedBy?.toLowerCase().includes(search);
             })
-            .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate))
+            .sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt) : new Date(a.requestDate);
+              const dateB = b.createdAt ? new Date(b.createdAt) : new Date(b.requestDate);
+              return dateB - dateA;
+            })
             .map((item) => (
             <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between">

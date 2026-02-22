@@ -47,6 +47,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${invoice.grandTotal.toLocaleString()}`,
         requestedBy: invoice.createdBy || 'System',
         requestDate: invoice.createdAt.toISOString().split('T')[0],
+        createdAt: invoice.createdAt,
         status: 'pending',
         reminderSent: invoice.reminderSent || false,
         approvedAt: invoice.approvedAt ? invoice.approvedAt.toISOString().split('T')[0] : null,
@@ -84,6 +85,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${po.totalAmount.toLocaleString()}`,
         requestedBy: po.createdBy || 'User',
         requestDate: po.createdAt.toISOString().split('T')[0],
+        createdAt: po.createdAt,
         status: po.approvalStatus === 'pending' || po.status === 'Pending Approval' ? 'pending' : po.status.toLowerCase(),
         reminderSent: po.reminderSent || false,
         approvedAt: po.approvedAt ? po.approvedAt.toISOString().split('T')[0] : null,
@@ -99,6 +101,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${po.totalAmount.toLocaleString()}`,
         requestedBy: po.createdBy || 'User',
         requestDate: po.createdAt.toISOString().split('T')[0],
+        createdAt: po.createdAt,
         status: 'pending',
         reminderSent: false
       });
@@ -121,6 +124,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${netPayable.toLocaleString()}`,
         requestedBy: 'Accounts Team',
         requestDate: bill.createdAt.toISOString().split('T')[0],
+        createdAt: bill.createdAt,
         status: 'pending',
         reminderSent: bill.reminderSent || false
       });
@@ -142,6 +146,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${payment.netAmount.toLocaleString()}`,
         requestedBy: payment.createdBy || 'User',
         requestDate: payment.createdAt.toISOString().split('T')[0],
+        createdAt: payment.createdAt,
         status: 'pending',
         reminderSent: payment.reminderSent || false
       });
@@ -164,6 +169,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${netAmount.toLocaleString()}`,
         requestedBy: note.createdBy || 'User',
         requestDate: note.createdAt.toISOString().split('T')[0],
+        createdAt: note.createdAt,
         status: 'pending',
         reminderSent: note.reminderSent || false
       });
@@ -185,6 +191,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${creditNote.grandTotal.toLocaleString()}`,
         requestedBy: 'User',
         requestDate: creditNote.createdAt.toISOString().split('T')[0],
+        createdAt: creditNote.createdAt,
         status: 'pending',
         reminderSent: creditNote.reminderSent || false
       });
@@ -206,6 +213,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `₹${(collection.netAmount || collection.amount).toLocaleString()}`,
         requestedBy: 'User',
         requestDate: collection.createdAt.toISOString().split('T')[0],
+        createdAt: collection.createdAt,
         status: 'pending',
         reminderSent: false
       });
@@ -213,8 +221,8 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     console.log('Total Pending Approvals:', pendingApprovals.length);
     
-    // Sort by request date (newest first)
-    pendingApprovals.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+    // Sort by createdAt timestamp (newest first)
+    pendingApprovals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     // Get high-value clients for approval
     const highValueClients = await Client.find({ 
@@ -235,6 +243,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
         amount: `Credit: ₹${client.creditLimit?.toLocaleString() || 0}`,
         requestedBy: 'Sales Team',
         requestDate: client.createdAt.toISOString().split('T')[0],
+        createdAt: client.createdAt,
         status: client.approvalStatus ? client.approvalStatus.toLowerCase() : 'pending'
       });
     });
