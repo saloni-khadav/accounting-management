@@ -574,7 +574,7 @@ const InvoiceManagement = ({ setActivePage }) => {
                             <td className="px-3 py-2 border">{item.hsnCode || '-'}</td>
                             <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
                             <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
-                            <td className="px-3 py-2 border text-right">₹{(item.discount || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">{(item.discount || 0).toFixed(2)}%</td>
                             <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
                             <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
                             <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>

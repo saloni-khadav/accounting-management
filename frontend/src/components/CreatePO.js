@@ -369,6 +369,21 @@ const CreatePO = () => {
     const confirmed = window.confirm('Do you want to create this Purchase Order?');
     if (!confirmed) return;
 
+    // Validate supplier exists in client master
+    if (!supplierSearch || !supplierSearch.trim()) {
+      alert('Supplier name is required');
+      return;
+    }
+    
+    const supplierExists = clients.some(client => 
+      client.clientName.toLowerCase() === supplierSearch.toLowerCase()
+    );
+    
+    if (!supplierExists) {
+      alert('Supplier not found in Client Master. Please select a valid supplier from the dropdown or add them in Client Master first.');
+      return;
+    }
+
     try {
       const poData = {
         poNumber,

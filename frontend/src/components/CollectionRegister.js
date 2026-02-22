@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { X, CheckCircle } from 'lucide-react';
 
 const CollectionRegister = () => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
   const [showModal, setShowModal] = useState(false);
   const [collections, setCollections] = useState([]);
   const [clients, setClients] = useState([]);
@@ -12,6 +13,7 @@ const CollectionRegister = () => {
   const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [bankSearchTerm, setBankSearchTerm] = useState('');
   const [userRole, setUserRole] = useState('');
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [stats, setStats] = useState({
     totalCollections: 0,
     pendingInvoices: 0,
@@ -31,16 +33,7 @@ const CollectionRegister = () => {
     netAmount: ''
   });
 
-  const bankAccounts = [
-    { name: 'HDFC Bank - Current Account', code: 'HDFC001', accountNumber: '****1234' },
-    { name: 'Axis Bank - Savings Account', code: 'AXIS002', accountNumber: '****5678' },
-    { name: 'ICICI Bank - Current Account', code: 'ICICI003', accountNumber: '****9012' },
-    { name: 'SBI - Current Account', code: 'SBI004', accountNumber: '****3456' },
-    { name: 'Kotak Mahindra Bank', code: 'KOTAK005', accountNumber: '****7890' },
-    { name: 'Punjab National Bank', code: 'PNB006', accountNumber: '****2345' },
-    { name: 'Bank of Baroda', code: 'BOB007', accountNumber: '****6789' },
-    { name: 'Canara Bank', code: 'CANARA008', accountNumber: '****0123' }
-  ];
+
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
@@ -58,6 +51,7 @@ const CollectionRegister = () => {
     fetchStats();
     fetchClients();
     fetchUserRole();
+    fetchBankAccounts();
     
     const handleClickOutside = (event) => {
       if (!event.target.closest('.dropdown-container')) {
@@ -74,7 +68,7 @@ const CollectionRegister = () => {
   const fetchUserRole = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -88,9 +82,28 @@ const CollectionRegister = () => {
     }
   };
 
+  const fetchBankAccounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${baseUrl}/api/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile && data.profile.bankAccounts) {
+          setBankAccounts(data.profile.bankAccounts);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
+
   const fetchCollections = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
+      const response = await fetch(`${baseUrl}/api/collections`);
       const data = await response.json();
       setCollections(data);
     } catch (error) {
@@ -100,7 +113,7 @@ const CollectionRegister = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections/stats/summary');
+      const response = await fetch(`${baseUrl}/api/collections/stats/summary`);
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -110,7 +123,7 @@ const CollectionRegister = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const response = await fetch(`${baseUrl}/api/clients`);
       const data = await response.json();
       setClients(data);
     } catch (error) {
@@ -120,7 +133,7 @@ const CollectionRegister = () => {
 
   const fetchInvoices = async (clientName) => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
+      const response = await fetch(`${baseUrl}/api/invoices`);
       
       if (!response.ok) {
         setInvoices([]);
@@ -138,14 +151,14 @@ const CollectionRegister = () => {
       const token = localStorage.getItem('token');
       
       // Fetch collections
-      const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
+      const collectionsResponse = await fetch(`${baseUrl}/api/collections`);
       let collections = [];
       if (collectionsResponse.ok) {
         collections = await collectionsResponse.json();
       }
       
       // Fetch credit notes
-      const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
+      const creditNotesResponse = await fetch(`${baseUrl}/api/credit-notes`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       let creditNotes = [];
@@ -247,6 +260,20 @@ const CollectionRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate bank account
+    if (formData.bankAccount) {
+      const isValidBank = bankAccounts.some(bank => {
+        const bankDisplay = `${bank.bankName} - ${bank.accountNumber}`;
+        return bankDisplay === formData.bankAccount;
+      });
+      
+      if (!isValidBank) {
+        alert('Please select a valid bank account from the dropdown or add it in Profile page first.');
+        return;
+      }
+    }
+    
     try {
       // Prepare data for API - convert invoiceNumbers array to comma-separated string
       const submitData = {
@@ -261,7 +288,7 @@ const CollectionRegister = () => {
       
       console.log('Submitting data:', submitData);
       
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections', {
+      const response = await fetch(`${baseUrl}/api/collections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
@@ -299,7 +326,7 @@ const CollectionRegister = () => {
   const handleApprovalChange = async (collectionId, approvalStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/collections/${collectionId}/approval`, {
+      const response = await fetch(`${baseUrl}/api/collections/${collectionId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -330,15 +357,17 @@ const CollectionRegister = () => {
     }
   };
 
-  const handleBankSelect = (bankName) => {
-    setFormData(prev => ({ ...prev, bankAccount: bankName }));
-    setBankSearchTerm(bankName);
+  const handleBankSelect = (bank) => {
+    const bankDisplay = `${bank.bankName} - ${bank.accountNumber}`;
+    setFormData(prev => ({ ...prev, bankAccount: bankDisplay }));
+    setBankSearchTerm(bankDisplay);
     setShowBankDropdown(false);
   };
 
   const filteredBanks = bankAccounts.filter(bank =>
-    bank.name.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
-    bank.code.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase())
+    bank.bankName?.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
+    bank.accountNumber?.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
+    bank.ifscCode?.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase())
   );
 
   const filteredClients = clients.filter(client =>
@@ -424,7 +453,7 @@ const CollectionRegister = () => {
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
                   <div className="relative dropdown-container">
                     <input
                       type="text"
@@ -517,7 +546,7 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
                   <input
                     type="date"
                     required
@@ -529,9 +558,10 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount *</label>
                   <input
                     type="number"
+                    required
                     value={formData.amount}
                     onChange={(e) => {
                       const newAmount = parseFloat(e.target.value) || 0;
@@ -627,8 +657,9 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode *</label>
                   <select
+                    required
                     value={formData.paymentMode}
                     onChange={(e) => setFormData({...formData, paymentMode: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -642,10 +673,11 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Account</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Account *</label>
                   <div className="relative dropdown-container">
                     <input
                       type="text"
+                      required
                       value={bankSearchTerm || formData.bankAccount}
                       onChange={(e) => {
                         setBankSearchTerm(e.target.value);
@@ -658,17 +690,17 @@ const CollectionRegister = () => {
                     />
                     {showBankDropdown && filteredBanks.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {filteredBanks.map((bank) => (
+                        {filteredBanks.map((bank, idx) => (
                           <div
-                            key={bank.code}
+                            key={idx}
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              handleBankSelect(bank.name);
+                              handleBankSelect(bank);
                             }}
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
-                            <div className="font-medium text-gray-900">{bank.name}</div>
-                            <div className="text-sm text-gray-500">{bank.code} | {bank.accountNumber}</div>
+                            <div className="font-medium text-gray-900">{bank.bankName}</div>
+                            <div className="text-sm text-gray-500">{bank.accountNumber} | {bank.ifscCode}</div>
                           </div>
                         ))}
                       </div>
@@ -677,9 +709,10 @@ const CollectionRegister = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Reference/Transaction Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reference/Transaction Number *</label>
                   <input
                     type="text"
+                    required
                     value={formData.referenceNumber}
                     onChange={(e) => setFormData({...formData, referenceNumber: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
