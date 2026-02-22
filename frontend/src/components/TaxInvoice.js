@@ -66,7 +66,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     invoiceDate: new Date().toISOString().split('T')[0],
     invoiceSeries: 'INV',
     referenceNumber: '',
-    poDate: '',
+    piDate: '',
     placeOfSupply: '',
     
     // Supplier Details
@@ -136,6 +136,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         ...editingInvoice,
         invoiceDate: editingInvoice.invoiceDate ? new Date(editingInvoice.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         dueDate: editingInvoice.dueDate ? new Date(editingInvoice.dueDate).toISOString().split('T')[0] : '',
+        piDate: editingInvoice.piDate ? new Date(editingInvoice.piDate).toISOString().split('T')[0] : '',
+        referenceNumber: editingInvoice.piNumber || editingInvoice.referenceNumber || '',
         items: editingInvoice.items || [{
           product: '',
           description: '',
@@ -361,20 +363,20 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${baseUrl}/api/auth/me`, {
+        const response = await fetch(`${baseUrl}/api/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (response.ok) {
-          const userData = await response.json();
-          const profile = userData.user.profile || {};
+          const data = await response.json();
+          const profile = data.profile || {};
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setInvoiceData(prev => ({
             ...prev,
-            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
+            supplierName: profile.tradeName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN,
@@ -415,14 +417,15 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   const calculateItemTotals = (item) => {
     const quantity = Math.max(0, Number(item.quantity) || 0);
     const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
-    const discount = Math.max(0, Number(item.discount) || 0);
+    const discountPercent = Math.max(0, Number(item.discount) || 0);
     const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
     const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
     const igstRate = Math.max(0, Number(item.igstRate) || 0);
     const cessRate = Math.max(0, Number(item.cessRate) || 0);
     
     const grossAmount = quantity * unitPrice;
-    const taxableValue = Math.max(0, grossAmount - discount);
+    const discountAmount = (grossAmount * discountPercent) / 100;
+    const taxableValue = Math.max(0, grossAmount - discountAmount);
     const cgstAmount = Math.max(0, (taxableValue * cgstRate) / 100);
     const sgstAmount = Math.max(0, (taxableValue * sgstRate) / 100);
     const igstAmount = Math.max(0, (taxableValue * igstRate) / 100);
@@ -446,7 +449,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     const updatedItems = invoiceData.items.map(calculateItemTotals);
     
     const subtotal = Math.max(0, updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0));
-    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.discount), 0));
+    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => {
+      const grossAmount = Number(item.quantity) * Number(item.unitPrice);
+      const discountAmount = (grossAmount * Number(item.discount)) / 100;
+      return sum + discountAmount;
+    }, 0));
     const totalTaxableValue = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0));
     const totalCGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0));
     const totalSGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0));
@@ -533,7 +540,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         contactDetails: client.contactDetails || '',
         paymentTerms: client.paymentTerms || '30 Days',
         referenceNumber: '',
-        poDate: '',
+        piDate: '',
         items: prev.items.map(item => {
           if (isSameState) {
             const totalGST = (item.cgstRate || 0) + (item.sgstRate || 0) + (item.igstRate || 0);
@@ -558,7 +565,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     setInvoiceData(prev => ({
       ...prev,
       referenceNumber: proforma.proformaNumber,
-      poDate: proforma.proformaDate ? new Date(proforma.proformaDate).toISOString().split('T')[0] : '',
+      piDate: proforma.proformaDate ? new Date(proforma.proformaDate).toISOString().split('T')[0] : '',
       items: proforma.items && proforma.items.length > 0 ? proforma.items.map(item => ({
         product: item.name || '',
         description: item.name || '',
@@ -683,6 +690,34 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    
+    // Calculate existing attachments size
+    const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    
+    // Calculate new files size
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Check total size
+    const totalSize = existingSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total attachment size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Validate file types
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      alert('Only PDF, JPG, JPEG, and PNG files are allowed.');
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
     const newAttachments = files.map(file => ({
       fileName: file.name,
       fileSize: file.size,
@@ -691,6 +726,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       uploadedAt: new Date()
     }));
     setAttachments(prev => [...prev, ...newAttachments]);
+    e.target.value = ''; // Reset file input for next upload
   };
 
   const removeAttachment = (index) => {
@@ -733,12 +769,29 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       alert('Customer name is required');
       return;
     }
+    
+    // Validate customer exists in client master
+    const customerExists = clients.some(client => 
+      client.clientName.toLowerCase() === invoiceData.customerName.toLowerCase()
+    );
+    
+    if (!customerExists) {
+      alert('Customer not found in Client Master. Please select a valid customer from the dropdown or add them in Client Master first.');
+      return;
+    }
+    
     if (!invoiceData.customerAddress || !invoiceData.customerAddress.trim()) {
       alert('Customer address is required');
       return;
     }
     if (!invoiceData.placeOfSupply || !invoiceData.placeOfSupply.trim()) {
       alert('Place of supply is required');
+      return;
+    }
+    
+    // Validate attachment is required
+    if (!attachments || attachments.length === 0) {
+      alert('At least one attachment is required');
       return;
     }
     
@@ -1029,8 +1082,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           <label className="block text-sm font-medium text-gray-700 mb-1">PI Date</label>
           <input
             type="date"
-            value={invoiceData.poDate}
-            onChange={(e) => handleInputChange('poDate', e.target.value)}
+            value={invoiceData.piDate}
+            onChange={(e) => handleInputChange('piDate', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -1226,7 +1279,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>
@@ -1422,13 +1475,18 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
       {/* Attachments */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">Attachments *</label>
+          <span className="text-xs text-gray-500">
+            Total: {((attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
+          </span>
+        </div>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
           <div className="flex items-center justify-center">
             <label className="flex flex-col items-center cursor-pointer">
               <Upload className="w-8 h-8 text-gray-400 mb-2" />
               <span className="text-sm text-gray-600">Click to upload files</span>
-              <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
+              <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Total max 10MB)</span>
               <input
                 type="file"
                 multiple

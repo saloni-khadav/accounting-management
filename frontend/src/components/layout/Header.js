@@ -3,7 +3,7 @@ import { Search, Bell, User, ChevronDown } from 'lucide-react';
 
 const Header = ({ setActivePage, onLogout }) => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [companyName, setCompanyName] = useState('John Doe');
+  const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -71,7 +71,7 @@ const Header = ({ setActivePage, onLogout }) => {
         if (response.ok) {
           const result = await response.json();
           if (result.user) {
-            setCompanyName(result.user.companyName || result.user.fullName || 'John Doe');
+            setCompanyName(result.user.companyName || result.user.fullName || '');
             if (result.user.profile && result.user.profile.companyLogo) {
               setCompanyLogo(result.user.profile.companyLogo);
             }

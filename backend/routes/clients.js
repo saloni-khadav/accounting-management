@@ -69,6 +69,24 @@ router.post('/', upload.fields([
   { name: 'otherDocuments', maxCount: 10 }
 ]), async (req, res) => {
   try {
+    // Validate total size of otherDocuments
+    if (req.files && req.files.otherDocuments) {
+      const totalSize = req.files.otherDocuments.reduce((sum, file) => sum + file.size, 0);
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (totalSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        Object.values(req.files).flat().forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `Total other documents size (${(totalSize / (1024 * 1024)).toFixed(2)}MB) exceeds 10MB limit` 
+        });
+      }
+    }
+    
     const clientData = { ...req.body };
     
     // Parse gstNumbers if it's a string
@@ -126,6 +144,29 @@ router.put('/:id', upload.fields([
   { name: 'otherDocuments', maxCount: 10 }
 ]), async (req, res) => {
   try {
+    // Validate total size of otherDocuments (new + existing)
+    if (req.files && req.files.otherDocuments) {
+      const existingClient = await Client.findById(req.params.id);
+      const existingDocs = existingClient?.documents?.otherDocuments || [];
+      
+      // Calculate existing size (approximate - we don't store file sizes)
+      // For safety, we'll just check new files size
+      const newFilesSize = req.files.otherDocuments.reduce((sum, file) => sum + file.size, 0);
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (newFilesSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        Object.values(req.files).flat().forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `New documents size (${(newFilesSize / (1024 * 1024)).toFixed(2)}MB) exceeds 10MB limit` 
+        });
+      }
+    }
+    
     const clientData = { ...req.body };
     
     // Parse gstNumbers if it's a string

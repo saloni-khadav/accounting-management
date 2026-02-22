@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../utils/apiConfig';
 import { X, Save, FileText, Upload, Download, Plus } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import DocumentUpload from './DocumentUpload';
@@ -99,10 +100,9 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   }, [editingVendor]);
 
   const generateVendorCode = async () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       // First try to get existing vendors to calculate next code
-      const response = await fetch(`${baseUrl}/api/vendors`);
+      const response = await fetch(`${API_URL}/api/vendors');
       if (response.ok) {
         const vendors = await response.json();
         
@@ -263,9 +263,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     formDataUpload.append('document', file);
     formDataUpload.append('documentType', documentType);
 
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch(`${baseUrl}/api/ocr/extract`, {
+      const response = await fetch(`${API_URL}/api/ocr/extract', {
         method: 'POST',
         body: formDataUpload
       });
@@ -302,16 +301,10 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             const updatedGSTNumbers = [...formData.gstNumbers];
             if (gstIndex !== null) {
               updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
-              if (result.data.billingAddress) {
-                updatedGSTNumbers[gstIndex].billingAddress = result.data.billingAddress;
-              }
               updatedGSTNumbers[gstIndex].hasDocument = true;
             }
             updates.gstNumbers = updatedGSTNumbers;
             updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
-            if (updatedGSTNumbers[gstIndex]?.isDefault && result.data.billingAddress) {
-              updates.billingAddress = result.data.billingAddress;
-            }
             dataFound = true;
           }
         }
@@ -409,8 +402,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
-      window.open(`${baseUrl}/api/vendors/download/${file}`, '_blank');
+      // Handle existing uploaded files (file paths)
+      window.open(`${API_URL}/api/vendors/download/${file}`, '_blank');
     }
   };
 
@@ -426,7 +419,6 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
     
     try {
@@ -467,8 +459,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingVendor 
-        ? `${baseUrl}/api/vendors/${editingVendor._id}`
-        : `${baseUrl}/api/vendors`;
+        ? `${API_URL}/api/vendors/${editingVendor._id}`
+        : `${API_URL}/api/vendors';
       const method = editingVendor ? 'PUT' : 'POST';
       
       const response = await fetch(url, {

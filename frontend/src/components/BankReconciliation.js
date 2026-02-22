@@ -8,6 +8,7 @@ const BankReconciliation = () => {
   const [loading, setLoading] = useState(false);
   const [editingNarration, setEditingNarration] = useState(null);
   const [editingRemarks, setEditingRemarks] = useState(null);
+  const [editingStatus, setEditingStatus] = useState(null);
   const [selectedBank, setSelectedBank] = useState('All Banks');
   const [selectedPeriod, setSelectedPeriod] = useState('All Time');
 
@@ -31,7 +32,8 @@ const BankReconciliation = () => {
     setEditingNarration(null);
     
     try {
-      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +63,8 @@ const BankReconciliation = () => {
     setTransactions(updatedTransactions);
     
     try {
-      await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation/update', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,6 +76,39 @@ const BankReconciliation = () => {
       });
     } catch (error) {
       console.error('Error saving remarks:', error);
+    }
+  };
+
+  const handleStatusChange = async (index, value) => {
+    const transaction = filteredTransactions[index];
+    const updatedFiltered = [...filteredTransactions];
+    updatedFiltered[index].status = value;
+    setFilteredTransactions(updatedFiltered);
+    
+    const originalIndex = transactions.findIndex(t => 
+      (t.type === 'collection' ? t.collectionId : t.paymentId) === 
+      (transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId)
+    );
+    const updatedTransactions = [...transactions];
+    updatedTransactions[originalIndex].status = value;
+    setTransactions(updatedTransactions);
+    setEditingStatus(null);
+    
+    try {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      await fetch(`${baseUrl}/api/bank-reconciliation/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: transaction.type === 'collection' ? transaction.collectionId : transaction.paymentId,
+          transactionType: transaction.type,
+          narration: transaction.selectedNarration || '',
+          remarks: transaction.remarks,
+          status: value
+        })
+      });
+    } catch (error) {
+      console.error('Error saving status:', error);
     }
   };
 
@@ -109,7 +145,8 @@ const BankReconciliation = () => {
 
   const loadSavedReconciliations = async (transactions) => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bank-reconciliation');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/bank-reconciliation`);
       const savedData = await response.json();
       
       return transactions.map(t => {
@@ -120,7 +157,8 @@ const BankReconciliation = () => {
         return {
           ...t,
           selectedNarration: saved?.narration || '',
-          remarks: saved?.remarks || t.remarks
+          remarks: saved?.remarks || t.remarks,
+          status: saved?.status || t.status
         };
       });
     } catch (error) {
@@ -298,8 +336,8 @@ const BankReconciliation = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
-                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Bank</th>
                   <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Book</th>
+                  <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Bank</th>
                   <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider">Party</th>
                   <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Narration</th>
                   <th className="text-left py-3.5 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider w-48">Remarks</th>
@@ -331,9 +369,16 @@ const BankReconciliation = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${t.status === 'matched' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {t.status === 'matched' ? 'Matched' : 'Unmatched'}
-                      </span>
+                      {editingStatus === i ? (
+                        <select value={t.status} onChange={(e) => handleStatusChange(i, e.target.value)} onBlur={() => setEditingStatus(null)} autoFocus className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white shadow-sm">
+                          <option value="matched">Matched</option>
+                          <option value="unmatched">Unmatched</option>
+                        </select>
+                      ) : (
+                        <span onClick={() => setEditingStatus(i)} className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold cursor-pointer ${t.status === 'matched' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {t.status === 'matched' ? 'Matched' : 'Unmatched'}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

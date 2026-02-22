@@ -55,6 +55,7 @@ const userSchema = new mongoose.Schema({
     tradeName: String,
     address: String,
     panNumber: String,
+    tanNumber: String,
     mcaNumber: String,
     msmeStatus: { type: String, default: 'No' },
     msmeNumber: String,

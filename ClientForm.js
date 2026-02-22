@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
+import { API_URL } from '../utils/apiConfig';
 import { X, Save, FileText, Upload, Download, Plus } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
-import DocumentUpload from './DocumentUpload';
 
-const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
+const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   const [formData, setFormData] = useState({
-    vendorCode: '',
-    vendorName: '',
+    clientCode: '',
+    clientName: '',
     contactPerson: '',
     contactDetails: '',
     email: '',
@@ -21,7 +21,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     ifscCode: '',
     bankName: '',
     industryType: '',
-    vendorCategory: '',
+    clientCategory: '',
     contractDates: '',
     contractStartDate: '',
     contractEndDate: '',
@@ -47,81 +47,96 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   React.useEffect(() => {
     try {
-      if (editingVendor) {
-        console.log('Loading vendor for editing:', editingVendor);
+      if (editingClient) {
+        console.log('Loading client for editing:', editingClient);
+        console.log('Client gstNumbers:', editingClient.gstNumbers);
+        console.log('Client documents:', editingClient.documents);
+        
         setFormData({
-          vendorCode: editingVendor.vendorCode || '',
-          vendorName: editingVendor.vendorName || '',
-          contactPerson: editingVendor.contactPerson || '',
-          contactDetails: editingVendor.contactDetails || '',
-          email: editingVendor.email || '',
-          website: editingVendor.website || '',
-          billingAddress: editingVendor.billingAddress || '',
-          gstNumber: editingVendor.gstNumber || '',
-          gstNumbers: editingVendor.gstNumbers && editingVendor.gstNumbers.length > 0 
-            ? editingVendor.gstNumbers.map(gst => ({ ...gst, billingAddress: gst.billingAddress || '', hasDocument: !!editingVendor.documents?.gstCertificate, isExisting: !!gst.gstNumber }))
-            : editingVendor.gstNumber 
-              ? [{ gstNumber: editingVendor.gstNumber, billingAddress: editingVendor.billingAddress || '', isDefault: true, hasDocument: !!editingVendor.documents?.gstCertificate, isExisting: !!editingVendor.gstNumber }]
+          clientCode: editingClient.clientCode || '',
+          clientName: editingClient.clientName || '',
+          contactPerson: editingClient.contactPerson || '',
+          contactDetails: editingClient.contactDetails || '',
+          email: editingClient.email || '',
+          website: editingClient.website || '',
+          billingAddress: editingClient.billingAddress || '',
+          gstNumber: editingClient.gstNumber || '',
+          gstNumbers: editingClient.gstNumbers && editingClient.gstNumbers.length > 0 
+            ? editingClient.gstNumbers.map(gst => ({ 
+                ...gst, 
+                billingAddress: gst.billingAddress || '', 
+                hasDocument: !!editingClient.documents?.gstCertificate, 
+                isExisting: !!gst.gstNumber 
+              }))
+            : editingClient.gstNumber 
+              ? [{ 
+                  gstNumber: editingClient.gstNumber, 
+                  billingAddress: editingClient.billingAddress || '', 
+                  isDefault: true, 
+                  hasDocument: !!editingClient.documents?.gstCertificate, 
+                  isExisting: !!editingClient.gstNumber 
+                }]
               : [{ gstNumber: '', billingAddress: '', isDefault: true, hasDocument: false, isExisting: false }],
-          panNumber: editingVendor.panNumber || '',
-          paymentTerms: editingVendor.paymentTerms || '',
-          creditLimit: editingVendor.creditLimit || '',
-          accountNumber: editingVendor.accountNumber || editingVendor.bankDetails || '',
-          ifscCode: editingVendor.ifscCode || '',
-          bankName: editingVendor.bankName || '',
-          industryType: editingVendor.industryType || '',
-          vendorCategory: editingVendor.vendorCategory || editingVendor.clientCategory || '',
-          contractDates: editingVendor.contractDates || '',
-          contractStartDate: editingVendor.contractStartDate ? 
-            (editingVendor.contractStartDate.split('T')[0] || editingVendor.contractStartDate) : '',
-          contractEndDate: editingVendor.contractEndDate ? 
-            (editingVendor.contractEndDate.split('T')[0] || editingVendor.contractEndDate) : '',
-          currency: editingVendor.currency || 'INR',
-          status: editingVendor.status || 'Active',
-          accountManager: editingVendor.accountManager || '',
-          aadharNumber: editingVendor.aadharNumber || '',
-          documents: editingVendor.documents || {
-            panCard: null,
-            aadharCard: null,
-            gstCertificate: null,
-            bankStatement: null,
-            otherDocuments: []
+          panNumber: editingClient.panNumber || '',
+          paymentTerms: editingClient.paymentTerms || '',
+          creditLimit: editingClient.creditLimit || '',
+          accountNumber: editingClient.accountNumber || editingClient.bankDetails || '',
+          ifscCode: editingClient.ifscCode || '',
+          bankName: editingClient.bankName || '',
+          industryType: editingClient.industryType || '',
+          clientCategory: editingClient.clientCategory || '',
+          contractDates: editingClient.contractDates || '',
+          contractStartDate: editingClient.contractStartDate ? 
+            (editingClient.contractStartDate.includes('T') ? editingClient.contractStartDate.split('T')[0] : editingClient.contractStartDate) : '',
+          contractEndDate: editingClient.contractEndDate ? 
+            (editingClient.contractEndDate.includes('T') ? editingClient.contractEndDate.split('T')[0] : editingClient.contractEndDate) : '',
+          currency: editingClient.currency || 'INR',
+          status: editingClient.status || 'Active',
+          accountManager: editingClient.accountManager || '',
+          aadharNumber: editingClient.aadharNumber || '',
+          documents: {
+            panCard: editingClient.documents?.panCard || null,
+            aadharCard: editingClient.documents?.aadharCard || null,
+            gstCertificate: editingClient.documents?.gstCertificate || null,
+            bankStatement: editingClient.documents?.bankStatement || null,
+            otherDocuments: editingClient.documents?.otherDocuments || []
           }
         });
+        
+        console.log('Form data set for editing client');
       } else {
-        // Generate vendor code for new vendor
-        generateVendorCode();
+        // Generate client code for new client
+        generateClientCode();
       }
     } catch (error) {
       console.error('Error in useEffect:', error);
-      alert('Error loading vendor data. Please try again.');
+      alert('Error loading client data. Please try again.');
     }
-  }, [editingVendor]);
+  }, [editingClient]);
 
-  const generateVendorCode = async () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  const generateClientCode = async () => {
     try {
-      // First try to get existing vendors to calculate next code
-      const response = await fetch(`${baseUrl}/api/vendors`);
+      // First try to get existing clients to calculate next code
+      const response = await fetch(`${API_URL}/api/clients');
       if (response.ok) {
-        const vendors = await response.json();
+        const clients = await response.json();
         
-        // Extract vendor codes and find the highest number
-        const vendorCodes = vendors
-          .map(vendor => vendor.vendorCode)
-          .filter(code => code && code.startsWith('VC'))
+        // Extract client codes and find the highest number
+        const clientCodes = clients
+          .map(client => client.clientCode)
+          .filter(code => code && code.startsWith('CC'))
           .map(code => {
             const num = parseInt(code.substring(2));
             return isNaN(num) ? 0 : num;
           });
         
-        const maxNumber = vendorCodes.length > 0 ? Math.max(...vendorCodes) : 0;
+        const maxNumber = clientCodes.length > 0 ? Math.max(...clientCodes) : 0;
         const nextNumber = maxNumber + 1;
-        const nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
+        const nextCode = `CC${nextNumber.toString().padStart(3, '0')}`;
         
         setFormData({
-          vendorCode: nextCode,
-          vendorName: '',
+          clientCode: nextCode,
+          clientName: '',
           contactPerson: '',
           contactDetails: '',
           email: '',
@@ -136,7 +151,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           ifscCode: '',
           bankName: '',
           industryType: '',
-          vendorCategory: '',
+          clientCategory: '',
           contractDates: '',
           contractStartDate: '',
           contractEndDate: '',
@@ -153,12 +168,12 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           }
         });
       } else {
-        throw new Error('Failed to fetch vendors');
+        throw new Error('Failed to fetch clients');
       }
     } catch (error) {
-      console.error('Error generating vendor code:', error);
-      // Fallback to VC001 if API fails
-      setFormData(prev => ({ ...prev, vendorCode: 'VC001' }));
+      console.error('Error generating client code:', error);
+      // Fallback to CC001 if API fails
+      setFormData(prev => ({ ...prev, clientCode: 'CC001' }));
     }
   };
 
@@ -263,9 +278,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     formDataUpload.append('document', file);
     formDataUpload.append('documentType', documentType);
 
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch(`${baseUrl}/api/ocr/extract`, {
+      const response = await fetch(`${API_URL}/api/ocr/extract', {
         method: 'POST',
         body: formDataUpload
       });
@@ -302,16 +316,10 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             const updatedGSTNumbers = [...formData.gstNumbers];
             if (gstIndex !== null) {
               updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
-              if (result.data.billingAddress) {
-                updatedGSTNumbers[gstIndex].billingAddress = result.data.billingAddress;
-              }
               updatedGSTNumbers[gstIndex].hasDocument = true;
             }
             updates.gstNumbers = updatedGSTNumbers;
             updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
-            if (updatedGSTNumbers[gstIndex]?.isDefault && result.data.billingAddress) {
-              updates.billingAddress = result.data.billingAddress;
-            }
             dataFound = true;
           }
         }
@@ -409,8 +417,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
-      window.open(`${baseUrl}/api/vendors/download/${file}`, '_blank');
+      // Handle existing uploaded files (file paths)
+      window.open(`${API_URL}/api/clients/download/${file}`, '_blank');
     }
   };
 
@@ -426,8 +434,30 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
+    
+    // Validate GST numbers
+    for (let i = 0; i < formData.gstNumbers.length; i++) {
+      const gst = formData.gstNumbers[i];
+      if (gst.gstNumber && gst.gstNumber.length !== 15) {
+        alert(`GST Number ${i + 1} must be exactly 15 characters. Current length: ${gst.gstNumber.length}`);
+        return;
+      }
+    }
+    
+    // Validate contact details (mobile number)
+    const digits = formData.contactDetails.replace(/[^0-9]/g, '');
+    if (digits.length !== 10) {
+      alert(`Contact Details must contain exactly 10 digits. Current: ${digits.length} digits`);
+      return;
+    }
+    
+    // Validate account number (9-18 digits)
+    const accountDigits = formData.accountNumber.replace(/[^0-9]/g, '');
+    if (formData.accountNumber !== accountDigits || accountDigits.length < 9 || accountDigits.length > 18) {
+      alert(`Account Number must contain only numbers and be between 9 to 18 digits. Current: ${accountDigits.length} digits`);
+      return;
+    }
     
     try {
       const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);
@@ -466,10 +496,10 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
-      const url = editingVendor 
-        ? `${baseUrl}/api/vendors/${editingVendor._id}`
-        : `${baseUrl}/api/vendors`;
-      const method = editingVendor ? 'PUT' : 'POST';
+      const url = editingClient 
+        ? `${API_URL}/api/clients/${editingClient._id}`
+        : `${API_URL}/api/clients';
+      const method = editingClient ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
         method,
@@ -477,16 +507,16 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       });
       
       if (response.ok) {
-        const savedVendor = await response.json();
-        onSave(savedVendor);
+        const savedClient = await response.json();
+        onSave(savedClient);
         onClose();
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Error saving vendor');
+        alert(errorData.message || 'Error saving client');
       }
     } catch (error) {
-      console.error('Error saving vendor:', error);
-      alert('Error saving vendor');
+      console.error('Error saving client:', error);
+      alert('Error saving client');
     }
   };
 
@@ -496,7 +526,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold">{editingVendor ? 'Edit Vendor' : 'Add New Vendor'}</h2>
+          <h2 className="text-xl font-bold">{editingClient ? 'Edit Client' : 'Add New Client'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
@@ -506,12 +536,12 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Code *
+                Client Code *
               </label>
               <input
                 type="text"
-                name="vendorCode"
-                value={formData.vendorCode}
+                name="clientCode"
+                value={formData.clientCode}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 readOnly
                 required
@@ -520,17 +550,17 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Name / Company Name *
+                Client Name / Company Name *
               </label>
               <input
                 type="text"
-                name="vendorName"
-                value={formData.vendorName}
+                name="clientName"
+                value={formData.clientName}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  editingVendor ? 'bg-gray-100 cursor-not-allowed' : ''
+                  editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
-                readOnly={editingVendor}
+                readOnly={editingClient}
                 required
               />
             </div>
@@ -726,9 +756,9 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                   pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
                   placeholder="10 characters PAN number"
                   className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    editingVendor ? 'bg-gray-100 cursor-not-allowed' : ''
+                    editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
                   }`}
-                  readOnly={editingVendor}
+                  readOnly={editingClient}
                   required
                 />
                 <div className="flex items-center">
@@ -741,12 +771,12 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                     }}
                     className="hidden"
                     id="panFile"
-                    disabled={editingVendor}
+                    disabled={editingClient}
                   />
                   <label
                     htmlFor="panFile"
                     className={`px-3 py-2 border border-gray-300 rounded-lg text-sm flex items-center ${
-                      editingVendor
+                      editingClient
                         ? 'bg-gray-200 cursor-not-allowed text-gray-500' 
                         : 'bg-gray-100 cursor-pointer hover:bg-gray-200'
                     }`}
@@ -758,7 +788,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                     )}
                     Upload
                   </label>
-                  {(formData.documents.panCard || editingVendor?.documents?.panCard) && (
+                  {(formData.documents.panCard || editingClient?.documents?.panCard) && (
                     <span className="ml-2 text-green-600 text-sm">✓</span>
                   )}
                 </div>
@@ -904,11 +934,11 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Category *
+                Client Category *
               </label>
               <select
-                name="vendorCategory"
-                value={formData.vendorCategory}
+                name="clientCategory"
+                value={formData.clientCategory}
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
@@ -1113,7 +1143,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
             >
               <Save className="w-4 h-4 mr-2" />
-              {editingVendor ? 'Update Vendor' : 'Save Vendor'}
+              {editingClient ? 'Update Client' : 'Save Client'}
             </button>
           </div>
         </form>
@@ -1122,4 +1152,4 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   );
 };
 
-export default VendorForm;
+export default ClientForm;
