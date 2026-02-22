@@ -396,11 +396,13 @@ const receivablesColumns = [
     <div className="min-h-screen bg-gray-50">
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
-            Dashboard Overview
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">Welcome back! Here's what's happening with your business today.</p>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-xl">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">
+              Dashboard Overview
+            </h1>
+            <p className="text-blue-100 text-sm sm:text-base">Welcome back! Here's what's happening with your business today.</p>
+          </div>
         </div>
 
         {/* Metrics Grid */}

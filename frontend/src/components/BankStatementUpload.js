@@ -209,10 +209,12 @@ const BankStatementUpload = () => {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
-            Bank Statement Upload
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">Upload and manage your bank statements</p>
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">
+              Bank Statement Upload
+            </h1>
+            <p className="text-white text-sm sm:text-base">Upload and manage your bank statements</p>
+          </div>
         </div>
 
         {/* Upload Section */}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search, DollarSign, CheckCircle, FileText, TrendingDown, AlertCircle } from 'lucide-react';
+import MetricsCard from './ui/MetricsCard';
 
 const ARReconciliation = () => {
   const [invoices, setInvoices] = useState([]);
@@ -136,26 +137,46 @@ const ARReconciliation = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Receivable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{totalReceivable.toLocaleString('en-IN')}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 mb-8">
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Total Receivable"
+            value={`₹${totalReceivable.toLocaleString('en-IN')}`}
+            icon={DollarSign}
+            color="primary"
+          />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Total Collected</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{totalCollected.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Total Collected"
+            value={`₹${totalCollected.toLocaleString('en-IN')}`}
+            icon={CheckCircle}
+            color="success"
+          />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Credit Notes</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{creditNotesAmount.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Credit Notes"
+            value={`₹${creditNotesAmount.toLocaleString('en-IN')}`}
+            icon={FileText}
+            color="warning"
+          />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Adjusted Receivable</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{adjustedReceivable.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Adjusted Receivable"
+            value={`₹${adjustedReceivable.toLocaleString('en-IN')}`}
+            icon={TrendingDown}
+            color="primary"
+          />
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Unreconciled</h3>
-          <p className="text-2xl font-bold text-gray-900">₹{Math.abs(unreconciled).toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Unreconciled"
+            value={`₹${Math.abs(unreconciled).toLocaleString('en-IN')}`}
+            icon={AlertCircle}
+            color="danger"
+          />
         </div>
       </div>
 
