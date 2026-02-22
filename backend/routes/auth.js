@@ -201,7 +201,7 @@ router.get('/me', auth, async (req, res) => {
 // Save profile data
 router.post('/profile', auth, async (req, res) => {
   try {
-    const { companyLogo, gstNumber, tradeName, address, panNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
+    const { companyLogo, gstNumber, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
     
     const currentUser = await User.findById(req.user._id);
     
@@ -214,6 +214,7 @@ router.post('/profile', auth, async (req, res) => {
     if (tradeName) currentUser.profile.tradeName = tradeName;
     if (address) currentUser.profile.address = address;
     if (panNumber) currentUser.profile.panNumber = panNumber;
+    if (tanNumber) currentUser.profile.tanNumber = tanNumber;
     if (mcaNumber) currentUser.profile.mcaNumber = mcaNumber;
     if (msmeStatus) currentUser.profile.msmeStatus = msmeStatus;
     if (msmeNumber) currentUser.profile.msmeNumber = msmeNumber;

@@ -143,27 +143,51 @@ const performOCR = async (fileBuffer, mimeType, fileName) => {
 // Regex patterns for extraction
 const patterns = {
   pan: /\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b/g,
+  tan: /\b[A-Z]{4}[0-9]{5}[A-Z]{1}\b/g,
   gst: /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b/g,
   mca: /\b[A-Z]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}\b/g,
-  accountNumber: /(?:Account\s*(?:No|Number)|A\/C\s*(?:No|Number)|Acc\s*No)\s*:?\s*(\d{9,18})\b/gi,
+  accountNumber: /(?:Account\s*(?:No|Number|#)|A\/C\s*(?:No|Number|#)|Acc\s*(?:No|Number|#)|Acct\s*(?:No|Number|#)|Bank\s*Account\s*(?:No|Number|#)|Savings\s*Account\s*(?:No|Number|#)|Current\s*Account\s*(?:No|Number|#))\s*:?\s*[:-]?\s*(\d{9,18})\b/gi,
   ifsc: /\b[A-Z]{4}0[A-Z0-9]{6}\b/gi,
   aadhar: /\b\d{4}\s?\d{4}\s?\d{4}\b/g,
-  bankName: /(HDFC|ICICI|SBI|AXIS|KOTAK|PNB|BOB|CANARA|UNION|INDIAN)\s*BANK/gi
+  bankName: /(HDFC|ICICI|SBI|AXIS|KOTAK|PNB|BOB|CANARA|UNION|INDIAN|BANK OF BARODA|BANK OF INDIA|PUNJAB NATIONAL|STATE BANK)\s*BANK/gi
 };
 
 // Extract data using regex
 const extractData = (text, documentType) => {
   const panMatches = text.match(patterns.pan) || [];
+  const tanMatches = text.match(patterns.tan) || [];
   const gstMatches = text.match(patterns.gst) || [];
   const mcaMatches = text.match(patterns.mca) || [];
   
   // Extract account number with context - avoid customer numbers
   const accountMatches = text.match(patterns.accountNumber) || [];
   let accountNumber = '';
+  
   if (accountMatches.length > 0) {
     // Extract just the number part from the match
     const match = accountMatches[0].match(/(\d{9,18})/);
     accountNumber = match ? match[1] : '';
+  }
+  
+  // If no match with keywords, try standalone number patterns (fallback)
+  if (!accountNumber && documentType === 'bankStatement') {
+    // Look for standalone account numbers (9-18 digits)
+    const standalonePattern = /\b(\d{9,18})\b/g;
+    const allNumbers = text.match(standalonePattern) || [];
+    
+    // Filter out common false positives
+    for (const num of allNumbers) {
+      const numStr = num.trim();
+      // Skip if it looks like phone number (10 digits starting with 6-9)
+      if (numStr.length === 10 && /^[6-9]/.test(numStr)) continue;
+      // Skip if it looks like amount (has decimal context)
+      if (text.includes(`${numStr}.00`) || text.includes(`${numStr}.`)) continue;
+      // Use first valid number
+      if (numStr.length >= 9 && numStr.length <= 18) {
+        accountNumber = numStr;
+        break;
+      }
+    }
   }
   
   const ifscMatches = text.match(patterns.ifsc) || [];
@@ -175,72 +199,47 @@ const extractData = (text, documentType) => {
   // Extract address for GST certificate
   let billingAddress = '';
   if (documentType === 'gstCertificate' && gstMatches.length > 0) {
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    let addressStartIndex = -1;
+    // Method 1: Try structured format with labels (Building No, Road, City, State, PIN)
+    const buildingMatch = text.match(/(?:Building No|Flat No|Plot)[^:]*:\s*([^\n]+)/i);
+    const roadMatch = text.match(/(?:Road|Street)[^:]*:\s*([^\n]+)/i);
+    const localityMatch = text.match(/(?:Locality|Sub Locality)[^:]*:\s*([^\n]+)/i);
+    const cityMatch = text.match(/(?:City|Town|Village)[^:]*:\s*([^\n]+)/i);
+    const districtMatch = text.match(/District[^:]*:\s*([^\n]+)/i);
+    const stateMatch = text.match(/State[^:]*:\s*([^\n]+)/i);
+    const pinMatch = text.match(/PIN Code[^:]*:\s*(\d{6})/i);
     
-    // Multiple address keywords to handle different formats
-    const addressKeywords = [
-      /Address of Principal Place.*Building/i,
-      /Principal Place of Business.*Building/i,
-      /Registered Office.*Building/i,
-      /Business Address.*Building/i,
-      /Address of Principal Place of Business/i,
-      /Principal Place of Business/i,
-      /Registered Office Address/i,
-      /Business Address/i,
-      /Office Address/i
-    ];
-    
-    // Try to find address section
-    for (let i = 0; i < lines.length; i++) {
-      for (const keyword of addressKeywords) {
-        if (lines[i].match(keyword)) {
-          addressStartIndex = i;
-          break;
-        }
-      }
-      if (addressStartIndex !== -1) break;
+    if (buildingMatch || cityMatch || pinMatch) {
+      const parts = [];
+      if (buildingMatch) parts.push(buildingMatch[1].trim());
+      if (roadMatch) parts.push(roadMatch[1].trim());
+      if (localityMatch) parts.push(localityMatch[1].trim());
+      if (cityMatch) parts.push(cityMatch[1].trim());
+      if (districtMatch) parts.push(districtMatch[1].trim());
+      if (stateMatch) parts.push(stateMatch[1].trim());
+      if (pinMatch) parts.push(pinMatch[1].trim());
+      
+      billingAddress = parts.join(', ');
+      console.log('Address extracted (structured format):', billingAddress);
     }
     
-    if (addressStartIndex !== -1) {
-      const addressParts = [];
-      
-      // Extract Building No from same line if present
-      if (lines[addressStartIndex].match(/Building/i)) {
-        const match = lines[addressStartIndex].match(/Building.*?:\s*(.+)/i);
-        if (match && match[1]) {
-          addressParts.push('Building No./Flat No.: ' + match[1]);
-        }
-        addressStartIndex++;
+    // Method 2: If structured format not found, try simple pattern (street, city, state, PIN)
+    if (!billingAddress) {
+      const simpleMatch = text.match(/([A-Z0-9][^\n]{10,200}[,\s]+[A-Za-z]+[,\s]+[A-Za-z]+[,\s]*\n?\s*\d{6})/i);
+      if (simpleMatch) {
+        billingAddress = simpleMatch[1]
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        console.log('Address extracted (simple format):', billingAddress);
+      } else {
+        console.log('Address pattern not found');
       }
-      
-      // Extract remaining address lines
-      for (let i = addressStartIndex; i < Math.min(addressStartIndex + 25, lines.length); i++) {
-        const line = lines[i];
-        
-        // Stop conditions - next section indicators
-        if (line.match(/^(6\.|7\.|Date of Liability|Period of Validity|Nature of Business|Type of Registration|Gods and Serves|Signature)/i)) break;
-        
-        // Skip standalone section labels
-        if (line.match(/^(Business|Constitution|Address|Principal|Registered|Office)$/i)) continue;
-        
-        // Add valid address lines
-        if (line.length > 0) {
-          addressParts.push(line);
-        }
-        
-        // IMMEDIATELY stop after PIN Code - don't process any more lines
-        if (line.match(/PIN Code.*\d{6}/i) || line.match(/Pincode.*\d{6}/i) || line.match(/Pin.*\d{6}/i)) {
-          break; // Stop immediately, don't read next line
-        }
-      }
-      
-      billingAddress = addressParts.join(', ');
     }
   }
 
   return {
     panNumber: panMatches[0] || '',
+    tanNumber: tanMatches[0] || '',
     gstNumber: gstMatches[0] || '',
     billingAddress: billingAddress,
     mcaNumber: mcaMatches[0] || '',
@@ -315,11 +314,44 @@ router.post('/extract', upload.single('document'), async (req, res) => {
       }
     }
     
+    // Force extract TAN number for TAN certificates with multiple patterns
+    if (documentType === 'tanCertificate') {
+      console.log('Processing TAN certificate...');
+      console.log('Raw text sample:', rawText.substring(0, 500));
+      
+      // Try multiple TAN patterns
+      const tanPatterns = [
+        /TAN\s*:?\s*([A-Z]{4}[0-9]{5}[A-Z])/gi,
+        /Tax\s+Deduction\s+(?:and\s+)?Collection\s+Account\s+Number\s*:?\s*([A-Z]{4}[0-9]{5}[A-Z])/gi,
+        /Account\s+Number\s*:?\s*([A-Z]{4}[0-9]{5}[A-Z])/gi,
+        /\b([A-Z]{4}[0-9]{5}[A-Z])\b/g
+      ];
+      
+      for (const pattern of tanPatterns) {
+        const matches = rawText.match(pattern);
+        if (matches) {
+          console.log('TAN pattern matched:', pattern, matches);
+          // Extract just the TAN number from the match
+          const tanMatch = matches[0].match(/[A-Z]{4}[0-9]{5}[A-Z]/);
+          if (tanMatch) {
+            extractedData.tanNumber = tanMatch[0];
+            console.log('TAN number extracted:', tanMatch[0]);
+            break;
+          }
+        }
+      }
+      
+      if (!extractedData.tanNumber) {
+        console.log('No TAN match found with any pattern');
+      }
+    }
+    
     console.log('Extracted data:', extractedData);
     
     // Check if relevant data was found based on document type
     let hasRelevantData = false;
     if (documentType === 'panCard' && extractedData.panNumber) hasRelevantData = true;
+    if (documentType === 'tanCertificate' && extractedData.tanNumber) hasRelevantData = true;
     if (documentType === 'gstCertificate' && extractedData.gstNumber) hasRelevantData = true;
     if (documentType === 'mcaCertificate' && extractedData.mcaNumber) hasRelevantData = true;
     if (documentType === 'msmeCertificate' && extractedData.msmeNumber) hasRelevantData = true;

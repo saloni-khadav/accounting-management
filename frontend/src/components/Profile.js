@@ -3,6 +3,8 @@ import { Upload, Building, Save, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { validateGST } from '../utils/gstUtils';
 
 const Profile = () => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  
   const [profileData, setProfileData] = useState({
     companyLogo: null,
     companyLogoUrl: null,
@@ -11,6 +13,7 @@ const Profile = () => {
     tradeName: '',
     address: '',
     panNumber: '',
+    tanNumber: '',
     mcaNumber: '',
     msmeStatus: 'No',
     msmeNumber: '',
@@ -19,8 +22,12 @@ const Profile = () => {
   });
 
   const [showPanFull, setShowPanFull] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [uploadStates, setUploadStates] = useState({});
+  const [uploadStates, setUploadStates] = useState({
+    gst: false,
+    mca: false,
+    msme: false,
+    tan: false
+  });
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -28,19 +35,20 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/me`, {
+        const response = await fetch(`${baseUrl}/api/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const result = await response.json();
-          if (result.user && result.user.profile) {
-            const profile = result.user.profile;
+          if (result.profile && Object.keys(result.profile).length > 0) {
+            const profile = result.profile;
             setProfileData(prev => ({
               ...prev,
               gstNumber: profile.gstNumber || '',
               tradeName: profile.tradeName || '',
               panNumber: profile.panNumber || '',
+              tanNumber: profile.tanNumber || '',
               address: profile.address || '',
               mcaNumber: profile.mcaNumber || '',
               msmeStatus: profile.msmeStatus || 'No',
@@ -70,20 +78,21 @@ const Profile = () => {
     if (field === 'gstCertificate' && file) await processGSTDocument(file);
     if (field === 'mcaFile' && file) await extractMCANumber(file);
     if (field === 'msmeFile' && file) await extractMSMENumber(file);
+    if (field === 'tanFile' && file) await extractTANNumber(file);
   };
 
   const processGSTDocument = async (file) => {
-    setIsProcessing(true);
+    setUploadStates(prev => ({ ...prev, gst: true }));
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'gstCertificate');
-      const ocrResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', { method: 'POST', body: formData });
+      const ocrResponse = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const ocrResult = await ocrResponse.json();
       if (ocrResponse.ok && ocrResult.success && ocrResult.data.gstNumber) {
         const extractedGST = ocrResult.data.gstNumber;
         const token = localStorage.getItem('token');
-        const verifyResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/gst/verify', {
+        const verifyResponse = await fetch(`${baseUrl}/api/gst/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ gstNumber: extractedGST })
@@ -103,45 +112,73 @@ const Profile = () => {
     } catch (error) {
       alert('Error processing GST document.');
     } finally {
-      setIsProcessing(false);
+      setUploadStates(prev => ({ ...prev, gst: false }));
     }
   };
 
   const extractMCANumber = async (file) => {
-    setIsProcessing(true);
+    setUploadStates(prev => ({ ...prev, mca: true }));
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'mcaCertificate');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', { method: 'POST', body: formData });
+      const response = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const result = await response.json();
+      
       if (response.ok && result.success && result.data.mcaNumber) {
         setProfileData(prev => ({ ...prev, mcaNumber: result.data.mcaNumber }));
         alert(`MCA number extracted: ${result.data.mcaNumber}`);
+      } else {
+        alert('MCA number not found in this document. Please upload the correct MCA certificate.');
       }
     } catch (error) {
-      alert('Error processing MCA document.');
+      alert('Error processing MCA document. Please try again.');
     } finally {
-      setIsProcessing(false);
+      setUploadStates(prev => ({ ...prev, mca: false }));
     }
   };
 
   const extractMSMENumber = async (file) => {
-    setIsProcessing(true);
+    setUploadStates(prev => ({ ...prev, msme: true }));
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'msmeCertificate');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', { method: 'POST', body: formData });
+      const response = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const result = await response.json();
+      
       if (response.ok && result.success && result.data.msmeNumber) {
         setProfileData(prev => ({ ...prev, msmeNumber: result.data.msmeNumber, msmeStatus: 'Yes' }));
         alert(`MSME number extracted: ${result.data.msmeNumber}`);
+      } else {
+        alert('MSME number not found in this document. Please upload the correct MSME certificate.');
       }
     } catch (error) {
-      alert('Error processing MSME document.');
+      alert('Error processing MSME document. Please try again.');
     } finally {
-      setIsProcessing(false);
+      setUploadStates(prev => ({ ...prev, msme: false }));
+    }
+  };
+
+  const extractTANNumber = async (file) => {
+    setUploadStates(prev => ({ ...prev, tan: true }));
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('documentType', 'tanCertificate');
+      const response = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
+      const result = await response.json();
+      
+      if (response.ok && result.success && result.data.tanNumber) {
+        setProfileData(prev => ({ ...prev, tanNumber: result.data.tanNumber }));
+        alert(`TAN number extracted: ${result.data.tanNumber}`);
+      } else {
+        alert('TAN number not found in this document. Please upload the correct TAN certificate.');
+      }
+    } catch (error) {
+      alert('Error processing TAN document. Please try again.');
+    } finally {
+      setUploadStates(prev => ({ ...prev, tan: false }));
     }
   };
 
@@ -151,7 +188,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'bankStatement');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/ocr/extract', { method: 'POST', body: formData });
+      const response = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const result = await response.json();
       
       console.log('OCR Response:', result);
@@ -203,10 +240,10 @@ const Profile = () => {
   const fetchGSTDetails = async (gstNumber = profileData.gstNumber) => {
     const validation = validateGST(gstNumber);
     if (!validation.isValid) return;
-    setIsProcessing(true);
+    setUploadStates(prev => ({ ...prev, gst: true }));
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/gst/verify', {
+      const response = await fetch(`${baseUrl}/api/gst/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ gstNumber: validation.cleanGST })
@@ -219,7 +256,7 @@ const Profile = () => {
     } catch (error) {
       console.error('GST API Error:', error);
     } finally {
-      setIsProcessing(false);
+      setUploadStates(prev => ({ ...prev, gst: false }));
     }
   };
 
@@ -240,7 +277,7 @@ const Profile = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/profile/bank/${index}`, {
+      const response = await fetch(`${baseUrl}/api/profile/bank/${index}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -304,7 +341,7 @@ const Profile = () => {
           reader.readAsDataURL(profileData.companyLogo);
         });
       }
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in'}/api/auth/profile`, {
+      const response = await fetch(`${baseUrl}/api/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -313,6 +350,7 @@ const Profile = () => {
           tradeName: profileData.tradeName,
           address: profileData.address,
           panNumber: profileData.panNumber,
+          tanNumber: profileData.tanNumber,
           mcaNumber: profileData.mcaNumber,
           msmeStatus: profileData.msmeStatus,
           msmeNumber: profileData.msmeNumber,
@@ -383,10 +421,10 @@ const Profile = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
                   <input type="text" value={profileData.gstNumber} onChange={(e) => handleInputChange('gstNumber', e.target.value.toUpperCase())} maxLength="15" placeholder="Enter 15-digit GST Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
                 </div>
-                <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.gst ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <Upload className="w-4 h-4 mr-2" />
-                  {isProcessing ? 'Processing...' : 'Upload GST Certificate'}
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0])} className="hidden" disabled={isProcessing} />
+                  {uploadStates.gst ? 'Processing...' : 'Upload GST Certificate'}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0])} className="hidden" disabled={uploadStates.gst} />
                 </label>
                 {profileData.gstCertificate && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> Certificate uploaded</p>}
               </div>
@@ -414,6 +452,21 @@ const Profile = () => {
                   </div>
                 </div>
               </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">TAN Number</label>
+                  <input type="text" value={profileData.tanNumber} onChange={(e) => handleInputChange('tanNumber', e.target.value.toUpperCase())} maxLength="10" placeholder="Enter 10-character TAN Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                </div>
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">TAN Certificate</label>
+                  <label className={`cursor-pointer bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-purple-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.tan ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadStates.tan ? 'Processing...' : 'Upload TAN Certificate'}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('tanFile', e.target.files[0])} className="hidden" disabled={uploadStates.tan} />
+                  </label>
+                  {profileData.tanFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.tanFile.name}</p>}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -433,10 +486,10 @@ const Profile = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">MCA Number</label>
                     <input type="text" value={profileData.mcaNumber} onChange={(e) => handleInputChange('mcaNumber', e.target.value)} placeholder="Enter MCA Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
                   </div>
-                  <label className="cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md">
+                  <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.mca ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload MCA Certificate
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('mcaFile', e.target.files[0])} className="hidden" />
+                    {uploadStates.mca ? 'Processing...' : 'Upload MCA Certificate'}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('mcaFile', e.target.files[0])} className="hidden" disabled={uploadStates.mca} />
                   </label>
                   {profileData.mcaFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.mcaFile.name}</p>}
                 </div>
@@ -472,10 +525,10 @@ const Profile = () => {
                     </div>
                     <div className="space-y-3">
                       <label className="block text-sm font-medium text-gray-700">MSME Certificate</label>
-                      <label className={`cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      <label className={`cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.msme ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <Upload className="w-4 h-4 mr-2" />
-                        {isProcessing ? 'Processing...' : 'Upload Certificate'}
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])} className="hidden" disabled={isProcessing} />
+                        {uploadStates.msme ? 'Processing...' : 'Upload Certificate'}
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])} className="hidden" disabled={uploadStates.msme} />
                       </label>
                       {profileData.msmeFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.msmeFile.name}</p>}
                     </div>

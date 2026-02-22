@@ -155,24 +155,25 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
 
   // Fetch user profile data - runs for both new and edit
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        const response = await fetch(`${baseUrl}/api/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (response.ok) {
-          const userData = await response.json();
-          const profile = userData.user.profile || {};
+          const data = await response.json();
+          const profile = data.profile || {};
           
           setCreditNoteData(prev => ({
             ...prev,
-            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
+            supplierName: profile.tradeName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN
@@ -190,9 +191,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
 
   // Fetch clients data
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchClients = async () => {
       try {
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+        const response = await fetch(`${baseUrl}/api/clients`);
         if (response.ok) {
           const clientsData = await response.json();
           setClients(clientsData);
@@ -210,13 +212,14 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const calculateItemTotals = (item) => {
     const quantity = Math.max(0, Number(item.quantity) || 0);
     const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
-    const discount = Math.max(0, Number(item.discount) || 0);
+    const discountPercent = Math.max(0, Number(item.discount) || 0);
     const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
     const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
     const igstRate = Math.max(0, Number(item.igstRate) || 0);
     
     const grossAmount = quantity * unitPrice;
-    const taxableValue = Math.max(0, grossAmount - discount);
+    const discountAmount = (grossAmount * discountPercent) / 100;
+    const taxableValue = Math.max(0, grossAmount - discountAmount);
     const cgstAmount = Math.max(0, (taxableValue * cgstRate) / 100);
     const sgstAmount = Math.max(0, (taxableValue * sgstRate) / 100);
     const igstAmount = Math.max(0, (taxableValue * igstRate) / 100);
@@ -238,7 +241,11 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     const updatedItems = creditNoteData.items.map(calculateItemTotals);
     
     const subtotal = Math.max(0, updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0));
-    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.discount), 0));
+    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => {
+      const grossAmount = Number(item.quantity) * Number(item.unitPrice);
+      const discountAmount = (grossAmount * Number(item.discount)) / 100;
+      return sum + discountAmount;
+    }, 0));
     const totalTaxableValue = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0));
     const totalCGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0));
     const totalSGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0));
@@ -276,21 +283,22 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   const fetchInvoicesForClient = async (clientName) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/invoices');
+      const response = await fetch(`${baseUrl}/api/invoices`);
       if (response.ok) {
         const allInvoices = await response.json();
         
         // Fetch collections
-        const collectionsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/collections');
+        const collectionsResponse = await fetch(`${baseUrl}/api/collections`);
         let collections = [];
         if (collectionsResponse.ok) {
           collections = await collectionsResponse.json();
         }
         
         // Fetch credit notes
-        const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
+        const creditNotesResponse = await fetch(`${baseUrl}/api/credit-notes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         let creditNotes = [];
@@ -475,6 +483,17 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       alert('Customer name is required');
       return;
     }
+    
+    // Validate customer exists in client master
+    const customerExists = clients.some(client => 
+      client.clientName.toLowerCase() === creditNoteData.customerName.toLowerCase()
+    );
+    
+    if (!customerExists) {
+      alert('Customer not found in Client Master. Please select a valid customer from the dropdown or add them in Client Master first.');
+      return;
+    }
+    
     if (!creditNoteData.originalInvoiceNumber || !creditNoteData.originalInvoiceNumber.trim()) {
       alert('Original invoice number is required');
       return;
@@ -825,7 +844,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
-                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount</th>
+                <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Discount %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Taxable Value</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">CGST %</th>
                 <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">SGST %</th>

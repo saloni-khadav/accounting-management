@@ -73,6 +73,24 @@ router.get('/:id', async (req, res) => {
 // Create new invoice
 router.post('/', upload.array('attachments', 10), async (req, res) => {
   try {
+    // Validate total attachment size
+    if (req.files && req.files.length > 0) {
+      const totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (totalSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `Total attachment size (${(totalSize / (1024 * 1024)).toFixed(2)}MB) exceeds 10MB limit` 
+        });
+      }
+    }
+    
     const invoiceData = { ...req.body };
     
     // Parse JSON fields
@@ -133,6 +151,25 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
     
     // Handle file attachments
     if (req.files && req.files.length > 0) {
+      // Get existing invoice to check current attachment size
+      const existingInvoice = await Invoice.findById(req.params.id);
+      const existingSize = (existingInvoice.attachments || []).reduce((sum, att) => sum + (att.fileSize || 0), 0);
+      const newFilesSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      const totalSize = existingSize + newFilesSize;
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (totalSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `Total attachment size would be ${(totalSize / (1024 * 1024)).toFixed(2)}MB. Maximum 10MB allowed. Current: ${(existingSize / (1024 * 1024)).toFixed(2)}MB` 
+        });
+      }
+      
       const newAttachments = req.files.map(file => ({
         fileName: file.originalname,
         fileSize: file.size,
@@ -141,7 +178,6 @@ router.put('/:id', upload.array('attachments', 10), async (req, res) => {
       }));
       
       // Merge with existing attachments
-      const existingInvoice = await Invoice.findById(req.params.id);
       invoiceData.attachments = [...(existingInvoice.attachments || []), ...newAttachments];
     }
     

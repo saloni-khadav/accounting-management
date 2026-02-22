@@ -355,26 +355,34 @@ invoiceSchema.pre('save', function(next) {
     this.poDate = this.piDate;
   }
   
-  // Calculate item totals
-  this.items.forEach(item => {
-    item.taxableValue = (item.quantity * item.unitPrice) - item.discount;
-    item.cgstAmount = (item.taxableValue * item.cgstRate) / 100;
-    item.sgstAmount = (item.taxableValue * item.sgstRate) / 100;
-    item.igstAmount = (item.taxableValue * item.igstRate) / 100;
-    item.cessAmount = (item.taxableValue * item.cessRate) / 100;
-    item.totalAmount = item.taxableValue + item.cgstAmount + item.sgstAmount + item.igstAmount + item.cessAmount;
-  });
-  
-  // Calculate invoice totals
-  this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  this.totalDiscount = this.items.reduce((sum, item) => sum + item.discount, 0);
-  this.totalTaxableValue = this.items.reduce((sum, item) => sum + item.taxableValue, 0);
-  this.totalCGST = this.items.reduce((sum, item) => sum + item.cgstAmount, 0);
-  this.totalSGST = this.items.reduce((sum, item) => sum + item.sgstAmount, 0);
-  this.totalIGST = this.items.reduce((sum, item) => sum + item.igstAmount, 0);
-  this.totalCESS = this.items.reduce((sum, item) => sum + item.cessAmount, 0);
-  this.totalTax = this.totalCGST + this.totalSGST + this.totalIGST + this.totalCESS;
-  this.grandTotal = this.totalTaxableValue + this.totalTax;
+  // Only recalculate if items or relevant fields are modified
+  if (this.isModified('items') || this.isNew) {
+    // Calculate item totals
+    this.items.forEach(item => {
+      const grossAmount = item.quantity * item.unitPrice;
+      const discountAmount = (grossAmount * item.discount) / 100;
+      item.taxableValue = grossAmount - discountAmount;
+      item.cgstAmount = (item.taxableValue * item.cgstRate) / 100;
+      item.sgstAmount = (item.taxableValue * item.sgstRate) / 100;
+      item.igstAmount = (item.taxableValue * item.igstRate) / 100;
+      item.cessAmount = (item.taxableValue * item.cessRate) / 100;
+      item.totalAmount = item.taxableValue + item.cgstAmount + item.sgstAmount + item.igstAmount + item.cessAmount;
+    });
+    
+    // Calculate invoice totals
+    this.subtotal = this.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    this.totalDiscount = this.items.reduce((sum, item) => {
+      const grossAmount = item.quantity * item.unitPrice;
+      return sum + ((grossAmount * item.discount) / 100);
+    }, 0);
+    this.totalTaxableValue = this.items.reduce((sum, item) => sum + item.taxableValue, 0);
+    this.totalCGST = this.items.reduce((sum, item) => sum + item.cgstAmount, 0);
+    this.totalSGST = this.items.reduce((sum, item) => sum + item.sgstAmount, 0);
+    this.totalIGST = this.items.reduce((sum, item) => sum + item.igstAmount, 0);
+    this.totalCESS = this.items.reduce((sum, item) => sum + item.cessAmount, 0);
+    this.totalTax = this.totalCGST + this.totalSGST + this.totalIGST + this.totalCESS;
+    this.grandTotal = this.totalTaxableValue + this.totalTax;
+  }
   
   next();
 });

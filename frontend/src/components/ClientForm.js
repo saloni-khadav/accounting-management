@@ -410,6 +410,39 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
 
   const handleOtherDocumentUpload = (e) => {
     const files = Array.from(e.target.files);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    
+    // Calculate existing documents size
+    const existingSize = formData.documents.otherDocuments.reduce((sum, doc) => {
+      if (doc instanceof File) {
+        return sum + doc.size;
+      }
+      return sum;
+    }, 0);
+    
+    // Calculate new files size
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Check total size
+    const totalSize = existingSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total document size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Validate file types
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      alert('Only PDF, JPG, JPEG, PNG, DOC, and DOCX files are allowed.');
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
     setFormData({
       ...formData,
       documents: {
@@ -417,6 +450,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         otherDocuments: [...formData.documents.otherDocuments, ...files]
       }
     });
+    e.target.value = ''; // Reset file input for next upload
   };
 
   const downloadDocument = (file, index) => {
@@ -1107,9 +1141,14 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Other Documents
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Other Documents
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    Total: {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
+                  </span>
+                </div>
                 <input
                   type="file"
                   multiple

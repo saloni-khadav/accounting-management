@@ -6,6 +6,7 @@ const path = require('path');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth'); // Using MongoDB auth
+const profileRoutes = require('./routes/profile');
 const aiRoutes = require('./routes/ai');
 const clientRoutes = require('./routes/clients');
 const vendorRoutes = require('./routes/vendors');
@@ -45,6 +46,7 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/vendors', vendorRoutes);
