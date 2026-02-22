@@ -612,8 +612,10 @@ const AssetsEntry = () => {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">Assets Entry</h1>
-          <p className="text-gray-500 text-sm sm:text-base">Manage and track all your company assets</p>
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">Assets Entry</h1>
+            <p className="text-white text-sm sm:text-base">Manage and track all your company assets</p>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -829,20 +831,22 @@ const AssetsEntry = () => {
         {/* Add Asset Form Modal */}
         {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {editingAsset ? 'Edit Asset' : 'Add New Asset'}
-                </h2>
-                <button
-                  onClick={handleCloseForm}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[90vh] flex flex-col">
+            {/* Fixed Header */}
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 rounded-t-lg flex items-center justify-between flex-shrink-0">
+              <h2 className="text-2xl font-semibold text-white">
+                {editingAsset ? 'Edit Asset' : 'Add New Asset'}
+              </h2>
+              <button
+                onClick={handleCloseForm}
+                className="text-white hover:text-gray-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
 
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Information */}
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -1418,7 +1422,7 @@ const AssetsEntry = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                    className="px-6 py-2 bg-gradient-to-r from-blue-300 to-blue-400 text-white rounded-lg hover:from-blue-400 hover:to-blue-500 flex items-center"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {editingAsset ? 'Update Asset' : 'Save Asset'}

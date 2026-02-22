@@ -6,7 +6,7 @@
 
 
 *{
-   font-family: "Georgia, Times, ", Times New Roman, ", serif";
+   font-family: Georgia, 'Times New Roman', Times, serif;
 }
 
 @layer base {
@@ -15,7 +15,7 @@
   }
   
   body {
-    font-family: "Georgia, Times, ", Times New Roman, ", serif";
+    font-family: Georgia, 'Times New Roman', Times, serif;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

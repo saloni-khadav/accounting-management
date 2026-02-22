@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock, Upload, X, Paperclip, Eye } from 'lucide-react';
+import { Save, Download, Plus, Trash2, Calculator, FileText, ChevronDown, Bell, CheckCircle, Clock, Upload, X, Paperclip, Eye, Users } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { exportToExcel } from '../utils/excelExport';
 import { generateTaxInvoicePDF } from '../utils/pdfGenerator';
@@ -910,59 +910,64 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">{editingInvoice ? 'Edit Tax Invoice' : 'Tax Invoice'}</h1>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-          >
-            ×
-          </button>
+      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">{editingInvoice ? 'Edit Tax Invoice' : 'Create Tax Invoice'}</h1>
+            <button
+              onClick={handleClose}
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
         
-        <div className="p-6">
+        <div className="overflow-y-auto flex-1 p-6">
 
           {/* Supplier Details */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Supplier Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Legal Business Name *</label>
-            <input
-              type="text"
-              value={invoiceData.supplierName}
-              onChange={(e) => handleInputChange('supplierName', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN *</label>
-            <input
-              type="text"
-              value={invoiceData.supplierGSTIN}
-              onChange={(e) => handleInputChange('supplierGSTIN', e.target.value)}
-              maxLength="15"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">PAN *</label>
-            <input
-              type="text"
-              value={invoiceData.supplierPAN}
-              onChange={(e) => handleInputChange('supplierPAN', e.target.value)}
-              maxLength="10"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Place of Supply *</label>
-            <select
-              value={invoiceData.placeOfSupply}
-              onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
+              Supplier Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Legal Business Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={invoiceData.supplierName}
+                  onChange={(e) => handleInputChange('supplierName', e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">GSTIN <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={invoiceData.supplierGSTIN}
+                  onChange={(e) => handleInputChange('supplierGSTIN', e.target.value)}
+                  maxLength="15"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">PAN <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={invoiceData.supplierPAN}
+                  onChange={(e) => handleInputChange('supplierPAN', e.target.value)}
+                  maxLength="10"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Place of Supply <span className="text-red-500">*</span></label>
+                <select
+                  value={invoiceData.placeOfSupply}
+                  onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
               <option value="">Select State</option>
               <option value="Andaman and Nicobar Islands">35 - Andaman and Nicobar Islands</option>
               <option value="Andhra Pradesh">28 - Andhra Pradesh</option>
@@ -1005,51 +1010,56 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           </div>
         </div>
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Registered Address *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Registered Address <span className="text-red-500">*</span></label>
           <textarea
             value={invoiceData.supplierAddress}
             onChange={(e) => handleInputChange('supplierAddress', e.target.value)}
             rows="2"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Invoice Details */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number *</label>
-          <input
-            type="text"
-            value={invoiceData.invoiceNumber}
-            onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date *</label>
-          <input
-            type="date"
-            value={invoiceData.invoiceDate}
-            onChange={(e) => handleInputChange('invoiceDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="relative po-dropdown-container">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Reference/PI Number</label>
-          <div className="relative">
+      <div className="bg-blue-50 rounded-lg p-4 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <FileText className="w-5 h-5 mr-2 text-blue-600" />
+          Invoice Details
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Invoice Number <span className="text-red-500">*</span></label>
             <input
               type="text"
-              value={invoiceData.referenceNumber}
-              onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
-              onFocus={() => {
-                if (approvedProformas.length > 0) {
-                  setShowPODropdown(true);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Select from approved proformas"
+              value={invoiceData.invoiceNumber}
+              onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-100 font-medium"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Invoice Date <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              value={invoiceData.invoiceDate}
+              onChange={(e) => handleInputChange('invoiceDate', e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="relative po-dropdown-container">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Reference/PI Number</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={invoiceData.referenceNumber}
+                onChange={(e) => handleInputChange('referenceNumber', e.target.value)}
+                onFocus={() => {
+                  if (approvedProformas.length > 0) {
+                    setShowPODropdown(true);
+                  }
+                }}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Select from approved proformas"
+              />
             {approvedProformas.length > 0 && (
               <ChevronDown 
                 className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
@@ -1076,31 +1086,35 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 ))}
               </div>
             )}
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">PI Date</label>
-          <input
-            type="date"
-            value={invoiceData.piDate}
-            onChange={(e) => handleInputChange('piDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-          <input
-            type="date"
-            value={invoiceData.dueDate}
-            onChange={(e) => handleInputChange('dueDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">PI Date</label>
+            <input
+              type="date"
+              value={invoiceData.piDate}
+              onChange={(e) => handleInputChange('piDate', e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+            <input
+              type="date"
+              value={invoiceData.dueDate}
+              onChange={(e) => handleInputChange('dueDate', e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
         </div>
       </div>
 
       {/* Customer Details */}
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Customer Details</h2>
+      <div className="bg-green-50 rounded-lg p-4 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <Users className="w-5 h-5 mr-2 text-blue-600" />
+          Customer Details
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative client-dropdown-container">
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
@@ -1551,10 +1565,10 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 justify-end p-6 border-t bg-gray-50">
+      <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex gap-3 justify-end">
         <button 
           onClick={handleClose}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center"
+          className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
         >
           Cancel
         </button>
@@ -1563,11 +1577,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         <div className="relative" ref={dropdownRef}>
           <button 
             onClick={() => setShowExportDropdown(!showExportDropdown)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+            className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 transition-colors"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4" />
             Export
-            <ChevronDown className="w-4 h-4 ml-2" />
+            <ChevronDown className="w-4 h-4" />
           </button>
           
           {showExportDropdown && (
@@ -1592,9 +1606,9 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         
         <button 
           onClick={handleSave}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+          className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
         >
-          <Save className="w-4 h-4 mr-2" />
+          <Save className="w-4 h-4" />
           Save Invoice
         </button>
       </div>
