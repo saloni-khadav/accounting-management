@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, ChevronDown, FileText, Upload, X, Paperclip } from 'lucide-react';
+import { Save, Download, Plus, Trash2, ChevronDown, FileText, Upload, X, Paperclip, Eye } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 
@@ -299,7 +299,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   useEffect(() => {
     calculateTotals();
-  }, [billData.items]);
+  }, [billData.items, billData.tdsSection, billData.tdsPercentage]);
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -431,28 +431,26 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST + totalCESS);
     const grandTotal = Math.max(0, totalTaxableValue + totalTax);
 
-    setBillData(prev => {
-      const newData = {
-        ...prev,
-        items: updatedItems,
-        subtotal,
-        totalDiscount,
-        totalTaxableValue,
-        totalCGST,
-        totalSGST,
-        totalIGST,
-        totalCESS,
-        totalTax,
-        grandTotal
-      };
-      
-      // Recalculate TDS if section is selected
-      if (prev.tdsSection && prev.tdsPercentage > 0) {
-        newData.tdsAmount = (totalTaxableValue * prev.tdsPercentage) / 100;
-      }
-      
-      return newData;
-    });
+    // Calculate TDS if section is selected
+    let tdsAmount = 0;
+    if (billData.tdsSection && billData.tdsPercentage > 0) {
+      tdsAmount = (totalTaxableValue * billData.tdsPercentage) / 100;
+    }
+
+    setBillData(prev => ({
+      ...prev,
+      items: updatedItems,
+      subtotal,
+      totalDiscount,
+      totalTaxableValue,
+      totalCGST,
+      totalSGST,
+      totalIGST,
+      totalCESS,
+      totalTax,
+      grandTotal,
+      tdsAmount
+    }));
   };
 
   const handleInputChange = (field, value) => {
@@ -667,6 +665,12 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         ...updatedItems[index],
         [field]: value
       };
+      
+      // Auto-sync product to description
+      if (field === 'product') {
+        updatedItems[index].description = value;
+      }
+      
       return {
         ...prev,
         items: updatedItems
@@ -1348,7 +1352,6 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC *</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                     <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
@@ -1371,15 +1374,6 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           onChange={(e) => handleItemChange(index, 'product', e.target.value)}
                           className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                           placeholder="Product/Item"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                          placeholder="Description"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -1619,6 +1613,20 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (attachment.file) {
+                              const url = URL.createObjectURL(attachment.file);
+                              window.open(url, '_blank');
+                            } else {
+                              window.open(`${baseUrl}/api/bills/download/${attachment.fileUrl}`, '_blank');
+                            }
+                          }}
+                          className="text-green-600 hover:text-green-800 p-1"
+                          title="View"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => downloadAttachment(attachment)}
                           className="text-blue-600 hover:text-blue-800 p-1"

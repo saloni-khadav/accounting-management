@@ -98,9 +98,12 @@ router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
       userId: req.user.id
     };
     
-    // Check if note number already exists
+    // Check if note number already exists (only for new notes)
     if (noteData.noteNumber) {
-      const existingNote = await CreditDebitNote.findOne({ noteNumber: noteData.noteNumber });
+      const existingNote = await CreditDebitNote.findOne({ 
+        noteNumber: noteData.noteNumber,
+        userId: req.user.id 
+      });
       if (existingNote) {
         return res.status(400).json({ message: 'Note number already exists' });
       }
@@ -109,6 +112,23 @@ router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
     // Parse JSON fields that were stringified in FormData
     if (typeof noteData.items === 'string') {
       noteData.items = JSON.parse(noteData.items);
+    }
+    
+    // Validate Credit Note amount against original Bill/Invoice
+    if (noteData.type === 'Credit Note' && noteData.originalBillNumber) {
+      const Bill = require('../models/Bill');
+      const originalBill = await Bill.findOne({ billNumber: noteData.originalBillNumber });
+      
+      if (originalBill) {
+        const creditNoteAmount = parseFloat(noteData.grandTotal) || 0;
+        const billAmount = parseFloat(originalBill.grandTotal) || 0;
+        
+        if (creditNoteAmount > billAmount) {
+          return res.status(400).json({ 
+            message: `Credit Note amount (₹${creditNoteAmount.toLocaleString()}) cannot exceed Bill amount (₹${billAmount.toLocaleString()})` 
+          });
+        }
+      }
     }
     
     // Clean up empty/invalid fields
