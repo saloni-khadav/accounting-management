@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Bell, User, ChevronDown, X } from 'lucide-react';
 
 const Header = ({ setActivePage, onLogout }) => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -54,8 +56,6 @@ const Header = ({ setActivePage, onLogout }) => {
   );
 
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-    
     const loadUserData = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -133,7 +133,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const handleNotificationClick = async (notification) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`https://nextbook-backend.nextsphere.co.in/api/notifications/${notification._id}/read`, {
+      await fetch(`${baseUrl}/api/notifications/${notification._id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -155,7 +155,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications/read-all', {
+      await fetch(`${baseUrl}/api/notifications/read-all`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -170,7 +170,7 @@ const Header = ({ setActivePage, onLogout }) => {
   const createTestNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications/test/create', {
+      const response = await fetch(`${baseUrl}/api/notifications/test/create`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });

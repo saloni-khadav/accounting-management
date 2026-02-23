@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard } from 'lucide-react';
 
 const Settings = () => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  
   const [settings, setSettings] = useState({
     // General Settings
     companyName: '',
@@ -54,7 +56,7 @@ const Settings = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -74,7 +76,7 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
+      const response = await fetch(`${baseUrl}/api/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -99,7 +101,6 @@ const Settings = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
       
       console.log('Saving settings with company name:', settings.companyName); // Debug log
       
