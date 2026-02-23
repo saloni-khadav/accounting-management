@@ -93,6 +93,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     type: 'Credit Note',
     referenceNumber: '',
     originalInvoiceNumber: '',
+    originalBillNumber: '', // Add this field
     
     // TDS Details
     tdsSection: '',
@@ -224,6 +225,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
           type: 'Credit Note',
           referenceNumber: '',
           originalInvoiceNumber: '',
+          originalBillNumber: '', // Add this field
           vendorName: '',
           vendorAddress: '',
           vendorGSTIN: '',
@@ -789,6 +791,12 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             handleInputChange('originalInvoiceNumber', invoice.billNumber);
                             handleInputChange('invoiceDate', new Date(invoice.billDate).toISOString().split('T')[0]);
                             
+                            // Store original bill number for backend
+                            setNoteData(prev => ({
+                              ...prev,
+                              originalBillNumber: invoice.billNumber
+                            }));
+                            
                             // Store original bill amount for validation
                             setOriginalBillAmount(invoice.grandTotal || 0);
                             
@@ -1036,36 +1044,65 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <span>₹{(noteData.grandTotal || 0).toFixed(2)}</span>
                 </div>
                 
-                {/* TDS Section */}
-                <hr className="my-2" />
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">TDS Section</label>
-                    <select
-                      value={noteData.tdsSection}
-                      onChange={(e) => handleInputChange('tdsSection', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    >
-                      <option value="">Select TDS Section</option>
-                      {tdsSection.map((section, idx) => (
-                        <option key={idx} value={section.code}>
-                          {section.code} - {section.rate}% ({section.description})
-                        </option>
-                      ))}
-                    </select>
+                {/* TDS Section - Conditional: Read-only if from Bill, Editable if not */}
+                {noteData.tdsSection ? (
+                  // TDS already in Bill - Read Only
+                  <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
+                    <div className="text-xs text-blue-600 font-medium mb-2">
+                      ℹ️ TDS is already deducted at Bill level
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">TDS Section (from Bill)</label>
+                      <input
+                        type="text"
+                        value={`${noteData.tdsSection} - ${noteData.tdsPercentage}%`}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed text-sm"
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between mt-2">
+                      <span className="text-gray-600">TDS ({noteData.tdsPercentage}%):</span>
+                      <span className="font-medium text-red-600">-₹{(Number(noteData.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    
+                    <hr className="my-2" />
+                    <div className="flex justify-between text-lg font-bold text-green-600">
+                      <span>Net Amount:</span>
+                      <span>₹{((noteData.grandTotal || 0) - (Number(noteData.tdsAmount) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">TDS ({noteData.tdsPercentage}%):</span>
-                    <span className="font-medium text-red-600">-₹{(Number(noteData.tdsAmount) || 0).toFixed(2)}</span>
+                ) : (
+                  // No TDS in Bill - Editable
+                  <div className="space-y-3 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">TDS Section</label>
+                      <select
+                        value={noteData.tdsSection}
+                        onChange={(e) => handleInputChange('tdsSection', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        <option value="">Select TDS Section</option>
+                        {tdsSection.map((section, idx) => (
+                          <option key={idx} value={section.code}>
+                            {section.code} - {section.rate}% ({section.description})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">TDS ({noteData.tdsPercentage}%):</span>
+                      <span className="font-medium text-red-600">-₹{(Number(noteData.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    
+                    <hr className="my-2" />
+                    <div className="flex justify-between text-lg font-bold text-green-600">
+                      <span>Net Amount:</span>
+                      <span>₹{((noteData.grandTotal || 0) - (Number(noteData.tdsAmount) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
-                  
-                  <hr className="my-2" />
-                  <div className="flex justify-between text-lg font-bold text-green-600">
-                    <span>Net Amount:</span>
-                    <span>₹{((noteData.grandTotal || 0) - (Number(noteData.tdsAmount) || 0)).toFixed(2)}</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1079,7 +1116,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <label className="flex flex-col items-center cursor-pointer">
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-600">Click to upload files</span>
-                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 50MB)</span>
                     <input
                       type="file"
                       multiple

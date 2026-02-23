@@ -54,20 +54,28 @@ const Header = ({ setActivePage, onLogout }) => {
   );
 
   useEffect(() => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    
     const loadUserData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const result = await response.json();
+          console.log('Header - User data:', result); // Debug log
           if (result.user) {
-            setCompanyName(result.user.companyName || result.user.fullName || '');
+            // Use only companyName (not tradeName)
+            const displayName = result.user.companyName || result.user.fullName || '';
+            console.log('Header - Display name:', displayName); // Debug log
+            setCompanyName(displayName);
+            
             if (result.user.profile && result.user.profile.companyLogo) {
+              console.log('Header - Logo URL:', result.user.profile.companyLogo); // Debug log
               setCompanyLogo(result.user.profile.companyLogo);
             }
           }
@@ -86,7 +94,7 @@ const Header = ({ setActivePage, onLogout }) => {
         }
 
         console.log('Fetching notifications...');
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/notifications', {
+        const response = await fetch(`${baseUrl}/api/notifications`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -108,8 +116,18 @@ const Header = ({ setActivePage, onLogout }) => {
     loadUserData();
     loadNotifications();
     
+    // Listen for settings updates
+    const handleSettingsUpdate = () => {
+      console.log('Settings updated event received'); // Debug log
+      loadUserData();
+    };
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+    
     const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+    };
   }, []);
 
   const handleNotificationClick = async (notification) => {
@@ -337,7 +355,7 @@ const Header = ({ setActivePage, onLogout }) => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
                 {companyLogo ? (
                   <img 
                     src={companyLogo} 
@@ -345,7 +363,7 @@ const Header = ({ setActivePage, onLogout }) => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User size={16} className="text-white" />
+                  <User size={16} className="text-gray-600" />
                 )}
               </div>
               <span className="font-medium text-gray-700">{companyName}</span>

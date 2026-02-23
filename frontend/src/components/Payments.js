@@ -251,12 +251,20 @@ const Payments = () => {
     const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
     const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
     const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
+    
+    // Check if Bill has TDS - if yes, populate TDS fields (read-only)
+    const hasBillTDS = bill.tdsSection && bill.tdsAmount > 0;
+    
     setFormData(prev => ({
       ...prev,
       billId: bill._id, // Store the bill ID
       invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: remainingAmount // Set to adjusted remaining amount
+      amount: remainingAmount, // Set to adjusted remaining amount
+      // Populate TDS from Bill if exists
+      tdsSection: hasBillTDS ? bill.tdsSection : '',
+      tdsPercentage: hasBillTDS ? bill.tdsPercentage : '',
+      tdsAmount: hasBillTDS ? bill.tdsAmount : ''
     }));
     setShowBillDropdown(false);
   };
@@ -783,40 +791,66 @@ const Payments = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Section
-                  </label>
-                  <select
-                    name="tdsSection"
-                    value={formData.tdsSection}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select TDS Section</option>
-                    {tdsSection.map((section, idx) => (
-                      <option key={idx} value={section.code}>
-                        {section.code} - {section.rate}% ({section.description})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* TDS Section - Conditional: Read-only if from Bill, Editable if not */}
+                {formData.billId && formData.tdsSection ? (
+                  // TDS from Bill - Read Only
+                  <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
+                    <div className="text-xs text-blue-600 font-medium mb-2">
+                      ℹ️ TDS is already deducted at Bill level
+                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      TDS Section (from Bill)
+                    </label>
+                    <input
+                      type="text"
+                      value={`${formData.tdsSection} - ${formData.tdsPercentage}%`}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed mb-2"
+                    />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">TDS Amount (from Bill):</span>
+                      <span className="text-sm font-semibold text-red-600">₹{(parseFloat(formData.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                ) : (
+                  // No TDS in Bill - Editable
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        TDS Section
+                      </label>
+                      <select
+                        name="tdsSection"
+                        value={formData.tdsSection}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select TDS Section</option>
+                        {tdsSection.map((section, idx) => (
+                          <option key={idx} value={section.code}>
+                            {section.code} - {section.rate}% ({section.description})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Amount
-                  </label>
-                  <input
-                    type="number"
-                    name="tdsAmount"
-                    value={formData.tdsAmount}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        TDS Amount
+                      </label>
+                      <input
+                        type="number"
+                        name="tdsAmount"
+                        value={formData.tdsAmount}
+                        onChange={handleInputChange}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
