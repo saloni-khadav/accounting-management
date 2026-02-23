@@ -802,3 +802,4 @@ const CollectionRegister = () => {
 };
 
 export default CollectionRegister;
+

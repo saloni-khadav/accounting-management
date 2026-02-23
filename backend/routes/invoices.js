@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const Invoice = require('../models/Invoice');
 const router = express.Router();
+const { notifyInvoiceCreated } = require('../utils/notificationHelper');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -110,6 +111,12 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
     
     const invoice = new Invoice(invoiceData);
     const savedInvoice = await invoice.save();
+    
+    // Create notification for invoice creation
+    if (req.user && req.user.id) {
+      await notifyInvoiceCreated(req.user.id, savedInvoice);
+    }
+    
     res.status(201).json(savedInvoice);
   } catch (error) {
     if (error.code === 11000) {

@@ -358,3 +358,4 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
 };
 
 export default Sidebar;
+

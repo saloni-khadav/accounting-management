@@ -31,3 +31,4 @@ const MetricsCard = ({ title, value, change, changeType, icon: Icon, color = 'pr
 };
 
 export default MetricsCard;
+
