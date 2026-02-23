@@ -237,9 +237,24 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
+    
+    // Clear previous data first (but not for GST to preserve existing data)
+    if (documentType === 'panCard') {
+      setFormData(prev => ({ ...prev, panNumber: '' }));
+    } else if (documentType === 'bankStatement') {
+      setFormData(prev => ({
+        ...prev,
+        accountNumber: '',
+        ifscCode: '',
+        bankName: ''
+      }));
+    } else if (documentType === 'aadharCard') {
+      setFormData(prev => ({ ...prev, aadharNumber: '' }));
+    }
     
     setUploadStates(prev => ({
       ...prev,
@@ -248,9 +263,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
     const formDataUpload = new FormData();
     formDataUpload.append('document', file);
-    if (documentType) formDataUpload.append('documentType', documentType);
+    formDataUpload.append('documentType', documentType);
 
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       const response = await fetch(`${baseUrl}/api/ocr/extract`, {
         method: 'POST',
@@ -258,89 +272,151 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       });
 
       const result = await response.json();
+      console.log('OCR API Response:', result);
 
       if (result.success && result.data) {
         const updates = {};
         let dataFound = false;
         
-        // Auto-fill all found fields
-        if (result.data.panNumber) {
-          updates.panNumber = result.data.panNumber;
-          dataFound = true;
-        }
-        
-        if (result.data.gstNumber) {
-          const updatedGSTNumbers = [...formData.gstNumbers];
-          if (gstIndex !== null) {
-            updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
-            updatedGSTNumbers[gstIndex].hasDocument = true;
-          } else {
-            updatedGSTNumbers[0].gstNumber = result.data.gstNumber;
-            updatedGSTNumbers[0].hasDocument = true;
+        // Handle PAN card extraction
+        if (documentType === 'panCard') {
+          if (result.data.panNumber) {
+            updates.panNumber = result.data.panNumber;
+            dataFound = true;
+          } else if (result.data.pan) {
+            updates.panNumber = result.data.pan;
+            dataFound = true;
+          } else if (result.data.PAN) {
+            updates.panNumber = result.data.PAN;
+            dataFound = true;
+          } else if (result.data.extractedText) {
+            const panPattern = /[A-Z]{5}[0-9]{4}[A-Z]{1}/g;
+            const panMatch = result.data.extractedText.match(panPattern);
+            if (panMatch && panMatch[0]) {
+              updates.panNumber = panMatch[0];
+              dataFound = true;
+            }
           }
-          updates.gstNumbers = updatedGSTNumbers;
-          updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
-          dataFound = true;
         }
         
-        if (result.data.accountNumber) {
-          updates.accountNumber = result.data.accountNumber;
-          dataFound = true;
+        if (documentType === 'gstCertificate') {
+          if (result.data.gstNumber) {
+            const extractedGST = result.data.gstNumber;
+            const extractedPAN = extractedGST.substring(2, 12);
+            
+            // Validate PAN matches existing GST entries
+            const existingPANs = formData.gstNumbers
+              .filter((gst, idx) => idx !== gstIndex && gst.gstNumber)
+              .map(gst => gst.gstNumber.substring(2, 12));
+            
+            if (existingPANs.length > 0 && !existingPANs.includes(extractedPAN)) {
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).' }
+              }));
+              alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
+              return;
+            }
+            
+            // If PAN field is empty, fill it from GST
+            if (!formData.panNumber) {
+              updates.panNumber = extractedPAN;
+            } else if (formData.panNumber !== extractedPAN) {
+              // If PAN already exists but doesn't match
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'GST PAN does not match the existing PAN number.' }
+              }));
+              alert('Error: GST PAN does not match the existing PAN number.');
+              return;
+            }
+            
+            const updatedGSTNumbers = [...formData.gstNumbers];
+            if (gstIndex !== null) {
+              updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
+              if (result.data.billingAddress) {
+                updatedGSTNumbers[gstIndex].billingAddress = result.data.billingAddress;
+              }
+              updatedGSTNumbers[gstIndex].hasDocument = true;
+            }
+            updates.gstNumbers = updatedGSTNumbers;
+            updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
+            if (updatedGSTNumbers[gstIndex]?.isDefault && result.data.billingAddress) {
+              updates.billingAddress = result.data.billingAddress;
+            }
+            dataFound = true;
+          }
         }
         
-        if (result.data.ifscCode) {
-          updates.ifscCode = result.data.ifscCode;
-          dataFound = true;
+        if (documentType === 'bankStatement') {
+          if (result.data.accountNumber || result.data.ifscCode || result.data.bankName) {
+            if (result.data.accountNumber) updates.accountNumber = result.data.accountNumber;
+            if (result.data.ifscCode) updates.ifscCode = result.data.ifscCode;
+            if (result.data.bankName) updates.bankName = result.data.bankName;
+            dataFound = true;
+          }
         }
         
-        if (result.data.bankName) {
-          updates.bankName = result.data.bankName;
-          dataFound = true;
-        }
-        
-        if (result.data.aadharNumber) {
-          updates.aadharNumber = result.data.aadharNumber;
-          dataFound = true;
+        if (documentType === 'aadharCard') {
+          if (result.data.aadharNumber) {
+            updates.aadharNumber = result.data.aadharNumber;
+            dataFound = true;
+          }
         }
 
         if (dataFound) {
-          setFormData(prev => ({
-            ...prev,
-            ...updates,
-            documents: {
-              ...prev.documents,
-              [documentType]: file
+          setFormData(prev => {
+            const newFormData = {
+              ...prev,
+              ...updates
+            };
+            
+            // Handle document storage for GST
+            if (documentType === 'gstCertificate' && gstIndex !== null) {
+              // Don't update the shared gstCertificate document
+              // Individual GST tracking is handled by hasDocument flag
+            } else {
+              // For other document types, update normally
+              newFormData.documents = {
+                ...prev.documents,
+                [documentType]: file
+              };
             }
-          }));
+            
+            return newFormData;
+          });
 
           setUploadStates(prev => ({
             ...prev,
             [stateKey]: { loading: false, error: null }
           }));
           
-          const detectedType = result.detectedType || documentType;
-          alert(`Document uploaded successfully! Detected as ${detectedType}. Extracted: ${Object.keys(result.data).join(', ')}`);
+          alert('Document uploaded and data extracted successfully!');
         } else {
           setUploadStates(prev => ({
             ...prev,
-            [stateKey]: { loading: false, error: 'No relevant data found in document' }
+            [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
           }));
-          alert('No relevant data found in this document. Please upload a valid document.');
+          
+          alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
         }
       } else {
+        console.log('OCR failed - result.success is false');
         setUploadStates(prev => ({
           ...prev,
-          [stateKey]: { loading: false, error: result.message || 'Failed to extract data' }
+          [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
         }));
-        alert(result.message || 'Failed to extract data from document');
+        
+        alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
       }
     } catch (error) {
       console.error('OCR error:', error);
       setUploadStates(prev => ({
         ...prev,
-        [stateKey]: { loading: false, error: 'Upload failed' }
+        [stateKey]: { loading: false, error: `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
       }));
-      alert('Upload failed. Please try again.');
+      
+      alert(`${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
     }
   };
 
@@ -485,6 +561,29 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   const handleSubmit = async (e) => {
     const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
+    
+    // Validate GST numbers
+    for (let i = 0; i < formData.gstNumbers.length; i++) {
+      const gst = formData.gstNumbers[i];
+      if (gst.gstNumber && gst.gstNumber.length !== 15) {
+        alert(`GST Number ${i + 1} must be exactly 15 characters. Current length: ${gst.gstNumber.length}`);
+        return;
+      }
+    }
+    
+    // Validate contact details (mobile number)
+    const digits = formData.contactDetails.replace(/[^0-9]/g, '');
+    if (digits.length !== 10) {
+      alert(`Contact Details must contain exactly 10 digits. Current: ${digits.length} digits`);
+      return;
+    }
+    
+    // Validate account number (9-18 digits)
+    const accountDigits = formData.accountNumber.replace(/[^0-9]/g, '');
+    if (formData.accountNumber !== accountDigits || accountDigits.length < 9 || accountDigits.length > 18) {
+      alert(`Account Number must contain only numbers and be between 9 to 18 digits. Current: ${accountDigits.length} digits`);
+      return;
+    }
     
     try {
       const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);

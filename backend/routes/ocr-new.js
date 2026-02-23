@@ -198,7 +198,64 @@ const extractData = (text, documentType) => {
 
   // Extract address for GST certificate
   let billingAddress = '';
+  let tradeName = '';
   if (documentType === 'gstCertificate' && gstMatches.length > 0) {
+    // Try multiple patterns to extract trade name
+    const patterns = [
+      // Pattern 1: After Registration Number, before any label
+      /Registration Number[^\n]*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
+      // Pattern 2: Company name before "1. Legal Name" (numbered format)
+      /([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))\s*\n(?:[^\n]*\n)?(?:[^\n]*\n)?[\s\d.]*Legal Name/i,
+      // Pattern 3: After "Tax" or "eTax" keyword
+      /\be?Tax\s*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
+      // Pattern 4: After "Business" keyword (Address of Principal Place of Business)
+      /Business\s*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
+      // Pattern 5: Any company name appearing twice (common in GST certificates)
+      /\n([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))\s*\n[^\n]*\n\1/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const extracted = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        // Validate it's not a false positive
+        if (!extracted.includes('Additional') && !extracted.includes('Constitution') && !extracted.includes('Certificate')) {
+          tradeName = extracted;
+          console.log('Trade name extracted with pattern:', pattern);
+          break;
+        }
+      }
+    }
+    
+    // If not found, try standard patterns
+    if (!tradeName) {
+      const tradeNamePatterns = [
+        /Legal Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
+        /Trade Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i,
+        /Business Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i,
+        /Taxpayer Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i
+      ];
+      
+      for (const pattern of tradeNamePatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const extractedName = match[1].trim();
+          // Filter out common false positives
+          if (extractedName.length > 3 && 
+              !extractedName.match(/^\d+$/) && 
+              !extractedName.match(/^Plot/) &&
+              !extractedName.match(/^Building/) &&
+              !extractedName.toLowerCase().includes('certificate') &&
+              !extractedName.toLowerCase().includes('registration')) {
+            tradeName = extractedName;
+            console.log('Trade name extracted with pattern:', pattern);
+            console.log('Trade name value:', tradeName);
+            break;
+          }
+        }
+      }
+    }
+    
     // Method 1: Try structured format with labels (Building No, Road, City, State, PIN)
     const buildingMatch = text.match(/(?:Building No|Flat No|Plot)[^:]*:\s*([^\n]+)/i);
     const roadMatch = text.match(/(?:Road|Street)[^:]*:\s*([^\n]+)/i);
@@ -241,6 +298,7 @@ const extractData = (text, documentType) => {
     panNumber: panMatches[0] || '',
     tanNumber: tanMatches[0] || '',
     gstNumber: gstMatches[0] || '',
+    tradeName: tradeName,
     billingAddress: billingAddress,
     mcaNumber: mcaMatches[0] || '',
     accountNumber: accountNumber,

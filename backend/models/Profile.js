@@ -9,6 +9,13 @@ const profileSchema = new mongoose.Schema({
   },
   companyLogo: String,
   gstNumber: String,
+  gstNumbers: [{
+    gstNumber: String,
+    address: String,
+    tradeName: String,
+    panNumber: String,
+    isDefault: { type: Boolean, default: false }
+  }],
   tradeName: String,
   address: String,
   panNumber: String,

@@ -318,6 +318,36 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         
         if (documentType === 'gstCertificate') {
           if (result.data.gstNumber) {
+            const extractedGST = result.data.gstNumber;
+            const extractedPAN = extractedGST.substring(2, 12);
+            
+            // Validate PAN matches existing GST entries
+            const existingPANs = formData.gstNumbers
+              .filter((gst, idx) => idx !== gstIndex && gst.gstNumber)
+              .map(gst => gst.gstNumber.substring(2, 12));
+            
+            if (existingPANs.length > 0 && !existingPANs.includes(extractedPAN)) {
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).' }
+              }));
+              alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
+              return;
+            }
+            
+            // If PAN field is empty, fill it from GST
+            if (!formData.panNumber) {
+              updates.panNumber = extractedPAN;
+            } else if (formData.panNumber !== extractedPAN) {
+              // If PAN already exists but doesn't match
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'GST PAN does not match the existing PAN number.' }
+              }));
+              alert('Error: GST PAN does not match the existing PAN number.');
+              return;
+            }
+            
             const updatedGSTNumbers = [...formData.gstNumbers];
             if (gstIndex !== null) {
               updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
@@ -809,12 +839,12 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                           }`}
                           readOnly={gstItem.isExisting && gstItem.gstNumber}
                         />
+                        {uploadStates[`gst_${index}`]?.error && (
+                          <p className="text-red-500 text-sm mt-1 bg-red-50 p-2 rounded">{uploadStates[`gst_${index}`]?.error}</p>
+                        )}
                       </div>
                     ))}
                   </div>
-                  {uploadStates[`gst_0`]?.error && (
-                    <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates[`gst_0`]?.error}</p>
-                  )}
                 </div>
                 
                 <div>
