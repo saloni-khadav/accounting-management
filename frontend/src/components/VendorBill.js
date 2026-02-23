@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Save, Download, Plus, Trash2, ChevronDown, FileText, Upload, X, Paperclip, Eye } from 'lucide-react';
 import { generateInvoiceNumber } from '../utils/numberGenerator';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
@@ -85,6 +85,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const handleClose = () => {
     if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
+      setProfileLoaded(false);
       onClose();
     }
   };
@@ -151,41 +152,61 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     currency: 'INR'
   });
 
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!isOpen) return;
+      if (!isOpen || profileLoaded) return;
       
       try {
         const token = localStorage.getItem('token');
-        if (!token) return;
+        if (!token) {
+          console.log('❌ No token found');
+          return;
+        }
 
+        console.log('🔄 Fetching profile from:', `${baseUrl}/api/auth/me`);
         const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const userData = await response.json();
+          console.log('✅ User data received:', userData);
           const profile = userData.user.profile || {};
+          console.log('📋 Profile data:', profile);
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setCompanyGST(profile.gstNumber || '');
           
+          console.log('📝 Setting bill data with:', {
+            supplierName: profile.tradeName || userData.user.companyName || '',
+            supplierAddress: profile.address || '',
+            supplierGSTIN: profile.gstNumber || '',
+            supplierPAN: profile.panNumber || '',
+            placeOfSupply: gstBasedState || ''
+          });
+          
           setBillData(prev => ({
             ...prev,
-            supplierName: profile.tradeName || userData.user.companyName || 'Your Company',
-            supplierAddress: profile.address || 'Your Address',
+            supplierName: profile.tradeName || userData.user.companyName || '',
+            supplierAddress: profile.address || '',
             supplierGSTIN: profile.gstNumber || '',
             supplierPAN: profile.panNumber || '',
             placeOfSupply: gstBasedState || ''
           }));
+          
+          setProfileLoaded(true);
+        } else {
+          console.log('❌ Profile fetch failed:', response.status);
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
       }
     };
 
     fetchUserProfile();
-  }, [isOpen]);
+  }, [isOpen, baseUrl, profileLoaded]);
 
   useEffect(() => {
     if (editingBill) {
@@ -217,88 +238,185 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           totalAmount: 0
         }]
       });
-      // Set attachments with proper structure for existing files
       const existingAttachments = (editingBill.attachments || []).map(att => ({
         fileName: att.fileName,
         fileSize: att.fileSize,
-        fileUrl: att.fileUrl, // This is the filename stored in DB
+        fileUrl: att.fileUrl,
         uploadedAt: att.uploadedAt || new Date()
       }));
       setAttachments(existingAttachments);
       setVendorSearchTerm(editingBill.vendorName);
-    } else {
-      // Reset form for new bill but keep supplier details
-      const currentSupplierData = {
-        supplierName: billData.supplierName,
-        supplierAddress: billData.supplierAddress,
-        supplierGSTIN: billData.supplierGSTIN,
-        supplierPAN: billData.supplierPAN,
-        placeOfSupply: billData.placeOfSupply
+    } else if (isOpen) {
+      // Fetch profile data for new bill
+      const fetchProfile = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          const response = await fetch(`${baseUrl}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            const profile = userData.user.profile || {};
+            const gstBasedState = getStateFromGST(profile.gstNumber);
+            
+            setBillData({
+              billNumber: '',
+              billDate: new Date().toISOString().split('T')[0],
+              billSeries: 'BILL',
+              referenceNumber: '',
+              placeOfSupply: gstBasedState || '',
+              
+              supplierName: profile.tradeName || '',
+              supplierAddress: profile.address || '',
+              supplierGSTIN: profile.gstNumber || '',
+              supplierPAN: profile.panNumber || '',
+              
+              vendorName: '',
+              vendorAddress: '',
+              vendorGSTIN: '',
+              vendorPAN: '',
+              vendorPlace: '',
+              contactPerson: '',
+              contactDetails: '',
+              
+              paymentTerms: '30 Days',
+              dueDate: '',
+              
+              tdsSection: '',
+              tdsPercentage: 0,
+              tdsAmount: 0,
+              
+              items: [{
+                product: '',
+                description: '',
+                hsnCode: '',
+                quantity: 1,
+                unit: 'Nos',
+                unitPrice: 0,
+                discount: 0,
+                taxableValue: 0,
+                cgstRate: 9,
+                sgstRate: 9,
+                igstRate: 0,
+                cessRate: 0,
+                cgstAmount: 0,
+                sgstAmount: 0,
+                igstAmount: 0,
+                cessAmount: 0,
+                totalAmount: 0
+              }],
+              
+              subtotal: 0,
+              totalDiscount: 0,
+              totalTaxableValue: 0,
+              totalCGST: 0,
+              totalSGST: 0,
+              totalIGST: 0,
+              totalCESS: 0,
+              totalTax: 0,
+              grandTotal: 0,
+              
+              notes: '',
+              termsConditions: 'This is a vendor bill as per GST compliance requirements.',
+              currency: 'INR'
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
       };
       
-      setBillData({
-        billNumber: '',
-        billDate: new Date().toISOString().split('T')[0],
-        billSeries: 'BILL',
-        referenceNumber: '',
-        ...currentSupplierData,
-        
-        vendorName: '',
-        vendorAddress: '',
-        vendorGSTIN: '',
-        vendorPAN: '',
-        vendorPlace: '',
-        contactPerson: '',
-        contactDetails: '',
-        
-        paymentTerms: '30 Days',
-        dueDate: '',
-        
-        tdsSection: '',
-        tdsPercentage: 0,
-        tdsAmount: 0,
-        
-        items: [{
-          product: '',
-          description: '',
-          hsnCode: '',
-          quantity: 1,
-          unit: 'Nos',
-          unitPrice: 0,
-          discount: 0,
-          taxableValue: 0,
-          cgstRate: 9,
-          sgstRate: 9,
-          igstRate: 0,
-          cessRate: 0,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          igstAmount: 0,
-          cessAmount: 0,
-          totalAmount: 0
-        }],
-        
-        subtotal: 0,
-        totalDiscount: 0,
-        totalTaxableValue: 0,
-        totalCGST: 0,
-        totalSGST: 0,
-        totalIGST: 0,
-        totalCESS: 0,
-        totalTax: 0,
-        grandTotal: 0,
-        
-        notes: '',
-        termsConditions: 'This is a vendor bill as per GST compliance requirements.',
-        currency: 'INR'
-      });
+      fetchProfile();
       setAttachments([]);
       setVendorSearchTerm('');
     }
-  }, [editingBill, isOpen]);
+  }, [editingBill, isOpen, baseUrl]);
 
   useEffect(() => {
-    calculateTotals();
+    if (!billData.items || billData.items.length === 0) return;
+    
+    const calculateItemTotals = (item) => {
+      const quantity = Math.max(0, Number(item.quantity) || 0);
+      const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+      const discountPercent = Math.max(0, Number(item.discount) || 0);
+      const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
+      const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
+      const igstRate = Math.max(0, Number(item.igstRate) || 0);
+      const cessRate = Math.max(0, Number(item.cessRate) || 0);
+      
+      const grossAmount = quantity * unitPrice;
+      const discountAmount = (grossAmount * discountPercent) / 100;
+      const taxableValue = Math.max(0, grossAmount - discountAmount);
+      const cgstAmount = Math.max(0, (taxableValue * cgstRate) / 100);
+      const sgstAmount = Math.max(0, (taxableValue * sgstRate) / 100);
+      const igstAmount = Math.max(0, (taxableValue * igstRate) / 100);
+      const cessAmount = Math.max(0, (taxableValue * cessRate) / 100);
+      const totalAmount = Math.max(0, taxableValue + cgstAmount + sgstAmount + igstAmount + cessAmount);
+
+      return {
+        ...item,
+        taxableValue,
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        cessAmount,
+        totalAmount
+      };
+    };
+    
+    const updatedItems = billData.items.map(calculateItemTotals);
+    
+    const subtotal = Math.max(0, updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0));
+    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => {
+      const grossAmount = Number(item.quantity) * Number(item.unitPrice);
+      return sum + ((grossAmount * Number(item.discount)) / 100);
+    }, 0));
+    const totalTaxableValue = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0));
+    const totalCGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0));
+    const totalSGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0));
+    const totalIGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.igstAmount), 0));
+    const totalCESS = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cessAmount), 0));
+    const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST + totalCESS);
+    const grandTotal = Math.max(0, totalTaxableValue + totalTax);
+
+    let tdsAmount = 0;
+    if (billData.tdsSection && billData.tdsPercentage > 0) {
+      tdsAmount = (totalTaxableValue * billData.tdsPercentage) / 100;
+    }
+
+    setBillData(prev => {
+      const hasChanged = 
+        prev.subtotal !== subtotal ||
+        prev.totalDiscount !== totalDiscount ||
+        prev.totalTaxableValue !== totalTaxableValue ||
+        prev.totalCGST !== totalCGST ||
+        prev.totalSGST !== totalSGST ||
+        prev.totalIGST !== totalIGST ||
+        prev.totalCESS !== totalCESS ||
+        prev.totalTax !== totalTax ||
+        prev.grandTotal !== grandTotal ||
+        prev.tdsAmount !== tdsAmount;
+      
+      if (!hasChanged) return prev;
+      
+      return {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalDiscount,
+        totalTaxableValue,
+        totalCGST,
+        totalSGST,
+        totalIGST,
+        totalCESS,
+        totalTax,
+        grandTotal,
+        tdsAmount
+      };
+    });
   }, [billData.items, billData.tdsSection, billData.tdsPercentage]);
 
   useEffect(() => {
@@ -384,74 +502,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     };
   }, []);
 
-  const calculateItemTotals = (item) => {
-    const quantity = Math.max(0, Number(item.quantity) || 0);
-    const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
-    const discountPercent = Math.max(0, Number(item.discount) || 0);
-    const cgstRate = Math.max(0, Number(item.cgstRate) || 0);
-    const sgstRate = Math.max(0, Number(item.sgstRate) || 0);
-    const igstRate = Math.max(0, Number(item.igstRate) || 0);
-    const cessRate = Math.max(0, Number(item.cessRate) || 0);
-    
-    const grossAmount = quantity * unitPrice;
-    const discountAmount = (grossAmount * discountPercent) / 100;
-    const taxableValue = Math.max(0, grossAmount - discountAmount);
-    const cgstAmount = Math.max(0, (taxableValue * cgstRate) / 100);
-    const sgstAmount = Math.max(0, (taxableValue * sgstRate) / 100);
-    const igstAmount = Math.max(0, (taxableValue * igstRate) / 100);
-    const cessAmount = Math.max(0, (taxableValue * cessRate) / 100);
-    const totalAmount = Math.max(0, taxableValue + cgstAmount + sgstAmount + igstAmount + cessAmount);
 
-    return {
-      ...item,
-      taxableValue,
-      cgstAmount,
-      sgstAmount,
-      igstAmount,
-      cessAmount,
-      totalAmount
-    };
-  };
-
-  const calculateTotals = () => {
-    if (!billData.items || billData.items.length === 0) return;
-    
-    const updatedItems = billData.items.map(calculateItemTotals);
-    
-    const subtotal = Math.max(0, updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0));
-    const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => {
-      const grossAmount = Number(item.quantity) * Number(item.unitPrice);
-      return sum + ((grossAmount * Number(item.discount)) / 100);
-    }, 0));
-    const totalTaxableValue = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0));
-    const totalCGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0));
-    const totalSGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0));
-    const totalIGST = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.igstAmount), 0));
-    const totalCESS = Math.max(0, updatedItems.reduce((sum, item) => sum + Number(item.cessAmount), 0));
-    const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST + totalCESS);
-    const grandTotal = Math.max(0, totalTaxableValue + totalTax);
-
-    // Calculate TDS if section is selected
-    let tdsAmount = 0;
-    if (billData.tdsSection && billData.tdsPercentage > 0) {
-      tdsAmount = (totalTaxableValue * billData.tdsPercentage) / 100;
-    }
-
-    setBillData(prev => ({
-      ...prev,
-      items: updatedItems,
-      subtotal,
-      totalDiscount,
-      totalTaxableValue,
-      totalCGST,
-      totalSGST,
-      totalIGST,
-      totalCESS,
-      totalTax,
-      grandTotal,
-      tdsAmount
-    }));
-  };
 
   const handleInputChange = (field, value) => {
     if (field === 'tdsSection') {
@@ -703,8 +754,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       ...prev,
       items: [...prev.items, newItem]
     }));
-    
-    setTimeout(() => calculateTotals(), 0);
+
   };
 
   const removeItem = (index) => {
@@ -714,8 +764,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         ...prev,
         items: updatedItems
       }));
-      
-      setTimeout(() => calculateTotals(), 0);
+
     }
   };
 
@@ -727,17 +776,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
     const newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
     const totalSize = existingSize + newFilesSize;
-    const maxTotalSize = 10 * 1024 * 1024; // 10MB
+    const maxTotalSize = 50 * 1024 * 1024; // 50MB
     
     console.log('📎 File upload:', {
       existing: (existingSize / 1024 / 1024).toFixed(2) + 'MB',
       new: (newFilesSize / 1024 / 1024).toFixed(2) + 'MB',
       total: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
-      limit: '10MB'
+      limit: '50MB'
     });
     
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
       return;
     }
     
@@ -804,11 +853,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       return;
     }
 
-    // Check total attachment size (max 10MB total)
+    // Check total attachment size (max 50MB total)
     const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
-    const maxTotalSize = 10 * 1024 * 1024; // 10MB
+    const maxTotalSize = 50 * 1024 * 1024; // 50MB
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
       return;
     }
 
@@ -1248,13 +1297,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <input
                   type="text"
                   value={billData.vendorPAN}
-                  onChange={(e) => {
-                    console.log('PAN field changed:', e.target.value); // Debug log
-                    handleInputChange('vendorPAN', e.target.value);
-                  }}
+                  onChange={(e) => handleInputChange('vendorPAN', e.target.value)}
                   maxLength="10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedVendor ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="ABCDE1234F"
+                  disabled={!!selectedVendor}
                 />
               </div>
               <div>
@@ -1262,7 +1309,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <select
                   value={billData.vendorPlace}
                   onChange={(e) => handleInputChange('vendorPlace', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedVendor ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!!selectedVendor}
                 >
                   <option value="">Select State</option>
                   <option value="Andaman and Nicobar Islands">35 - Andaman and Nicobar Islands</option>
@@ -1310,7 +1358,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   type="text"
                   value={billData.contactPerson}
                   onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedVendor ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!!selectedVendor}
                 />
               </div>
               <div>
@@ -1319,7 +1368,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   type="text"
                   value={billData.contactDetails}
                   onChange={(e) => handleInputChange('contactDetails', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedVendor ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!!selectedVendor}
                 />
               </div>
               <div>
@@ -1328,7 +1378,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   value={billData.vendorAddress}
                   onChange={(e) => handleInputChange('vendorAddress', e.target.value)}
                   rows="2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${selectedVendor ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  disabled={!!selectedVendor}
                 />
               </div>
             </div>
@@ -1503,36 +1554,36 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">₹{(billData.subtotal || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Discount:</span>
-                  <span className="font-medium">₹{(billData.totalDiscount || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Taxable Value:</span>
-                  <span className="font-medium">₹{(billData.totalTaxableValue || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">CGST:</span>
-                  <span className="font-medium">₹{(billData.totalCGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">SGST:</span>
-                  <span className="font-medium">₹{(billData.totalSGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">IGST:</span>
-                  <span className="font-medium">₹{(billData.totalIGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Tax:</span>
-                  <span className="font-medium">₹{(billData.totalTax || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(billData.totalTax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <hr className="my-2" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Grand Total:</span>
-                  <span>₹{(billData.grandTotal || 0).toFixed(2)}</span>
+                  <span>₹{(billData.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 
                 {/* TDS Section */}
@@ -1556,13 +1607,13 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                   
                   <div className="flex justify-between">
                     <span className="text-gray-600">TDS ({billData.tdsPercentage}%):</span>
-                    <span className="font-medium text-red-600">-₹{(Number(billData.tdsAmount) || 0).toFixed(2)}</span>
+                    <span className="font-medium text-red-600">-₹{(Number(billData.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   
                   <hr className="my-2" />
                   <div className="flex justify-between text-lg font-bold text-green-600">
                     <span>Net Payable:</span>
-                    <span>₹{((billData.grandTotal || 0) - (Number(billData.tdsAmount) || 0)).toFixed(2)}</span>
+                    <span>₹{((billData.grandTotal || 0) - (Number(billData.tdsAmount) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               </div>
@@ -1590,7 +1641,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <label className="flex flex-col items-center cursor-pointer">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600">Click to upload files</span>
-                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB total)</span>
+                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 50MB total)</span>
                   <input
                     type="file"
                     multiple

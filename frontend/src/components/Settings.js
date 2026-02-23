@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard } from 'lucide-react';
 
 const Settings = () => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  
   const [settings, setSettings] = useState({
     // General Settings
     companyName: '',
@@ -54,7 +56,7 @@ const Settings = () => {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -74,7 +76,7 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
+      const response = await fetch(`${baseUrl}/api/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -99,7 +101,11 @@ const Settings = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
+      
+      console.log('Saving settings with company name:', settings.companyName); // Debug log
+      
+      // Update Settings
+      const settingsResponse = await fetch(`${baseUrl}/api/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -108,9 +114,29 @@ const Settings = () => {
         body: JSON.stringify(settings)
       });
       
-      if (response.ok) {
+      // Update User's Company Name
+      const userResponse = await fetch(`${baseUrl}/api/auth/update-company`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ companyName: settings.companyName })
+      });
+      
+      console.log('Settings response:', settingsResponse.ok); // Debug log
+      console.log('User update response:', userResponse.ok); // Debug log
+      
+      if (settingsResponse.ok && userResponse.ok) {
         alert('Settings saved successfully!');
+        console.log('Triggering settingsUpdated event'); // Debug log
+        // Trigger header refresh
+        window.dispatchEvent(new CustomEvent('settingsUpdated'));
       } else {
+        const settingsError = await settingsResponse.text();
+        const userError = await userResponse.text();
+        console.error('Settings error:', settingsError);
+        console.error('User error:', userError);
         alert('Failed to save settings');
       }
     } catch (error) {

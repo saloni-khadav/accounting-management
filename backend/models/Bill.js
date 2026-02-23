@@ -271,6 +271,12 @@ const billSchema = new mongoose.Schema({
     min: 0
   },
   
+  creditNoteAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
   remainingAmount: {
     type: Number,
     default: 0,
@@ -352,8 +358,8 @@ billSchema.pre('save', function(next) {
     this.grandTotal = this.totalTaxableValue + this.totalTax;
   }
   
-  // Calculate remaining amount (after TDS deduction)
-  this.remainingAmount = (this.grandTotal || 0) - (this.paidAmount || 0);
+  // Calculate remaining amount (after TDS deduction and credit notes)
+  this.remainingAmount = (this.grandTotal || 0) - (this.paidAmount || 0) - (this.creditNoteAmount || 0);
   
   // Only update status if it's not explicitly set or if it's a payment update
   if (this.isModified('paidAmount') || (!this.isModified('status') && this.status !== 'Cancelled')) {
@@ -366,8 +372,8 @@ billSchema.pre('save', function(next) {
       
       const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
       
-      // Use net payable amount (grandTotal - TDS) for payment comparison
-      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0);
+      // Use net payable amount (grandTotal - TDS - creditNotes) for payment comparison
+      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0) - (this.creditNoteAmount || 0);
       
       if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';
@@ -382,7 +388,7 @@ billSchema.pre('save', function(next) {
       }
     } else {
       // No due date - only check payment status
-      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0);
+      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0) - (this.creditNoteAmount || 0);
       
       if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';
