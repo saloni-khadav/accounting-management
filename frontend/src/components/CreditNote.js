@@ -81,6 +81,11 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
   const [maxRemainingAmount, setMaxRemainingAmount] = useState(0);
 
+  // Format number with Indian comma style
+  const formatIndianNumber = (num) => {
+    return Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   useEffect(() => {
     if (editingCreditNote) {
       setCreditNoteData({
@@ -364,28 +369,30 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     const totalGSTRate = firstItem ? (firstItem.cgstRate || 0) + (firstItem.sgstRate || 0) + (firstItem.igstRate || 0) : 0;
     const taxableValue = totalGSTRate > 0 ? remainingAmount / (1 + totalGSTRate / 100) : remainingAmount;
 
-    const mappedItems = invoice.items && invoice.items.length > 0 ? [{
-      product: invoice.items[0]?.product || invoice.items[0]?.description || '',
-      description: 'Credit Note for remaining amount',
-      hsnCode: invoice.items[0]?.hsnCode || '',
+    // Map items from invoice with calculated taxable value as unit price
+    const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => ({
+      product: item.product || item.description || '',
+      description: item.description || item.product || '',
+      hsnCode: item.hsnCode || '',
       quantity: 1,
       unitPrice: taxableValue,
+      maxUnitPrice: taxableValue,
       discount: 0,
-      taxableValue: taxableValue,
-      cgstRate: invoice.items[0]?.cgstRate || 0,
-      sgstRate: invoice.items[0]?.sgstRate || 0,
-      igstRate: invoice.items[0]?.igstRate || 0,
+      taxableValue: 0,
+      cgstRate: item.cgstRate || 0,
+      sgstRate: item.sgstRate || 0,
+      igstRate: item.igstRate || 0,
       cgstAmount: 0,
       sgstAmount: 0,
       igstAmount: 0,
-      totalAmount: taxableValue,
-      maxRemainingAmount: remainingAmount
-    }] : [{
+      totalAmount: 0
+    })) : [{
       product: '',
       description: '',
       hsnCode: '',
       quantity: 1,
       unitPrice: 0,
+      maxUnitPrice: 0,
       discount: 0,
       taxableValue: 0,
       cgstRate: 9,
@@ -394,8 +401,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       cgstAmount: 0,
       sgstAmount: 0,
       igstAmount: 0,
-      totalAmount: 0,
-      maxRemainingAmount: 0
+      totalAmount: 0
     }];
 
     setCreditNoteData(prev => ({
@@ -413,6 +419,12 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   );
 
   const handleInputChange = (field, value) => {
+    if (field === 'creditNoteDate' && creditNoteData.originalInvoiceDate) {
+      if (value < creditNoteData.originalInvoiceDate) {
+        alert('Credit Note date cannot be earlier than the original invoice date');
+        return;
+      }
+    }
     setCreditNoteData(prev => ({
       ...prev,
       [field]: value
@@ -423,10 +435,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     if (field === 'unitPrice') {
       const newValue = parseFloat(value) || 0;
       const item = creditNoteData.items[index];
-      const maxAmount = item.maxRemainingAmount || maxRemainingAmount;
+      const maxUnitPrice = item.maxUnitPrice || 0;
       
-      if (maxAmount > 0 && newValue > maxAmount) {
-        alert(`Rate cannot exceed remaining amount of ₹${maxAmount.toFixed(2)}`);
+      if (maxUnitPrice > 0 && newValue > maxUnitPrice) {
+        alert(`Rate cannot exceed original invoice rate of ₹${maxUnitPrice.toFixed(2)}`);
         return;
       }
     }
@@ -496,6 +508,11 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     
     if (!creditNoteData.originalInvoiceNumber || !creditNoteData.originalInvoiceNumber.trim()) {
       alert('Original invoice number is required');
+      return;
+    }
+    
+    if (creditNoteData.originalInvoiceDate && creditNoteData.creditNoteDate < creditNoteData.originalInvoiceDate) {
+      alert('Credit Note date cannot be earlier than the original invoice date');
       return;
     }
     
@@ -905,6 +922,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                       onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                       min="0"
+                      max={item.maxUnitPrice || undefined}
                       step="0.01"
                     />
                   </td>
@@ -985,36 +1003,36 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         <div className="bg-gray-50 p-4 rounded-lg space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal:</span>
-            <span className="font-medium">₹{(creditNoteData.subtotal || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.subtotal || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Total Discount:</span>
-            <span className="font-medium">₹{(creditNoteData.totalDiscount || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalDiscount || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Taxable Value:</span>
-            <span className="font-medium">₹{(creditNoteData.totalTaxableValue || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalTaxableValue || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">CGST:</span>
-            <span className="font-medium">₹{(creditNoteData.totalCGST || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalCGST || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">SGST:</span>
-            <span className="font-medium">₹{(creditNoteData.totalSGST || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalSGST || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">IGST:</span>
-            <span className="font-medium">₹{(creditNoteData.totalIGST || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalIGST || 0)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Total Tax:</span>
-            <span className="font-medium">₹{(creditNoteData.totalTax || 0).toFixed(2)}</span>
+            <span className="font-medium">₹{formatIndianNumber(creditNoteData.totalTax || 0)}</span>
           </div>
           <hr className="my-2" />
           <div className="flex justify-between text-lg font-bold">
             <span>Grand Total:</span>
-            <span>₹{(creditNoteData.grandTotal || 0).toFixed(2)}</span>
+            <span>₹{formatIndianNumber(creditNoteData.grandTotal || 0)}</span>
           </div>
         </div>
       </div>
