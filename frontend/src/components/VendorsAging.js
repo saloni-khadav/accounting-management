@@ -34,7 +34,8 @@ const VendorsAging = () => {
           
           return {
             ...bill,
-            paidAmount: totalPaid
+            paidAmount: totalPaid,
+            creditNoteAmount: bill.creditNoteAmount || 0
           };
         });
         
@@ -58,7 +59,8 @@ const VendorsAging = () => {
         // Calculate remaining amount
         const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
         const paidAmount = bill.paidAmount || 0;
-        const remainingAmount = netPayable - paidAmount;
+        const creditNoteAmount = bill.creditNoteAmount || 0;
+        const remainingAmount = netPayable - paidAmount - creditNoteAmount;
         
         // Exclude fully paid bills (remaining amount <= 0)
         return remainingAmount > 0;
@@ -68,7 +70,8 @@ const VendorsAging = () => {
         const daysDiff = Math.floor((today - billDate) / (1000 * 60 * 60 * 24));
         const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
         const paidAmount = bill.paidAmount || 0;
-        const remainingAmount = netPayable - paidAmount; // Show remaining amount instead of total
+        const creditNoteAmount = bill.creditNoteAmount || 0;
+        const remainingAmount = netPayable - paidAmount - creditNoteAmount; // Show remaining amount instead of total
         
         return {
           billNumber: bill.billNumber,

@@ -35,14 +35,14 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${baseUrl}/api/profile`, {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const result = await response.json();
-          if (result.profile && Object.keys(result.profile).length > 0) {
-            const profile = result.profile;
+          if (result.user && result.user.profile && Object.keys(result.user.profile).length > 0) {
+            const profile = result.user.profile;
             setProfileData(prev => ({
               ...prev,
               gstNumber: profile.gstNumber || '',
@@ -277,7 +277,7 @@ const Profile = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${baseUrl}/api/profile/bank/${index}`, {
+      const response = await fetch(`${baseUrl}/api/auth/profile/bank/${index}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -341,7 +341,7 @@ const Profile = () => {
           reader.readAsDataURL(profileData.companyLogo);
         });
       }
-      const response = await fetch(`${baseUrl}/api/profile`, {
+      const response = await fetch(`${baseUrl}/api/auth/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -359,8 +359,13 @@ const Profile = () => {
       });
       const result = await response.json();
       if (response.ok && result.success) {
+        console.log('Profile saved successfully'); // Debug log
+        console.log('Triggering settingsUpdated event'); // Debug log
         alert('Profile saved successfully!');
+        // Trigger header refresh
+        window.dispatchEvent(new CustomEvent('settingsUpdated'));
       } else {
+        console.error('Profile save error:', result); // Debug log
         alert('Error saving profile: ' + result.message);
       }
     } catch (error) {

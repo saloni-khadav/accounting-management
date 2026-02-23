@@ -17,6 +17,7 @@ const creditDebitNoteSchema = new mongoose.Schema({
   },
   referenceNumber: String,
   originalInvoiceNumber: String,
+  originalBillNumber: String,
   reason: String,
   
   // TDS Details
