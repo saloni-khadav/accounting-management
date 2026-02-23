@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { X, CheckCircle } from 'lucide-react';
+import { X, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import MetricsCard from './ui/MetricsCard';
 
 const CollectionRegister = () => {
   const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
@@ -385,47 +385,30 @@ const CollectionRegister = () => {
       </div>
 
       {/* Top Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Total Collections with Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
-          <div className="flex items-center gap-4">
-            <div className="w-28 h-28">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={35}
-                    outerRadius={55}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total collec</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.totalCollections}</p>
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-900 mt-4">Total Collections</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Total Collections"
+            value={stats.totalCollections}
+            icon={CheckCircle}
+            color="primary"
+          />
         </div>
-
-        {/* Pending Invoices */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Pending Invoices</h3>
-          <p className="text-5xl font-bold text-gray-900">{stats.pendingInvoices}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Pending Invoices"
+            value={stats.pendingInvoices}
+            icon={Clock}
+            color="warning"
+          />
         </div>
-
-        {/* Collected This Month */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border-l-4 border-blue-500">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Collected This Month</h3>
-          <p className="text-5xl font-bold text-gray-900">₹{stats.monthlyAmount.toLocaleString('en-IN')}</p>
+        <div className="transform transition-all duration-200 hover:-translate-y-1">
+          <MetricsCard
+            title="Collected This Month"
+            value={`₹${stats.monthlyAmount.toLocaleString('en-IN')}`}
+            icon={DollarSign}
+            color="success"
+          />
         </div>
       </div>
 
@@ -442,15 +425,17 @@ const CollectionRegister = () => {
       {/* Add Collection Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 my-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Add Collection</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
-                <X size={24} />
-              </button>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Add Collection</h2>
+                <button onClick={() => setShowModal(false)} className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
             </div>
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
@@ -721,17 +706,17 @@ const CollectionRegister = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
+              <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium shadow-md hover:shadow-lg transition-all"
                 >
                   Add Collection
                 </button>
@@ -817,3 +802,4 @@ const CollectionRegister = () => {
 };
 
 export default CollectionRegister;
+

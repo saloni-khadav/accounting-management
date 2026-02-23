@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Collection = require('../models/Collection');
+const { notifyPaymentReceived } = require('../utils/notificationHelper');
 const Invoice = require('../models/Invoice');
 const CreditNote = require('../models/CreditNote');
 
@@ -67,6 +68,11 @@ router.post('/', async (req, res) => {
   try {
     const collection = new Collection(req.body);
     const savedCollection = await collection.save();
+    
+    // Create notification for payment received
+    if (req.user && req.user.id) {
+      await notifyPaymentReceived(req.user.id, savedCollection);
+    }
     
     // Update invoice status if approved
     if (savedCollection.approvalStatus === 'Approved' && savedCollection.invoiceNumber) {
@@ -209,3 +215,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+

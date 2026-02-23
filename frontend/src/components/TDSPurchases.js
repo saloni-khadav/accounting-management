@@ -79,9 +79,9 @@ const TDSPurchases = () => {
             tdsAmount: payment.tdsAmount || 0,
             interest: 0,
             totalTdsPayable: payment.tdsAmount || 0,
-            status: 'Paid',
-            chalanNo: null,
-            chalanDate: null
+            status: 'Payable',
+            chalanNo: payment.chalanNo || null,
+            chalanDate: payment.chalanDate || null
           }));
         
         // Get TDS from credit/debit notes
@@ -121,8 +121,8 @@ const TDSPurchases = () => {
         
         // Calculate summary from the combined data
         const totalTds = allTdsTransactions.reduce((sum, t) => sum + t.tdsAmount, 0);
-        const paid = allTdsTransactions.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.tdsAmount, 0);
-        const payable = allTdsTransactions.filter(t => t.status === 'Payable').reduce((sum, t) => sum + t.tdsAmount, 0);
+        const paid = allTdsTransactions.filter(t => t.status === 'Paid' && t.chalanNo).reduce((sum, t) => sum + t.tdsAmount, 0);
+        const payable = allTdsTransactions.filter(t => t.status === 'Payable' || !t.chalanNo).reduce((sum, t) => sum + t.tdsAmount, 0);
         const interest = allTdsTransactions.reduce((sum, t) => sum + t.interest, 0);
         
         setSummaryData({ totalTds, paid, payable, interest });
@@ -347,3 +347,4 @@ const TDSPurchases = () => {
 };
 
 export default TDSPurchases;
+

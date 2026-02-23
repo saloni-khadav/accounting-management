@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Upload, Download, Plus } from 'lucide-react';
+import { X, Save, FileText, Upload, Download, Plus, Users, CreditCard, Building } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
@@ -581,640 +581,675 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-bold">{editingClient ? 'Edit Client' : 'Add New Client'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">{editingClient ? 'Edit Client' : 'Add New Client'}</h2>
+            <button onClick={onClose} className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors">
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Code *
-              </label>
-              <input
-                type="text"
-                name="clientCode"
-                value={formData.clientCode}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                readOnly
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Name / Company Name *
-              </label>
-              <input
-                type="text"
-                name="clientName"
-                value={formData.clientName}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-                readOnly={editingClient}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Person Name *
-              </label>
-              <input
-                type="text"
-                name="contactPerson"
-                value={formData.contactPerson}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Details (Mobile, Landline) *
-              </label>
-              <input
-                type="text"
-                name="contactDetails"
-                value={formData.contactDetails}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email ID *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
-              <input
-                type="url"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Billing Address with PIN Code *
-            </label>
-            <textarea
-              name="billingAddress"
-              value={formData.billingAddress}
-              onChange={handleInputChange}
-              rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
-              placeholder="Auto-filled from default GST number - cannot be edited manually"
-              readOnly
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  GST Numbers
-                </label>
-                <button
-                  type="button"
-                  onClick={addGSTNumber}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  + Add GST Number
-                </button>
-              </div>
-              <div className="space-y-2">
-                {formData.gstNumbers.map((gstItem, index) => (
-                  <div key={index} className="space-y-2 p-3 border border-gray-200 rounded-lg">
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        value={gstItem.gstNumber}
-                        onChange={(e) => handleGSTChange(index, 'gstNumber', e.target.value)}
-                        maxLength="15"
-                        placeholder="15 characters GST number"
-                        className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          (gstItem.isExisting && gstItem.gstNumber) ? 'bg-gray-100 cursor-not-allowed' : ''
-                        }`}
-                        readOnly={gstItem.isExisting && gstItem.gstNumber}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setDefaultGST(index)}
-                        className={`px-2 py-1 text-xs rounded ${
-                          gstItem.isDefault 
-                            ? 'bg-green-100 text-green-800 border border-green-300' 
-                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
-                        }`}
-                        title={gstItem.isDefault ? 'Default GST' : 'Set as Default'}
-                      >
-                        {gstItem.isDefault ? 'Default' : 'Set Default'}
-                      </button>
-                      {!gstItem.isExisting && formData.gstNumbers.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeGSTNumber(index)}
-                          className="px-2 py-1 text-xs bg-red-100 text-red-600 border border-red-300 rounded hover:bg-red-200"
-                          title="Remove GST Number"
-                        >
-                          Remove
-                        </button>
-                      )}
-                      <div className="flex items-center">
-                        <input
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) handleOCRUpload(file, 'gstCertificate', index);
-                          }}
-                          className="hidden"
-                          id={`gstFile${index}`}
-                          disabled={gstItem.isExisting && gstItem.gstNumber}
-                        />
-                        <label
-                          htmlFor={`gstFile${index}`}
-                          className={`px-3 py-2 border border-gray-300 rounded-lg text-sm flex items-center ${
-                            (gstItem.isExisting && gstItem.gstNumber)
-                              ? 'bg-gray-200 cursor-not-allowed text-gray-500' 
-                              : 'bg-gray-100 cursor-pointer hover:bg-gray-200'
-                          }`}
-                        >
-                          {uploadStates[`gst_${index}`]?.loading ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                          ) : (
-                            <Upload className="w-4 h-4 mr-1" />
-                          )}
-                          Upload
-                        </label>
-                        {gstItem.hasDocument && (
-                          <span className="ml-2 text-green-600 text-sm">✓</span>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      value={gstItem.billingAddress}
-                      onChange={(e) => handleGSTChange(index, 'billingAddress', e.target.value)}
-                      placeholder="Billing address for this GST number"
-                      rows="2"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
-                        (gstItem.isExisting && gstItem.gstNumber) ? 'bg-gray-100 cursor-not-allowed' : ''
-                      }`}
-                      readOnly={gstItem.isExisting && gstItem.gstNumber}
-                    />
-                  </div>
-                ))}
-              </div>
-              {uploadStates[`gst_0`]?.error && (
-                <p className="text-red-500 text-sm mt-1">{uploadStates[`gst_0`]?.error}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                PAN Number *
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="panNumber"
-                  value={formData.panNumber}
-                  onChange={handleInputChange}
-                  maxLength="10"
-                  pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
-                  placeholder="10 characters PAN number"
-                  className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                  readOnly={editingClient}
-                  required
-                />
-                <div className="flex items-center">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) handleOCRUpload(file, 'panCard');
-                    }}
-                    className="hidden"
-                    id="panFile"
-                    disabled={editingClient}
-                  />
-                  <label
-                    htmlFor="panFile"
-                    className={`px-3 py-2 border border-gray-300 rounded-lg text-sm flex items-center ${
-                      editingClient
-                        ? 'bg-gray-200 cursor-not-allowed text-gray-500' 
-                        : 'bg-gray-100 cursor-pointer hover:bg-gray-200'
-                    }`}
-                  >
-                    {uploadStates.pan.loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                    ) : (
-                      <Upload className="w-4 h-4 mr-1" />
-                    )}
-                    Upload
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="p-6 space-y-6">
+            {/* Basic Information Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-blue-600" />
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Code <span className="text-red-500">*</span>
                   </label>
-                  {(formData.documents.panCard || editingClient?.documents?.panCard) && (
-                    <span className="ml-2 text-green-600 text-sm">✓</span>
-                  )}
-                </div>
-              </div>
-              {uploadStates.pan.error && (
-                <p className="text-red-500 text-sm mt-1">{uploadStates.pan.error}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Terms *
-              </label>
-              <select
-                name="paymentTerms"
-                value={formData.paymentTerms}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select Payment Terms</option>
-                <option value="15 Days">15 Days</option>
-                <option value="30 Days">30 Days</option>
-                <option value="45 Days">45 Days</option>
-                <option value="60 Days">60 Days</option>
-                <option value="Advance">Advance</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Credit Limit *
-              </label>
-              <input
-                type="number"
-                name="creditLimit"
-                value={formData.creditLimit}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Account Number *
-            </label>
-            <input
-              type="text"
-              name="accountNumber"
-              value={formData.accountNumber}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                IFSC Code *
-              </label>
-              <input
-                type="text"
-                name="ifscCode"
-                value={formData.ifscCode}
-                onChange={handleInputChange}
-                maxLength="11"
-                placeholder="11 characters IFSC code"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bank Name *
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  name="bankName"
-                  value={formData.bankName}
-                  onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <div className="flex items-center">
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) handleOCRUpload(file, 'bankStatement');
-                    }}
-                    className="hidden"
-                    id="bankFile"
-                  />
-                  <label
-                    htmlFor="bankFile"
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
-                  >
-                    {uploadStates.bank.loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                    ) : (
-                      <Upload className="w-4 h-4 mr-1" />
-                    )}
-                    Upload
-                  </label>
-                  {formData.documents.bankStatement && (
-                    <span className="ml-2 text-green-600 text-sm">✓</span>
-                  )}
-                </div>
-              </div>
-              {uploadStates.bank.error && (
-                <p className="text-red-500 text-sm mt-1">{uploadStates.bank.error}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Industry Type *
-              </label>
-              <select
-                name="industryType"
-                value={formData.industryType}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select Industry Type</option>
-                <option value="Company">Company</option>
-                <option value="Firm">Firm</option>
-                <option value="Partnership">Partnership</option>
-                <option value="Proprietorship">Proprietorship</option>
-                <option value="LLP">LLP</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client Category *
-              </label>
-              <select
-                name="clientCategory"
-                value={formData.clientCategory}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select Category</option>
-                <option value="Retail">Retail</option>
-                <option value="Corporate">Corporate</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contract Start Date *
-              </label>
-              <input
-                type="date"
-                name="contractStartDate"
-                value={formData.contractStartDate || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contract End Date *
-              </label>
-              <input
-                type="date"
-                name="contractEndDate"
-                value={formData.contractEndDate || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Preferred Currency
-              </label>
-              <select
-                name="currency"
-                value={formData.currency}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned Account Manager *
-            </label>
-            <input
-              type="text"
-              name="accountManager"
-              value={formData.accountManager}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          {/* Documents Section */}
-          <div className="border-t pt-4 mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2" />
-              Other Documents
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Aadhar Number
-                </label>
-                <div className="flex gap-2">
                   <input
                     type="text"
-                    name="aadharNumber"
-                    value={formData.aadharNumber}
-                    onChange={handleInputChange}
-                    maxLength="12"
-                    pattern="[0-9]{12}"
-                    placeholder="12 digits Aadhar number"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    name="clientCode"
+                    value={formData.clientCode}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600 font-medium"
+                    readOnly
+                    required
                   />
-                  <div className="flex items-center">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) handleOCRUpload(file, 'aadharCard');
-                      }}
-                      className="hidden"
-                      id="aadharFile"
-                    />
-                    <label
-                      htmlFor="aadharFile"
-                      className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
-                    >
-                      {uploadStates.aadhar.loading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
-                      ) : (
-                        <Upload className="w-4 h-4 mr-1" />
-                      )}
-                      Upload
-                    </label>
-                    {formData.documents.aadharCard && (
-                      <span className="ml-2 text-green-600 text-sm">✓</span>
-                    )}
-                  </div>
                 </div>
-                {uploadStates.aadhar.error && (
-                  <p className="text-red-500 text-sm mt-1">{uploadStates.aadhar.error}</p>
-                )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Name / Company Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
+                    readOnly={editingClient}
+                    required
+                  />
+                </div>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Other Documents
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Person Name <span className="text-red-500">*</span>
                   </label>
-                  <span className="text-xs text-gray-500">
-                    Total: {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
-                  </span>
+                  <input
+                    type="text"
+                    name="contactPerson"
+                    value={formData.contactPerson}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
                 </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Details (Mobile, Landline) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="contactDetails"
+                    value={formData.contactDetails}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Address & Tax Information Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Address & Tax Information
+              </h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Billing Address with PIN Code <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="billingAddress"
+                  value={formData.billingAddress}
+                  onChange={handleInputChange}
+                  rows="2"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-filled from default GST number - cannot be edited manually"
+                  readOnly
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      GST Numbers
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addGSTNumber}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                    >
+                      <Plus size={16} />
+                      Add GST
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.gstNumbers.map((gstItem, index) => (
+                      <div key={index} className="space-y-2 p-3 border-2 border-gray-200 rounded-lg bg-white hover:border-blue-300 transition-colors">
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={gstItem.gstNumber}
+                            onChange={(e) => handleGSTChange(index, 'gstNumber', e.target.value)}
+                            maxLength="15"
+                            placeholder="15 characters GST number"
+                            className={`flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                              (gstItem.isExisting && gstItem.gstNumber) ? 'bg-gray-100 cursor-not-allowed' : ''
+                            }`}
+                            readOnly={gstItem.isExisting && gstItem.gstNumber}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setDefaultGST(index)}
+                            className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                              gstItem.isDefault 
+                                ? 'bg-green-500 text-white border-2 border-green-600' 
+                                : 'bg-white text-gray-600 border-2 border-gray-300 hover:bg-gray-50'
+                            }`}
+                            title={gstItem.isDefault ? 'Default GST' : 'Set as Default'}
+                          >
+                            {gstItem.isDefault ? '✓ Default' : 'Set Default'}
+                          </button>
+                          {!gstItem.isExisting && formData.gstNumbers.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeGSTNumber(index)}
+                              className="px-3 py-2 text-xs font-medium bg-red-50 text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                              title="Remove GST Number"
+                            >
+                              Remove
+                            </button>
+                          )}
+                          <div className="flex items-center">
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) handleOCRUpload(file, 'gstCertificate', index);
+                              }}
+                              className="hidden"
+                              id={`gstFile${index}`}
+                              disabled={gstItem.isExisting && gstItem.gstNumber}
+                            />
+                            <label
+                              htmlFor={`gstFile${index}`}
+                              className={`px-3 py-2 border-2 border-gray-300 rounded-lg text-sm font-medium flex items-center gap-1 ${
+                                (gstItem.isExisting && gstItem.gstNumber)
+                                  ? 'bg-gray-200 cursor-not-allowed text-gray-500' 
+                                  : 'bg-blue-50 cursor-pointer hover:bg-blue-100 text-blue-600'
+                              }`}
+                            >
+                              {uploadStates[`gst_${index}`]?.loading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                              Upload
+                            </label>
+                            {gstItem.hasDocument && (
+                              <span className="ml-2 text-green-600 text-lg font-bold">✓</span>
+                            )}
+                          </div>
+                        </div>
+                        <textarea
+                          value={gstItem.billingAddress}
+                          onChange={(e) => handleGSTChange(index, 'billingAddress', e.target.value)}
+                          placeholder="Billing address for this GST number"
+                          rows="2"
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                            (gstItem.isExisting && gstItem.gstNumber) ? 'bg-gray-100 cursor-not-allowed' : ''
+                          }`}
+                          readOnly={gstItem.isExisting && gstItem.gstNumber}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {uploadStates[`gst_0`]?.error && (
+                    <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates[`gst_0`]?.error}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    PAN Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="panNumber"
+                      value={formData.panNumber}
+                      onChange={handleInputChange}
+                      maxLength="10"
+                      pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+                      placeholder="10 characters PAN number"
+                      className={`flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        editingClient ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      readOnly={editingClient}
+                      required
+                    />
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleOCRUpload(file, 'panCard');
+                        }}
+                        className="hidden"
+                        id="panFile"
+                        disabled={editingClient}
+                      />
+                      <label
+                        htmlFor="panFile"
+                        className={`px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm font-medium flex items-center gap-1 ${
+                          editingClient
+                            ? 'bg-gray-200 cursor-not-allowed text-gray-500' 
+                            : 'bg-blue-50 cursor-pointer hover:bg-blue-100 text-blue-600'
+                        }`}
+                      >
+                        {uploadStates.pan.loading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        Upload
+                      </label>
+                      {(formData.documents.panCard || editingClient?.documents?.panCard) && (
+                        <span className="ml-2 text-green-600 text-lg font-bold">✓</span>
+                      )}
+                    </div>
+                  </div>
+                  {uploadStates.pan.error && (
+                    <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates.pan.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment & Banking Information Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
+                Payment & Banking Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Terms <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="paymentTerms"
+                    value={formData.paymentTerms}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Payment Terms</option>
+                    <option value="15 Days">15 Days</option>
+                    <option value="30 Days">30 Days</option>
+                    <option value="45 Days">45 Days</option>
+                    <option value="60 Days">60 Days</option>
+                    <option value="Advance">Advance</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Credit Limit <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="creditLimit"
+                    value={formData.creditLimit}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Number <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  onChange={handleOtherDocumentUpload}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="text"
+                  name="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    IFSC Code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="ifscCode"
+                    value={formData.ifscCode}
+                    onChange={handleInputChange}
+                    maxLength="11"
+                    placeholder="11 characters IFSC code"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bank Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="bankName"
+                      value={formData.bankName}
+                      onChange={handleInputChange}
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleOCRUpload(file, 'bankStatement');
+                        }}
+                        className="hidden"
+                        id="bankFile"
+                      />
+                      <label
+                        htmlFor="bankFile"
+                        className="px-3 py-2.5 bg-blue-50 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-blue-100 text-sm font-medium flex items-center gap-1 text-blue-600"
+                      >
+                        {uploadStates.bank.loading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        Upload
+                      </label>
+                      {formData.documents.bankStatement && (
+                        <span className="ml-2 text-green-600 text-lg font-bold">✓</span>
+                      )}
+                    </div>
+                  </div>
+                  {uploadStates.bank.error && (
+                    <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates.bank.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Business Information Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <Building className="w-5 h-5 mr-2 text-blue-600" />
+                Business Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Industry Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="industryType"
+                    value={formData.industryType}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Industry Type</option>
+                    <option value="Company">Company</option>
+                    <option value="Firm">Firm</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Proprietorship">Proprietorship</option>
+                    <option value="LLP">LLP</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="clientCategory"
+                    value={formData.clientCategory}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Retail">Retail</option>
+                    <option value="Corporate">Corporate</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contract Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="contractStartDate"
+                    value={formData.contractStartDate || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contract End Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="contractEndDate"
+                    value={formData.contractEndDate || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preferred Currency
+                  </label>
+                  <select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned Account Manager <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="accountManager"
+                  value={formData.accountManager}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
                 />
               </div>
             </div>
 
-            {formData.documents.otherDocuments.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">Uploaded Documents:</p>
-                <div className="space-y-1">
-                  {formData.documents.otherDocuments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm text-gray-700">
-                        {file instanceof File ? file.name : file}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => viewDocument(file)}
-                          className="text-green-600 hover:text-green-800 text-sm flex items-center"
-                          title="View"
-                        >
-                          <FileText size={16} className="mr-1" />
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => downloadDocument(file, index)}
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                          title="Download"
-                        >
-                          <Download size={16} className="mr-1" />
-                          Download
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeOtherDocument(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
+            {/* Documents Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Other Documents
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Aadhar Number
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="aadharNumber"
+                      value={formData.aadharNumber}
+                      onChange={handleInputChange}
+                      maxLength="12"
+                      pattern="[0-9]{12}"
+                      placeholder="12 digits Aadhar number"
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleOCRUpload(file, 'aadharCard');
+                        }}
+                        className="hidden"
+                        id="aadharFile"
+                      />
+                      <label
+                        htmlFor="aadharFile"
+                        className="px-3 py-2.5 bg-blue-50 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-blue-100 text-sm font-medium flex items-center gap-1 text-blue-600"
+                      >
+                        {uploadStates.aadhar.loading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        Upload
+                      </label>
+                      {formData.documents.aadharCard && (
+                        <span className="ml-2 text-green-600 text-lg font-bold">✓</span>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  {uploadStates.aadhar.error && (
+                    <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates.aadhar.error}</p>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Other Documents
+                    </label>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
+                    </span>
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={handleOtherDocumentUpload}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                  />
                 </div>
               </div>
-            )}
+
+              {formData.documents.otherDocuments.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Uploaded Documents:</p>
+                  <div className="space-y-2">
+                    {formData.documents.otherDocuments.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white border-2 border-gray-200 px-4 py-3 rounded-lg hover:border-blue-300 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium flex items-center">
+                          <FileText size={16} className="mr-2 text-blue-600" />
+                          {file instanceof File ? file.name : file}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => viewDocument(file)}
+                            className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                            title="View"
+                          >
+                            <FileText size={16} />
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDocument(file, index)}
+                            className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                            title="Download"
+                          >
+                            <Download size={16} />
+                            Download
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeOtherDocument(index)}
+                            className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4">
+          {/* Form Actions */}
+          <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4" />
               {editingClient ? 'Update Client' : 'Save Client'}
             </button>
           </div>

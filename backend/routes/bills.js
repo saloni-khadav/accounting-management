@@ -6,6 +6,7 @@ const router = express.Router();
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const { compressFile } = require('../utils/fileCompressor');
+const { notifyBillCreated, notifyBillApprovalPending } = require('../utils/notificationHelper');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/bills');
@@ -207,6 +208,21 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
     
     const bill = new Bill(billData);
     const savedBill = await bill.save();
+    
+    // Create notification for bill creation
+    if (req.user && req.user.id) {
+      await notifyBillCreated(req.user.id, savedBill);
+      
+      // If bill needs approval, notify manager
+      if (savedBill.approvalStatus === 'pending') {
+        // Get all managers and notify them
+        const User = require('../models/User');
+        const managers = await User.find({ role: 'manager' });
+        for (const manager of managers) {
+          await notifyBillApprovalPending(manager._id, savedBill);
+        }
+      }
+    }
     
     res.status(201).json(savedBill);
   } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, X, Upload, Paperclip, Download } from 'lucide-react';
+import { Save, Plus, Trash2, X, Upload, Paperclip, Download, Eye } from 'lucide-react';
 
 const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   const [creditDebitNotes, setCreditDebitNotes] = useState([]);
@@ -8,6 +8,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   const [vendorSearchTerm, setVendorSearchTerm] = useState('');
   const [vendorInvoices, setVendorInvoices] = useState([]);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
+  const [originalBillAmount, setOriginalBillAmount] = useState(null);
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
@@ -315,9 +316,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     }
   };
 
-  useEffect(() => {
-    calculateTotals();
-  }, [noteData.items]);
+
 
   const calculateItemTotals = (item) => {
     const quantity = Math.max(0, Number(item.quantity) || 0);
@@ -363,28 +362,41 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     const totalCESS = updatedItems.reduce((sum, item) => sum + Number(item.cessAmount), 0);
     const grandTotal = totalTaxableValue + totalCGST + totalSGST + totalIGST + totalCESS;
 
-    setNoteData(prev => {
-      const newData = {
-        ...prev,
-        items: updatedItems,
-        subtotal,
-        totalDiscount,
-        totalTaxableValue,
-        totalCGST,
-        totalSGST,
-        totalIGST,
-        totalCESS,
-        grandTotal
-      };
-      
-      // Recalculate TDS if section is selected
-      if (prev.tdsSection && prev.tdsPercentage > 0) {
-        newData.tdsAmount = (totalTaxableValue * prev.tdsPercentage) / 100;
-      }
-      
-      return newData;
-    });
+    const tdsAmount = noteData.tdsSection && noteData.tdsPercentage > 0 
+      ? (totalTaxableValue * noteData.tdsPercentage) / 100 
+      : noteData.tdsAmount || 0;
+
+    // Real-time validation for Credit Note amount
+    if (noteData.type === 'Credit Note' && originalBillAmount !== null && grandTotal > originalBillAmount) {
+      alert(`Credit Note amount (₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}) cannot exceed original Bill amount (₹${originalBillAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`);
+      return;
+    }
+
+    setNoteData(prev => ({
+      ...prev,
+      items: updatedItems,
+      subtotal,
+      totalDiscount,
+      totalTaxableValue,
+      totalCGST,
+      totalSGST,
+      totalIGST,
+      totalCESS,
+      grandTotal,
+      tdsAmount
+    }));
   };
+
+  useEffect(() => {
+    calculateTotals();
+  }, [noteData.items.length, JSON.stringify(noteData.items.map(item => ({
+    q: item.quantity,
+    p: item.unitPrice,
+    d: item.discount,
+    c: item.cgstRate,
+    s: item.sgstRate,
+    i: item.igstRate
+  })))]);
 
   const handleInputChange = (field, value) => {
     if (field === 'tdsSection') {
@@ -548,6 +560,15 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     if (!noteData.noteNumber || !noteData.noteNumber.trim()) {
       alert('Note number is required');
       return;
+    }
+    
+    // Validate Credit Note amount against original Bill amount
+    if (noteData.type === 'Credit Note' && originalBillAmount !== null) {
+      const creditNoteAmount = noteData.grandTotal || 0;
+      if (creditNoteAmount > originalBillAmount) {
+        alert(`Credit Note amount (₹${creditNoteAmount.toLocaleString()}) cannot exceed original Bill amount (₹${originalBillAmount.toLocaleString()})`);
+        return;
+      }
     }
     
     if (!attachments || attachments.length === 0) {
@@ -746,15 +767,6 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
-                <input
-                  type="date"
-                  value={noteData.invoiceDate}
-                  onChange={(e) => handleInputChange('invoiceDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Original Invoice</label>
                 <div className="relative">
                   <input
@@ -776,6 +788,9 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             e.preventDefault();
                             handleInputChange('originalInvoiceNumber', invoice.billNumber);
                             handleInputChange('invoiceDate', new Date(invoice.billDate).toISOString().split('T')[0]);
+                            
+                            // Store original bill amount for validation
+                            setOriginalBillAmount(invoice.grandTotal || 0);
                             
                             // Populate items from selected invoice - copy exact data
                             if (invoice.items && invoice.items.length > 0) {
@@ -830,6 +845,16 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   )}
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                <input
+                  type="date"
+                  value={noteData.invoiceDate}
+                  onChange={(e) => handleInputChange('invoiceDate', e.target.value)}
+                  placeholder="dd-mm-yyyy"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
 
@@ -852,7 +877,6 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Product/Item *</th>
-                      <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Description *</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">HSN/SAC</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Qty *</th>
                       <th className="px-3 py-2 text-left text-sm font-medium text-gray-700 border-b">Rate *</th>
@@ -874,15 +898,6 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             onChange={(e) => handleItemChange(index, 'product', e.target.value)}
                             className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                             placeholder="Product/Item Name"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                            placeholder="Description"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -1087,6 +1102,21 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (attachment.isExisting) {
+                                window.open(`https://nextbook-backend.nextsphere.co.in${attachment.fileUrl}`, '_blank');
+                              } else {
+                                const url = URL.createObjectURL(attachment.file);
+                                window.open(url, '_blank');
+                              }
+                            }}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => downloadAttachment(attachment)}

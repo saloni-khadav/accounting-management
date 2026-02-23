@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, DollarSign } from 'lucide-react';
+import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, DollarSign, Eye } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const Payments = () => {
@@ -9,6 +9,7 @@ const Payments = () => {
   const [stats, setStats] = useState({ completed: 0, pending: 0, upcoming: 0 });
   const [vendors, setVendors] = useState([]);
   const [bills, setBills] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showBillDropdown, setShowBillDropdown] = useState(false);
   const [showBankDropdown, setShowBankDropdown] = useState(false);
@@ -32,17 +33,6 @@ const Payments = () => {
     attachments: []
   });
 
-  const bankAccounts = [
-    { name: 'HDFC Bank - Current Account', code: 'HDFC001', accountNumber: '****1234' },
-    { name: 'Axis Bank - Savings Account', code: 'AXIS002', accountNumber: '****5678' },
-    { name: 'ICICI Bank - Current Account', code: 'ICICI003', accountNumber: '****9012' },
-    { name: 'SBI - Current Account', code: 'SBI004', accountNumber: '****3456' },
-    { name: 'Kotak Mahindra Bank', code: 'KOTAK005', accountNumber: '****7890' },
-    { name: 'Punjab National Bank', code: 'PNB006', accountNumber: '****2345' },
-    { name: 'Bank of Baroda', code: 'BOB007', accountNumber: '****6789' },
-    { name: 'Canara Bank', code: 'CANARA008', accountNumber: '****0123' }
-  ];
-
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
     { code: '194C', rate: 1, description: 'Individual/HUF' },
@@ -59,7 +49,24 @@ const Payments = () => {
     fetchStats();
     fetchVendors();
     fetchUserRole();
+    fetchBankAccounts();
   }, []);
+
+  const fetchBankAccounts = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        const accounts = userData.user?.profile?.bankAccounts || [];
+        setBankAccounts(accounts.filter(acc => acc.bankName && acc.accountNumber));
+      }
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
 
   const fetchUserRole = async () => {
     try {
@@ -262,6 +269,11 @@ const Payments = () => {
     }));
   };
 
+  const viewFile = (file) => {
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank');
+  };
+
   const downloadFile = (file) => {
     const url = URL.createObjectURL(file);
     const link = document.createElement('a');
@@ -287,8 +299,8 @@ const Payments = () => {
   };
 
   const filteredBanks = bankAccounts.filter(bank =>
-    bank.name.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
-    bank.code.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase())
+    bank.bankName.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()) ||
+    (bank.accountNumber && bank.accountNumber.toLowerCase().includes((bankSearchTerm || formData.bankAccount || '').toLowerCase()))
   );
 
   const filteredVendors = vendors.filter(vendor =>
@@ -871,17 +883,21 @@ const Payments = () => {
                     />
                     {showBankDropdown && filteredBanks.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {filteredBanks.map((bank) => (
+                        {filteredBanks.map((bank, idx) => (
                           <div
-                            key={bank.code}
+                            key={idx}
                             onMouseDown={(e) => {
                               e.preventDefault();
-                              handleBankSelect(bank.name);
+                              handleBankSelect(bank.bankName);
                             }}
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
-                            <div className="font-medium text-gray-900">{bank.name}</div>
-                            <div className="text-sm text-gray-500">{bank.code} | {bank.accountNumber}</div>
+                            <div className="font-medium text-gray-900">{bank.bankName}</div>
+                            <div className="text-sm text-gray-500">
+                              {bank.ifscCode && `${bank.ifscCode} | `}
+                              {bank.accountNumber && `****${bank.accountNumber.slice(-4)}`}
+                              {bank.branchName && ` | ${bank.branchName}`}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -891,7 +907,7 @@ const Payments = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reference/Transaction Number
+                    Reference/Transaction Number <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -899,6 +915,7 @@ const Payments = () => {
                     value={formData.referenceNumber}
                     onChange={handleInputChange}
                     placeholder="TXN123456789"
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -954,6 +971,14 @@ const Payments = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
+                                onClick={() => viewFile(file)}
+                                className="text-green-500 hover:text-green-700"
+                                title="View file"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => downloadFile(file)}
                                 className="text-blue-500 hover:text-blue-700"
                                 title="Download file"
@@ -1001,3 +1026,4 @@ const Payments = () => {
 };
 
 export default Payments;
+

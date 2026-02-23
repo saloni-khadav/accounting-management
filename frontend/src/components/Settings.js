@@ -48,6 +48,7 @@ const Settings = () => {
 
   useEffect(() => {
     fetchUserData();
+    fetchSettings();
   }, []);
 
   const fetchUserData = async () => {
@@ -67,6 +68,22 @@ const Settings = () => {
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(prev => ({ ...prev, ...data }));
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
     } finally {
       setLoading(false);
     }
@@ -79,9 +96,27 @@ const Settings = () => {
     }));
   };
 
-  const handleSave = () => {
-    console.log('Saving settings:', settings);
-    alert('Settings saved successfully!');
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+      
+      if (response.ok) {
+        alert('Settings saved successfully!');
+      } else {
+        alert('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Error saving settings');
+    }
   };
 
   if (loading) {
