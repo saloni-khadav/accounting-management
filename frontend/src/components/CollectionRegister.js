@@ -36,14 +36,14 @@ const CollectionRegister = () => {
 
 
   const tdsSection = [
-    { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
-    { code: '194J(a)', rate: 2, description: 'Technical Services' },
-    { code: '194J(b)', rate: 10, description: 'Professional' },
-    { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
-    { code: '194I(b)', rate: 10, description: 'Rent - Land & Building' },
-    { code: '194A', rate: 10, description: 'Interest other than on Securities' }
+    { code: '194H', rate: 5, description: 'Commission or Brokerage', uniqueKey: '194H-5' },
+    { code: '194C', rate: 1, description: 'Individual/HUF', uniqueKey: '194C-1' },
+    { code: '194C', rate: 2, description: 'Company', uniqueKey: '194C-2' },
+    { code: '194J(a)', rate: 2, description: 'Technical Services', uniqueKey: '194J(a)-2' },
+    { code: '194J(b)', rate: 10, description: 'Professional', uniqueKey: '194J(b)-10' },
+    { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery', uniqueKey: '194I(a)-2' },
+    { code: '194I(b)', rate: 10, description: 'Rent - Land & Building', uniqueKey: '194I(b)-10' },
+    { code: '194A', rate: 10, description: 'Interest other than on Securities', uniqueKey: '194A-10' }
   ];
 
   useEffect(() => {
@@ -242,7 +242,7 @@ const CollectionRegister = () => {
     // Recalculate TDS and net amount if TDS section exists
     let tdsAmount = 0;
     if (formData.tdsSection) {
-      const selectedSection = tdsSection.find(s => s.code === formData.tdsSection);
+      const selectedSection = tdsSection.find(s => s.uniqueKey === formData.tdsSection);
       if (selectedSection) {
         tdsAmount = (totalAmount * selectedSection.rate) / 100;
       }
@@ -559,7 +559,7 @@ const CollectionRegister = () => {
                       
                       let tdsAmount = 0;
                       if (formData.tdsSection) {
-                        const selectedSection = tdsSection.find(s => s.code === formData.tdsSection);
+                        const selectedSection = tdsSection.find(s => s.uniqueKey === formData.tdsSection);
                         if (selectedSection) {
                           tdsAmount = (newAmount * selectedSection.rate) / 100;
                         }
@@ -584,7 +584,7 @@ const CollectionRegister = () => {
                   <select
                     value={formData.tdsSection}
                     onChange={(e) => {
-                      const selectedSection = tdsSection.find(s => s.code === e.target.value);
+                      const selectedSection = tdsSection.find(s => s.uniqueKey === e.target.value);
                       const totalAmount = parseFloat(formData.amount) || 0;
                       const tdsAmount = selectedSection ? (totalAmount * selectedSection.rate) / 100 : 0;
                       const netAmount = totalAmount - tdsAmount;
@@ -601,7 +601,7 @@ const CollectionRegister = () => {
                   >
                     <option value="">Select TDS Section</option>
                     {tdsSection.map((section, idx) => (
-                      <option key={idx} value={section.code}>
+                      <option key={idx} value={section.uniqueKey}>
                         {section.code} - {section.rate}% ({section.description})
                       </option>
                     ))}
