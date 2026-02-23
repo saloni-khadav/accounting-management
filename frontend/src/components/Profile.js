@@ -9,6 +9,7 @@ const Profile = () => {
     companyLogo: null,
     companyLogoUrl: null,
     gstNumber: '',
+    gstNumbers: [{ gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: true }],
     gstCertificate: null,
     tradeName: '',
     address: '',
@@ -46,6 +47,11 @@ const Profile = () => {
             setProfileData(prev => ({
               ...prev,
               gstNumber: profile.gstNumber || '',
+              gstNumbers: profile.gstNumbers && profile.gstNumbers.length > 0 
+                ? profile.gstNumbers 
+                : profile.gstNumber 
+                  ? [{ gstNumber: profile.gstNumber, address: profile.address || '', tradeName: profile.tradeName || '', panNumber: profile.panNumber || '', isDefault: true }]
+                  : [{ gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: true }],
               tradeName: profile.tradeName || '',
               panNumber: profile.panNumber || '',
               tanNumber: profile.tanNumber || '',
@@ -67,30 +73,108 @@ const Profile = () => {
 
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGSTChange = (index, field, value) => {
+    const updatedGSTNumbers = [...profileData.gstNumbers];
+    updatedGSTNumbers[index][field] = value;
+    
+    const newFormData = {
+      ...profileData,
+      gstNumbers: updatedGSTNumbers,
+      gstNumber: updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || ''
+    };
+    
+    if (field === 'address' && updatedGSTNumbers[index].isDefault) {
+      newFormData.address = value;
+    }
+    
+    setProfileData(newFormData);
+    
     if (field === 'gstNumber' && value && value.length === 15) {
       const validation = validateGST(value);
-      if (validation.isValid) fetchGSTDetails(validation.cleanGST);
+      if (validation.isValid) fetchGSTDetails(validation.cleanGST, index);
     }
   };
 
-  const handleFileUpload = async (field, file) => {
+  const addGSTNumber = () => {
+    setProfileData({
+      ...profileData,
+      gstNumbers: [...profileData.gstNumbers, { gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: false }]
+    });
+  };
+
+  const removeGSTNumber = (index) => {
+    if (profileData.gstNumbers.length > 1) {
+      const updatedGSTNumbers = profileData.gstNumbers.filter((_, i) => i !== index);
+      if (profileData.gstNumbers[index].isDefault && updatedGSTNumbers.length > 0) {
+        updatedGSTNumbers[0].isDefault = true;
+      }
+      setProfileData({
+        ...profileData,
+        gstNumbers: updatedGSTNumbers,
+        gstNumber: updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '',
+        address: updatedGSTNumbers.find(gst => gst.isDefault)?.address || updatedGSTNumbers[0]?.address || ''
+      });
+    }
+  };
+
+  const setDefaultGST = (index) => {
+    const updatedGSTNumbers = profileData.gstNumbers.map((gst, i) => ({
+      ...gst,
+      isDefault: i === index
+    }));
+    const selectedGST = updatedGSTNumbers[index];
+    setProfileData({
+      ...profileData,
+      gstNumbers: updatedGSTNumbers,
+      gstNumber: selectedGST.gstNumber || '',
+      address: selectedGST.address || '',
+      tradeName: selectedGST.tradeName || profileData.tradeName,
+      panNumber: selectedGST.panNumber || profileData.panNumber
+    });
+  };
+
+  const handleFileUpload = async (field, file, gstIndex = null) => {
     setProfileData(prev => ({ ...prev, [field]: file }));
-    if (field === 'gstCertificate' && file) await processGSTDocument(file);
+    if (field === 'gstCertificate' && file) await processGSTDocument(file, gstIndex || 0);
     if (field === 'mcaFile' && file) await extractMCANumber(file);
     if (field === 'msmeFile' && file) await extractMSMENumber(file);
     if (field === 'tanFile' && file) await extractTANNumber(file);
   };
 
-  const processGSTDocument = async (file) => {
-    setUploadStates(prev => ({ ...prev, gst: true }));
+  const processGSTDocument = async (file, gstIndex = 0) => {
+    setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: true }));
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'gstCertificate');
+      
+      console.log(`Uploading GST certificate for index ${gstIndex}...`);
       const ocrResponse = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const ocrResult = await ocrResponse.json();
+      
+      console.log('OCR Response Status:', ocrResponse.ok);
+      console.log('OCR Result:', ocrResult);
+      
       if (ocrResponse.ok && ocrResult.success && ocrResult.data.gstNumber) {
         const extractedGST = ocrResult.data.gstNumber;
+        const extractedPAN = extractedGST.substring(2, 12);
+        
+        // Validate PAN matches existing GST entries
+        if (profileData.gstNumbers.some((gst, idx) => idx !== gstIndex && gst.gstNumber && gst.gstNumber.substring(2, 12) !== extractedPAN)) {
+          alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
+          setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
+          return;
+        }
+        
+        let extractedTradeName = (ocrResult.data.tradeName || '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+        const extractedAddress = ocrResult.data.billingAddress || '';
+        
+        console.log('Extracted GST:', extractedGST);
+        console.log('Extracted Trade Name (cleaned):', extractedTradeName);
+        console.log('Extracted Address:', extractedAddress);
+        
         const token = localStorage.getItem('token');
         const verifyResponse = await fetch(`${baseUrl}/api/gst/verify`, {
           method: 'POST',
@@ -98,21 +182,74 @@ const Profile = () => {
           body: JSON.stringify({ gstNumber: extractedGST })
         });
         const verifyResult = await verifyResponse.json();
+        
         if (verifyResponse.ok && verifyResult.success) {
           const { gstNumber, tradeName, panNumber, address } = verifyResult.data;
-          setProfileData(prev => ({ ...prev, gstNumber, tradeName, address, panNumber }));
+          
+          // Validate PAN from API matches existing entries
+          if (profileData.gstNumbers.some((gst, idx) => idx !== gstIndex && gst.panNumber && gst.panNumber !== panNumber)) {
+            alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
+            setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
+            return;
+          }
+          
+          const finalTradeName = (tradeName && !tradeName.toLowerCase().includes('demo')) ? tradeName : extractedTradeName;
+          const finalAddress = (address && !address.toLowerCase().includes('demo')) ? address : extractedAddress;
+          
+          setProfileData(prev => {
+            const updatedGSTNumbers = [...prev.gstNumbers];
+            updatedGSTNumbers[gstIndex] = {
+              ...updatedGSTNumbers[gstIndex],
+              gstNumber: gstNumber,
+              address: finalAddress,
+              tradeName: finalTradeName,
+              panNumber: panNumber
+            };
+            
+            const defaultGST = updatedGSTNumbers.find(g => g.isDefault) || updatedGSTNumbers[0];
+            
+            const newData = { 
+              ...prev, 
+              gstNumber: defaultGST.gstNumber,
+              gstNumbers: updatedGSTNumbers,
+              tradeName: defaultGST.tradeName || prev.tradeName,
+              address: defaultGST.address,
+              panNumber: defaultGST.panNumber || prev.panNumber
+            };
+            return newData;
+          });
           alert('GST certificate processed successfully!');
         } else {
-          setProfileData(prev => ({ ...prev, gstNumber: extractedGST }));
-          alert(`GST number extracted: ${extractedGST}. Verification failed.`);
+          setProfileData(prev => {
+            const updatedGSTNumbers = [...prev.gstNumbers];
+            updatedGSTNumbers[gstIndex] = {
+              ...updatedGSTNumbers[gstIndex],
+              gstNumber: extractedGST,
+              address: extractedAddress,
+              tradeName: extractedTradeName
+            };
+            
+            const defaultGST = updatedGSTNumbers.find(g => g.isDefault) || updatedGSTNumbers[0];
+            
+            const newData = { 
+              ...prev, 
+              gstNumber: defaultGST.gstNumber,
+              gstNumbers: updatedGSTNumbers,
+              tradeName: defaultGST.tradeName || prev.tradeName,
+              address: defaultGST.address
+            };
+            return newData;
+          });
+          alert(`GST: ${extractedGST}\nAddress: ${extractedAddress}`);
         }
       } else {
         alert('Could not extract GST number from the document.');
       }
     } catch (error) {
+      console.error('Error processing GST document:', error);
       alert('Error processing GST document.');
     } finally {
-      setUploadStates(prev => ({ ...prev, gst: false }));
+      setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
     }
   };
 
@@ -237,7 +374,7 @@ const Profile = () => {
     }
   };
 
-  const fetchGSTDetails = async (gstNumber = profileData.gstNumber) => {
+  const fetchGSTDetails = async (gstNumber, index = 0) => {
     const validation = validateGST(gstNumber);
     if (!validation.isValid) return;
     setUploadStates(prev => ({ ...prev, gst: true }));
@@ -251,7 +388,16 @@ const Profile = () => {
       const result = await response.json();
       if (response.ok && result.success) {
         const { tradeName, panNumber, address } = result.data;
-        setProfileData(prev => ({ ...prev, tradeName, address, panNumber }));
+        const updatedGSTNumbers = [...profileData.gstNumbers];
+        updatedGSTNumbers[index].address = address;
+        
+        setProfileData(prev => ({ 
+          ...prev, 
+          tradeName, 
+          panNumber,
+          gstNumbers: updatedGSTNumbers,
+          address: updatedGSTNumbers[index].isDefault ? address : prev.address
+        }));
       }
     } catch (error) {
       console.error('GST API Error:', error);
@@ -306,8 +452,8 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    if (!profileData.gstNumber) {
-      alert('GST Number is required');
+    if (!profileData.gstNumbers[0]?.gstNumber) {
+      alert('At least one GST Number is required');
       return;
     }
     
@@ -347,6 +493,7 @@ const Profile = () => {
         body: JSON.stringify({
           companyLogo: logoBase64,
           gstNumber: profileData.gstNumber,
+          gstNumbers: profileData.gstNumbers,
           tradeName: profileData.tradeName,
           address: profileData.address,
           panNumber: profileData.panNumber,
@@ -419,19 +566,54 @@ const Profile = () => {
             {/* GST Information Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
               <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
-                <h3 className="text-lg font-semibold text-white">GST Information *</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white">GST Information *</h3>
+                  <button onClick={addGSTNumber} className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-all duration-200">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add GST
+                  </button>
+                </div>
               </div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
-                  <input type="text" value={profileData.gstNumber} onChange={(e) => handleInputChange('gstNumber', e.target.value.toUpperCase())} maxLength="15" placeholder="Enter 15-digit GST Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
-                </div>
-                <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.gst ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  {uploadStates.gst ? 'Processing...' : 'Upload GST Certificate'}
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0])} className="hidden" disabled={uploadStates.gst} />
-                </label>
-                {profileData.gstCertificate && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> Certificate uploaded</p>}
+                {profileData.gstNumbers.map((gst, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">GST {index + 1}</span>
+                        {gst.isDefault && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">Default</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!gst.isDefault && (
+                          <button onClick={() => setDefaultGST(index)} className="text-blue-600 hover:text-blue-800 text-sm">
+                            Set Default
+                          </button>
+                        )}
+                        {profileData.gstNumbers.length > 1 && (
+                          <button onClick={() => removeGSTNumber(index)} className="text-red-500 hover:text-red-700">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
+                        <input type="text" value={gst.gstNumber} onChange={(e) => handleGSTChange(index, 'gstNumber', e.target.value.toUpperCase())} maxLength="15" placeholder="Enter 15-digit GST Number" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Billing Address</label>
+                        <textarea value={gst.address} onChange={(e) => handleGSTChange(index, 'address', e.target.value)} rows="2" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none" placeholder="Enter billing address" />
+                      </div>
+                      <div>
+                        <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md text-sm ${uploadStates[`gst_${index}`] ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          <Upload className="w-4 h-4 mr-2" />
+                          {uploadStates[`gst_${index}`] ? 'Processing...' : 'Upload GST Certificate'}
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0], index)} className="hidden" disabled={uploadStates[`gst_${index}`]} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
