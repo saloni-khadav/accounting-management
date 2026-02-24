@@ -651,7 +651,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
+        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
           <h2 className="text-xl font-bold">{editingVendor ? 'Edit Vendor' : 'Add New Vendor'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />

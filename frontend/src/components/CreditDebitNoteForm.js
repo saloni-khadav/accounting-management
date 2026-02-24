@@ -670,7 +670,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
           <h1 className="text-2xl font-bold text-gray-800">
             {editingNote ? `Edit ${noteData.type}` : `Create ${noteData.type}`}
           </h1>
@@ -840,7 +840,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                                 items: invoiceItems,
                                 tdsSection: invoice.tdsSection || '',
                                 tdsPercentage: invoice.tdsPercentage || 0,
-                                tdsAmount: invoice.tdsAmount || 0
+                                // Don't set tdsAmount here - it will be calculated proportionally based on Credit Note amount
+                                tdsAmount: 0
                               }));
                             }
                             
