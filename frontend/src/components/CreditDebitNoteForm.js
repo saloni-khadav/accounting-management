@@ -12,8 +12,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -268,6 +268,16 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    
+    // Check individual file sizes
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    
+    if (oversizedFiles.length > 0) {
+      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+      return;
+    }
+    
     const newAttachments = files.map(file => ({
       fileName: file.name,
       fileSize: file.size,
@@ -977,7 +987,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                             max="28"
                           />
                         </td>
-                        <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="px-3 py-2">
                           <button
                             onClick={() => removeItem(index)}
@@ -1010,42 +1020,42 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">₹{(noteData.subtotal || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(noteData.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Discount:</span>
-                  <span className="font-medium text-red-600">-₹{(noteData.totalDiscount || 0).toFixed(2)}</span>
+                  <span className="font-medium text-red-600">-₹{(noteData.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Taxable Value:</span>
-                  <span className="font-medium">₹{(noteData.totalTaxableValue || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(noteData.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">CGST:</span>
-                  <span className="font-medium">₹{(noteData.totalCGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(noteData.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">SGST:</span>
-                  <span className="font-medium">₹{(noteData.totalSGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(noteData.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">IGST:</span>
-                  <span className="font-medium">₹{(noteData.totalIGST || 0).toFixed(2)}</span>
+                  <span className="font-medium">₹{(noteData.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 {(noteData.totalCESS || 0) > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">CESS:</span>
-                    <span className="font-medium">₹{(noteData.totalCESS || 0).toFixed(2)}</span>
+                    <span className="font-medium">₹{(noteData.totalCESS || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 <hr className="my-2" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Grand Total:</span>
-                  <span>₹{(noteData.grandTotal || 0).toFixed(2)}</span>
+                  <span>₹{(noteData.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 
                 {/* TDS Section - Conditional: Read-only if from Bill, Editable if not */}
-                {noteData.tdsSection ? (
+                {noteData.originalInvoiceNumber && noteData.tdsSection && parseFloat(noteData.tdsAmount) > 0 ? (
                   // TDS already in Bill - Read Only
                   <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
                     <div className="text-xs text-blue-600 font-medium mb-2">
@@ -1116,7 +1126,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   <label className="flex flex-col items-center cursor-pointer">
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-600">Click to upload files</span>
-                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 50MB)</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
                     <input
                       type="file"
                       multiple

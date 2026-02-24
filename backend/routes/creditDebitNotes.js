@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -108,8 +108,7 @@ router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
     // Check if note number already exists (only for new notes)
     if (noteData.noteNumber) {
       const existingNote = await CreditDebitNote.findOne({ 
-        noteNumber: noteData.noteNumber,
-        userId: req.user.id 
+        noteNumber: noteData.noteNumber
       });
       if (existingNote) {
         return res.status(400).json({ message: 'Note number already exists' });

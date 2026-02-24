@@ -35,8 +35,8 @@ const Payments = () => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -253,7 +253,8 @@ const Payments = () => {
     const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
     
     // Check if Bill has TDS - if yes, populate TDS fields (read-only)
-    const hasBillTDS = bill.tdsSection && bill.tdsAmount > 0;
+    // Only consider TDS as deducted if tdsAmount is actually greater than 0
+    const hasBillTDS = bill.tdsSection && parseFloat(bill.tdsAmount) > 0;
     
     setFormData(prev => ({
       ...prev,
@@ -271,6 +272,16 @@ const Payments = () => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    
+    // Check individual file sizes
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    
+    if (oversizedFiles.length > 0) {
+      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...files]
@@ -792,7 +803,7 @@ const Payments = () => {
                 </div>
 
                 {/* TDS Section - Conditional: Read-only if from Bill, Editable if not */}
-                {formData.billId && formData.tdsSection ? (
+                {formData.billId && formData.tdsSection && parseFloat(formData.tdsAmount) > 0 ? (
                   // TDS from Bill - Read Only
                   <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
                     <div className="text-xs text-blue-600 font-medium mb-2">
