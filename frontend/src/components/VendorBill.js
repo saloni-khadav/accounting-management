@@ -156,7 +156,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!isOpen || profileLoaded) return;
+      if (!isOpen) return;
       
       try {
         const token = localStorage.getItem('token');
@@ -187,14 +187,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
             placeOfSupply: gstBasedState || ''
           });
           
-          setBillData(prev => ({
-            ...prev,
-            supplierName: profile.tradeName || userData.user.companyName || '',
-            supplierAddress: profile.address || '',
-            supplierGSTIN: profile.gstNumber || '',
-            supplierPAN: profile.panNumber || '',
-            placeOfSupply: gstBasedState || ''
-          }));
+          // Only update if not editing
+          if (!editingBill) {
+            setBillData(prev => ({
+              ...prev,
+              supplierName: profile.tradeName || userData.user.companyName || '',
+              supplierAddress: profile.address || '',
+              supplierGSTIN: profile.gstNumber || '',
+              supplierPAN: profile.panNumber || '',
+              placeOfSupply: gstBasedState || ''
+            }));
+          }
           
           setProfileLoaded(true);
         } else {
@@ -206,7 +209,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     };
 
     fetchUserProfile();
-  }, [isOpen, baseUrl, profileLoaded]);
+  }, [isOpen, baseUrl, editingBill]);
 
   useEffect(() => {
     if (editingBill) {
