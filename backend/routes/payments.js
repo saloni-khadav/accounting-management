@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -108,6 +108,11 @@ router.post('/', auth, checkPeriodPermission('Payments'), upload.array('attachme
         fileUrl: file.filename,
         fileSize: file.size
       }));
+    }
+    
+    // Set createdBy from authenticated user if available
+    if (req.user && req.user.id) {
+      paymentData.createdBy = req.user.id;
     }
     
     const payment = new Payment(paymentData);

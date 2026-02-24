@@ -74,8 +74,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -775,18 +775,18 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     // Calculate total size including existing attachments
     const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
     const newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
-    const totalSize = existingSize + newFilesSize;
-    const maxTotalSize = 50 * 1024 * 1024; // 50MB
+    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
     
     console.log('📎 File upload:', {
       existing: (existingSize / 1024 / 1024).toFixed(2) + 'MB',
       new: (newFilesSize / 1024 / 1024).toFixed(2) + 'MB',
       total: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
-      limit: '50MB'
+      limit: '10MB'
     });
     
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
+      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
       return;
     }
     
@@ -853,11 +853,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       return;
     }
 
-    // Check total attachment size (max 50MB total)
+    // Check total attachment size (max 10MB total)
     const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
-    const maxTotalSize = 50 * 1024 * 1024; // 50MB
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
+      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
       return;
     }
 
@@ -1641,7 +1641,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <label className="flex flex-col items-center cursor-pointer">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600">Click to upload files</span>
-                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 50MB total)</span>
+                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB total)</span>
                   <input
                     type="file"
                     multiple

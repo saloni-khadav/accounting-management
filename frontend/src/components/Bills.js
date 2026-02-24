@@ -646,7 +646,7 @@ const Bills = () => {
                             <td className="px-4 py-3 text-right">{item.cgstRate}%</td>
                             <td className="px-4 py-3 text-right">{item.sgstRate}%</td>
                             <td className="px-4 py-3 text-right">{item.igstRate}%</td>
-                            <td className="px-4 py-3 text-right font-semibold">₹{item.totalAmount?.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right font-semibold">₹{item.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           </tr>
                         ))}
                       </tbody>
