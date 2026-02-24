@@ -457,6 +457,13 @@ const Profile = () => {
       return;
     }
     
+    // Ensure gstNumber is set to default GST
+    const defaultGST = profileData.gstNumbers.find(gst => gst.isDefault) || profileData.gstNumbers[0];
+    const finalGSTNumber = defaultGST?.gstNumber || '';
+    
+    console.log('💾 Saving profile with GST:', finalGSTNumber);
+    console.log('💾 Default GST object:', defaultGST);
+    
     // Validate bank accounts
     for (let i = 0; i < profileData.bankAccounts.length; i++) {
       const account = profileData.bankAccounts[i];
@@ -492,7 +499,7 @@ const Profile = () => {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           companyLogo: logoBase64,
-          gstNumber: profileData.gstNumber,
+          gstNumber: finalGSTNumber,
           gstNumbers: profileData.gstNumbers,
           tradeName: profileData.tradeName,
           address: profileData.address,

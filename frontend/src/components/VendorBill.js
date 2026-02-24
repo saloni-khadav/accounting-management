@@ -175,6 +175,10 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           console.log('✅ User data received:', userData);
           const profile = userData.user.profile || {};
           console.log('📋 Profile data:', profile);
+          console.log('🔍 GST Number from profile:', profile.gstNumber);
+          console.log('🔍 Trade Name from profile:', profile.tradeName);
+          console.log('🔍 PAN from profile:', profile.panNumber);
+          console.log('🔍 Address from profile:', profile.address);
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setCompanyGST(profile.gstNumber || '');
@@ -1005,7 +1009,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
           <h1 className="text-2xl font-bold text-gray-800">{editingBill ? 'Edit Vendor Bill' : 'Vendor Bill'}</h1>
           <button
             onClick={handleClose}
@@ -1026,8 +1030,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <input
                   type="text"
                   value={billData.supplierName}
-                  onChange={(e) => handleInputChange('supplierName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -1045,17 +1049,18 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <input
                   type="text"
                   value={billData.supplierPAN}
-                  onChange={(e) => handleInputChange('supplierPAN', e.target.value)}
+                  readOnly
                   maxLength="10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Place of Supply *</label>
                 <select
                   value={billData.placeOfSupply}
-                  onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 >
                   <option value="">Select State</option>
                   <option value="Andaman and Nicobar Islands">35 - Andaman and Nicobar Islands</option>
@@ -1102,9 +1107,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Registered Address *</label>
               <textarea
                 value={billData.supplierAddress}
-                onChange={(e) => handleInputChange('supplierAddress', e.target.value)}
+                readOnly
                 rows="2"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
               />
             </div>
           </div>
@@ -1469,7 +1474,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           step="0.01"
                         />
                       </td>
-                      <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2">
                         <input
                           type="number"
@@ -1503,7 +1508,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           step="0.01"
                         />
                       </td>
-                      <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2">
                         <button
                           onClick={() => removeItem(index)}
