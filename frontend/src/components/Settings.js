@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard, Clock } from 'lucide-react';
+import PeriodManagement from './PeriodManagement';
 
 const Settings = () => {
+  const [userRole, setUserRole] = useState('');
   const [settings, setSettings] = useState({
     // General Settings
     companyName: '',
@@ -45,6 +47,7 @@ const Settings = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
     fetchUserData();
@@ -61,6 +64,7 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         const userData = data.user;
+        setUserRole(userData.role || 'user');
         setSettings(prev => ({
           ...prev,
           companyName: userData.companyName || userData.profile?.tradeName || ''
@@ -138,6 +142,17 @@ const Settings = () => {
           <h1 className="text-3xl font-bold text-gray-800">System Settings</h1>
         </div>
 
+        <div className="flex space-x-4 mb-6 border-b">
+          <button
+            onClick={() => setActiveTab('general')}
+            className={`pb-2 px-4 ${activeTab === 'general' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'}`}
+          >
+            General Settings
+          </button>
+        </div>
+
+        {activeTab === 'general' && (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* General Settings */}
@@ -496,6 +511,8 @@ const Settings = () => {
             Save All Settings
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

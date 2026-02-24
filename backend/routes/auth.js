@@ -7,6 +7,17 @@ const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
+// Default permissions based on role
+const getDefaultPermissions = (role) => {
+  const permissions = {
+    'admin': ['*'],
+    'manager': ['view_notifications', 'manage_notifications', 'view_dashboard', 'view_reports', 'manage_approvals'],
+    'accountant': ['view_notifications', 'manage_bills', 'manage_invoices', 'manage_payments', 'view_dashboard'],
+    'user': ['view_notifications', 'view_dashboard']
+  };
+  return permissions[role] || permissions['user'];
+};
+
 // Signup - Step 1: Collect user info and send password setup email
 router.post('/signup', async (req, res) => {
   try {
@@ -30,6 +41,7 @@ router.post('/signup', async (req, res) => {
       companySize,
       annualTurnover,
       role: role || 'user',
+      permissions: getDefaultPermissions(role || 'user'),
       isActive: false,
       passwordSetupToken,
       passwordSetupExpire
@@ -176,7 +188,8 @@ router.post('/login', async (req, res) => {
         fullName: user.fullName,
         workEmail: user.workEmail,
         companyName: user.companyName,
-        role: user.role
+        role: user.role,
+        permissions: user.permissions || getDefaultPermissions(user.role)
       }
     });
   } catch (error) {
@@ -193,6 +206,8 @@ router.get('/me', auth, async (req, res) => {
       fullName: req.user.fullName,
       workEmail: req.user.workEmail,
       companyName: req.user.companyName,
+      role: req.user.role,
+      permissions: req.user.permissions || getDefaultPermissions(req.user.role),
       profile: req.user.profile || {}
     }
   });

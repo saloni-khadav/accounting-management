@@ -47,6 +47,7 @@ import ImportExport from './components/ImportExport';
 import TaxInvoice from './components/TaxInvoice';
 import InvoiceManagement from './components/InvoiceManagement';
 import Approvals from './components/Approvals';
+import PeriodManagement from './components/PeriodManagement';
 import ChatBot from './components/ChatBot';
 
 function App() {
@@ -189,6 +190,8 @@ function App() {
         return <ImportExport />;
       case 'Approvals':
         return <Approvals />;
+      case 'Period Management':
+        return <PeriodManagement />;
       default:
         return <Dashboard />;
     }

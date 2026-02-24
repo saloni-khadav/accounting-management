@@ -70,7 +70,7 @@ const PurchaseOrders = () => {
 
   const generatePONumber = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/next-po-number');
+      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders/next-po-number');
       if (response.ok) {
         const data = await response.json();
         setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
@@ -87,7 +87,7 @@ const PurchaseOrders = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch('https://nextbook-backend.onrender.com/api/vendors');
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -102,7 +102,7 @@ const PurchaseOrders = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.onrender.com/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -121,7 +121,7 @@ const PurchaseOrders = () => {
 
   const fetchPurchaseOrders = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders');
+      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders');
       if (response.ok) {
         const data = await response.json();
         setPurchaseOrders(data);
@@ -292,15 +292,16 @@ const PurchaseOrders = () => {
       };
 
       const url = editingOrder 
-        ? `https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${editingOrder._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/purchase-orders';
+        ? `https://nextbook-backend.onrender.com/api/purchase-orders/${editingOrder._id}`
+        : 'https://nextbook-backend.onrender.com/api/purchase-orders';
       
       const method = editingOrder ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(poData)
       });
@@ -322,7 +323,12 @@ const PurchaseOrders = () => {
         setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
         fetchPurchaseOrders();
       } else {
-        alert(editingOrder ? 'Error updating Purchase Order' : 'Error creating Purchase Order');
+        const errorData = await response.json();
+        if (errorData.isPastDateError) {
+          alert(errorData.message || 'Past date entry not allowed. Contact manager for permission.');
+        } else {
+          alert(editingOrder ? 'Error updating Purchase Order' : 'Error creating Purchase Order');
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -352,7 +358,7 @@ const PurchaseOrders = () => {
   const handleDelete = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this Purchase Order?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${orderId}`, {
+        const response = await fetch(`https://nextbook-backend.onrender.com/api/purchase-orders/${orderId}`, {
           method: 'DELETE'
         });
 

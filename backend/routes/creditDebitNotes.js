@@ -5,6 +5,7 @@ const fs = require('fs');
 const router = express.Router();
 const CreditDebitNote = require('../models/CreditDebitNote');
 const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/credit-debit-notes');
@@ -91,7 +92,7 @@ router.get('/reconciliation', async (req, res) => {
 });
 
 // Create new credit/debit note
-router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Credit/Debit Notes'), upload.array('attachments', 10), async (req, res) => {
   try {
     const noteData = {
       ...req.body,
@@ -165,7 +166,7 @@ router.post('/', auth, upload.array('attachments', 10), async (req, res) => {
 });
 
 // Update credit/debit note
-router.put('/:id', auth, upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Credit/Debit Notes'), upload.array('attachments', 10), async (req, res) => {
   try {
     const existingNote = await CreditDebitNote.findOne({
       _id: req.params.id,

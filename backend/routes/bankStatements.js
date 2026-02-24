@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const BankStatement = require('../models/BankStatement');
 const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -31,7 +32,7 @@ const upload = multer({
   }
 });
 
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/upload', auth, checkPeriodPermission('Bank Statement Upload'), upload.single('file'), async (req, res) => {
   try {
     const { bankName, period } = req.body;
     
