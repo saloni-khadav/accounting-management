@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Permissions</title>
+</head>
+<body>
+    <h1>Add Permissions to User</h1>
+    <button onclick="addPermissions()">Add Permissions</button>
+    <div id="result"></div>
+
+    <script>
+        async function addPermissions() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('result').innerHTML = 'No token found. Please login first.';
+                return;
+            }
+
+            try {
+                const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/permissions/add-permissions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                document.getElementById('result').innerHTML = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

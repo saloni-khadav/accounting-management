@@ -4,6 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Asset = require('../models/Asset');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/assets');
@@ -84,7 +86,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new asset
-router.post('/', upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Assets'), upload.array('attachments', 10), async (req, res) => {
   try {
     const assetData = { ...req.body };
     
@@ -127,7 +129,7 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
 });
 
 // Update asset
-router.put('/:id', upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Assets'), upload.array('attachments', 10), async (req, res) => {
   try {
     const assetData = { ...req.body };
     

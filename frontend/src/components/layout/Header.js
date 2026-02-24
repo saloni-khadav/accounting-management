@@ -401,5 +401,3 @@ const Header = ({ setActivePage, onLogout }) => {
 };
 
 export default Header;
-
-

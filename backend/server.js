@@ -31,6 +31,8 @@ const taxReportRoutes = require('./routes/taxReport');
 const bankStatementRoutes = require('./routes/bankStatements');
 const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
+const periodPermissionRoutes = require('./routes/periodPermissions');
+const permissionRoutes = require('./routes/permissions');
 
 const app = express();
 
@@ -73,6 +75,8 @@ app.use('/api/tax-report', taxReportRoutes);
 app.use('/api/bank-statements', bankStatementRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/period-permissions', periodPermissionRoutes);
+app.use('/api/permissions', permissionRoutes);
 
 // test route 
 app.get('/api/test', (req, res) => {

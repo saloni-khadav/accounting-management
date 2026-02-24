@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const BankReconciliation = require('../models/BankReconciliation');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Update or create reconciliation entry
-router.post('/update', async (req, res) => {
+router.post('/update', auth, checkPeriodPermission('Bank Reconciliation'), async (req, res) => {
   try {
     const { transactionId, transactionType, narration, remarks, status } = req.body;
     

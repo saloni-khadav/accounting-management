@@ -7,6 +7,8 @@ const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const { compressFile } = require('../utils/fileCompressor');
 const { notifyBillCreated, notifyBillApprovalPending } = require('../utils/notificationHelper');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/bills');
@@ -134,7 +136,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create bill
-router.post('/', upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Bills'), upload.array('attachments', 10), async (req, res) => {
   console.log('📥 Bill POST request received');
   console.log('📥 Files received:', req.files?.length || 0);
   if (req.files && req.files.length > 0) {
@@ -232,7 +234,7 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
 });
 
 // Update bill
-router.put('/:id', upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Bills'), upload.array('attachments', 10), async (req, res) => {
   try {
     const existingBill = await Bill.findById(req.params.id);
     if (!existingBill) {
