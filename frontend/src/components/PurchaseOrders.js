@@ -70,7 +70,8 @@ const PurchaseOrders = () => {
 
   const generatePONumber = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders/next-po-number');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/purchase-orders/next-po-number`);
       if (response.ok) {
         const data = await response.json();
         setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
@@ -87,7 +88,8 @@ const PurchaseOrders = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/vendors');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/vendors`);
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -102,7 +104,8 @@ const PurchaseOrders = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://nextbook-backend.onrender.com/api/auth/me', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -121,7 +124,8 @@ const PurchaseOrders = () => {
 
   const fetchPurchaseOrders = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/purchase-orders`);
       if (response.ok) {
         const data = await response.json();
         setPurchaseOrders(data);
@@ -291,9 +295,10 @@ const PurchaseOrders = () => {
         createdAt: editingOrder ? editingOrder.createdAt : new Date().toISOString()
       };
 
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       const url = editingOrder 
-        ? `https://nextbook-backend.onrender.com/api/purchase-orders/${editingOrder._id}`
-        : 'https://nextbook-backend.onrender.com/api/purchase-orders';
+        ? `${baseUrl}/api/purchase-orders/${editingOrder._id}`
+        : `${baseUrl}/api/purchase-orders`;
       
       const method = editingOrder ? 'PUT' : 'POST';
 
@@ -358,7 +363,8 @@ const PurchaseOrders = () => {
   const handleDelete = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this Purchase Order?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.onrender.com/api/purchase-orders/${orderId}`, {
+        const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+        const response = await fetch(`${baseUrl}/api/purchase-orders/${orderId}`, {
           method: 'DELETE'
         });
 
