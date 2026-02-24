@@ -18,6 +18,8 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             cd /var/www/app
+            git fetch origin
+            git reset --hard origin/main
             git pull origin main
             npm install
             pm2 restart accounting-backend
