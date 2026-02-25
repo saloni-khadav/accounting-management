@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown } from 'lucide-react';
+import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown, X } from 'lucide-react';
 import { generateCreditNoteNumber } from '../utils/numberGenerator';
 import { exportToExcel } from '../utils/excelExport';
 import { generateCreditNotePDF } from '../utils/pdfGenerator';
