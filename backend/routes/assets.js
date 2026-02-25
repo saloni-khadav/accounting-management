@@ -86,7 +86,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new asset
-router.post('/', auth, checkPeriodPermission('Assets'), upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Assets'), async (req, res) => {
   try {
     const assetData = { ...req.body };
     
@@ -129,7 +129,7 @@ router.post('/', auth, checkPeriodPermission('Assets'), upload.array('attachment
 });
 
 // Update asset
-router.put('/:id', auth, checkPeriodPermission('Assets'), upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Assets'), async (req, res) => {
   try {
     const assetData = { ...req.body };
     

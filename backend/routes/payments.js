@@ -90,7 +90,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create payment
-router.post('/', auth, checkPeriodPermission('Payments'), upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Payments'), async (req, res) => {
   try {
     const paymentData = { ...req.body };
     
@@ -161,7 +161,7 @@ router.patch('/:id/approval', async (req, res) => {
 });
 
 // Update payment
-router.put('/:id', auth, checkPeriodPermission('Payments'), upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Payments'), async (req, res) => {
   try {
     const existingPayment = await Payment.findById(req.params.id);
     if (!existingPayment) {

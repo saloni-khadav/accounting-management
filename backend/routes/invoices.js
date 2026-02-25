@@ -74,7 +74,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new invoice
-router.post('/', auth, checkPeriodPermission('Invoices'), upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Invoices'), async (req, res) => {
+  console.log('\n=== INVOICE POST ROUTE HIT ===');
+  console.log('Request received at:', new Date().toISOString());
   try {
     // Validate total attachment size
     if (req.files && req.files.length > 0) {
@@ -130,7 +132,7 @@ router.post('/', auth, checkPeriodPermission('Invoices'), upload.array('attachme
 });
 
 // Update invoice
-router.put('/:id', auth, checkPeriodPermission('Invoices'), upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Invoices'), async (req, res) => {
   try {
     const invoiceData = { ...req.body };
     

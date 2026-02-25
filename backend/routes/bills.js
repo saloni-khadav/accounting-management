@@ -136,7 +136,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create bill
-router.post('/', auth, checkPeriodPermission('Bills'), upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Bills'), async (req, res) => {
   console.log('📥 Bill POST request received');
   console.log('📥 Files received:', req.files?.length || 0);
   if (req.files && req.files.length > 0) {
@@ -234,7 +234,7 @@ router.post('/', auth, checkPeriodPermission('Bills'), upload.array('attachments
 });
 
 // Update bill
-router.put('/:id', auth, checkPeriodPermission('Bills'), upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Bills'), async (req, res) => {
   try {
     const existingBill = await Bill.findById(req.params.id);
     if (!existingBill) {
