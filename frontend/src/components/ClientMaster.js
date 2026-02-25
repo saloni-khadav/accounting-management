@@ -15,7 +15,7 @@ const ClientMaster = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = 'http://localhost:5001';
 
   useEffect(() => {
     fetchClients();
@@ -35,38 +35,11 @@ const ClientMaster = () => {
 
   const handleAddClient = async (clientData) => {
     try {
-      const url = editingClient 
-        ? `${baseUrl}/api/clients/${editingClient._id}`
-        : `${baseUrl}/api/clients`;
-      const method = editingClient ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(clientData),
-      });
-      
-      if (response.ok) {
-        const updatedClient = await response.json();
-        if (editingClient) {
-          setClients(clients.map(client => 
-            client._id === editingClient._id ? updatedClient : client
-          ));
-          alert('Client updated successfully!');
-        } else {
-          setClients([updatedClient, ...clients]);
-          alert('Client added successfully!');
-        }
-        setEditingClient(null);
-        setIsFormOpen(false);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error saving client');
-      }
+      await fetchClients();
+      setEditingClient(null);
+      setIsFormOpen(false);
     } catch (error) {
-      alert('Network error. Please check if backend is running.');
+      console.error('Error in handleAddClient:', error);
     }
   };
 

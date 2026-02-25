@@ -39,7 +39,7 @@ const CreatePO = () => {
 
   const getNextPONumber = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos/next-number');
+      const response = await fetch('http://localhost:5001/api/pos/next-number');
       if (response.ok) {
         const data = await response.json();
         return data.poNumber;
@@ -95,7 +95,7 @@ const CreatePO = () => {
 
   const fetchPOs = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos');
+      const response = await fetch('http://localhost:5001/api/pos');
       if (response.ok) {
         const posData = await response.json();
         setPOs(posData);
@@ -161,7 +161,7 @@ const CreatePO = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/clients');
+      const response = await fetch('http://localhost:5001/api/clients');
       if (response.ok) {
         const clientsData = await response.json();
         setClients(clientsData);
@@ -176,7 +176,7 @@ const CreatePO = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch('http://localhost:5001/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -387,9 +387,11 @@ const CreatePO = () => {
     try {
       const poData = {
         poNumber,
+        piNumber: poNumber,
         supplier: selectedClient,
         supplierName: supplierSearch,
         poDate,
+        piDate: poDate,
         deliveryDate,
         gstNumber: supplierData.gstNumber,
         deliveryAddress: supplierData.deliveryAddress,
@@ -407,16 +409,23 @@ const CreatePO = () => {
         createdAt: editingPO ? editingPO.createdAt : new Date().toISOString()
       };
 
+      console.log('Sending PI data:', poData);
+      console.log('PI Date:', poDate);
+
       const isEditing = editingPO && editingPO._id;
       const url = isEditing 
-        ? `https://nextbook-backend.nextsphere.co.in/api/pos/${editingPO._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/pos';
+        ? `http://localhost:5001/api/pos/${editingPO._id}`
+        : 'http://localhost:5001/api/pos';
       const method = isEditing ? 'PUT' : 'POST';
+
+      console.log('API URL:', url);
+      console.log('Method:', method);
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(poData)
       });
@@ -431,7 +440,11 @@ const CreatePO = () => {
         setPoNumber(nextNumber);
       } else {
         const errorData = await response.json();
-        alert('Error creating Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+        if (errorData.isPastDateError) {
+          alert(errorData.message);
+        } else {
+          alert('Error creating Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -488,7 +501,7 @@ const CreatePO = () => {
   const handleDelete = async (poId) => {
     if (window.confirm('Are you sure you want to delete this Proforma Invoice?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/pos/${poId}`, {
+        const response = await fetch(`http://localhost:5001/api/pos/${poId}`, {
           method: 'DELETE'
         });
 
@@ -543,7 +556,7 @@ const CreatePO = () => {
             <h1 className="text-2xl font-bold">Proforma Invoice Management</h1>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors"
+              className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg flex items-center font-medium transition-colors"
             >
               <Plus className="w-5 h-5 mr-2" />
               Create Proforma Invoice
@@ -885,18 +898,21 @@ const CreatePO = () => {
   // Form Modal View
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">{editingPO ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}</h1>
+      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-5 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold flex items-center">
+            <FileText className="mr-3" size={24} />
+            {editingPO ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}
+          </h1>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors"
           >
             ×
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
 
       {/* Supplier, PO Number, Dates */}
       <div className="grid grid-cols-5 gap-6 mb-6">
@@ -1220,16 +1236,16 @@ const CreatePO = () => {
       </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 p-6 border-t bg-gray-50">
+        <div className="bg-white border-t-2 border-gray-200 px-6 py-4 rounded-b-xl flex justify-end gap-3">
           <button 
             onClick={handleClose}
-            className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
           >
             Cancel
           </button>
           <button 
             onClick={handleCreatePO}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium shadow-md hover:shadow-lg transition-all"
           >
             {editingPO ? 'Update' : 'Create'}
           </button>

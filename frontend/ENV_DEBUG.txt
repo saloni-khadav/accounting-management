@@ -1,0 +1,5 @@
+// Add this temporarily in TaxInvoice.js at the top of handleSaveInvoice function
+console.log('ENV CHECK:', {
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  baseUrl: baseUrl
+});

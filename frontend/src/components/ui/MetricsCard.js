@@ -6,9 +6,9 @@ const MetricsCard = ({ title, value, change, changeType, icon: Icon, color = 'pr
       <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
       
       <div className="flex items-start justify-between ml-2">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">{title}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-700 mb-1">{value}</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 mb-1 break-words">{value}</p>
           {change && (
             <div className="flex items-center mt-2">
               <span className={`text-sm font-semibold ${
@@ -21,8 +21,8 @@ const MetricsCard = ({ title, value, change, changeType, icon: Icon, color = 'pr
           )}
         </div>
         {Icon && (
-          <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-            <Icon size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+          <div className="flex-shrink-0 p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
           </div>
         )}
       </div>
@@ -31,4 +31,3 @@ const MetricsCard = ({ title, value, change, changeType, icon: Icon, color = 'pr
 };
 
 export default MetricsCard;
-

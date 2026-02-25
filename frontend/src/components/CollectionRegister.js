@@ -3,7 +3,7 @@ import { X, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const CollectionRegister = () => {
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = 'http://localhost:5001';
   const [showModal, setShowModal] = useState(false);
   const [collections, setCollections] = useState([]);
   const [clients, setClients] = useState([]);
@@ -290,7 +290,10 @@ const CollectionRegister = () => {
       
       const response = await fetch(`${baseUrl}/api/collections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(submitData)
       });
       
@@ -304,7 +307,11 @@ const CollectionRegister = () => {
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);
-        alert('Error saving collection: ' + (errorData.message || 'Unknown error'));
+        if (errorData.isPastDateError) {
+          alert(errorData.message);
+        } else {
+          alert('Error saving collection: ' + (errorData.message || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('Error adding collection:', error);

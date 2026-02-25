@@ -278,22 +278,22 @@ const AccountsPayable = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-[1600px] mx-auto">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
-            Accounts Payable
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">Manage vendor bills and payments</p>
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">
+              Accounts Payable
+            </h1>
+            <p className="text-white text-sm sm:text-base">Manage vendor bills and payments</p>
+          </div>
         </div>
 
         {/* Top Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 lg:mb-10">
           {metricsData.map((metric, index) => (
-            <div key={index} className="transform transition-all duration-200 hover:-translate-y-1">
-              <MetricsCard {...metric} />
-            </div>
+            <MetricsCard key={index} {...metric} />
           ))}
         </div>
 

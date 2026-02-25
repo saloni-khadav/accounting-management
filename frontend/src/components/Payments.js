@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, DollarSign, Eye } from 'lucide-react';
+import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, DollarSign, Eye, Save, User, FileText, Banknote } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const Payments = () => {
@@ -55,7 +55,7 @@ const Payments = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch('http://localhost:5001/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -72,7 +72,7 @@ const Payments = () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Token:', token); // Debug log
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch('http://localhost:5001/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await response.json();
@@ -85,7 +85,11 @@ const Payments = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch('http://localhost:5001/api/vendors', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -98,19 +102,31 @@ const Payments = () => {
   const fetchBillsByVendor = async (vendorName) => {
     try {
       console.log('Fetching bills for vendor:', vendorName);
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills?vendorName=${encodeURIComponent(vendorName)}`);
+      const response = await fetch(`http://localhost:5001/api/bills?vendorName=${encodeURIComponent(vendorName)}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+        const paymentsResponse = await fetch('http://localhost:5001/api/payments', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();
         }
         
         // Fetch credit/debit notes to calculate adjustments
-        const creditDebitResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/reconciliation');
+        const creditDebitResponse = await fetch('http://localhost:5001/api/credit-debit-notes/reconciliation', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
         let creditDebitNotes = [];
         if (creditDebitResponse.ok) {
           creditDebitNotes = await creditDebitResponse.json();
@@ -160,7 +176,11 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+      const response = await fetch('http://localhost:5001/api/payments', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setPayments(data);
@@ -173,7 +193,11 @@ const Payments = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments/stats/summary');
+      const response = await fetch('http://localhost:5001/api/payments/stats/summary', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setStats({
@@ -359,8 +383,11 @@ const Payments = () => {
         formDataToSend.append('attachments', file);
       });
       
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+      const response = await fetch('http://localhost:5001/api/payments', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: formDataToSend,
       });
       
@@ -390,7 +417,11 @@ const Payments = () => {
         fetchStats();
       } else {
         const errorData = await response.json();
-        alert('Error: ' + (errorData.message || 'Error recording payment'));
+        if (errorData.isPastDateError) {
+          alert('Past date entry not allowed. Contact manager for permission.');
+        } else {
+          alert('Error: ' + (errorData.message || 'Error recording payment'));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -401,7 +432,7 @@ const Payments = () => {
   const handlePaymentApproval = async (paymentId, action) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/payments/${paymentId}/approval`, {
+      const response = await fetch(`http://localhost:5001/api/payments/${paymentId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -619,18 +650,27 @@ const Payments = () => {
       {/* Payment Form Modal */}
       {isPaymentFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Record New Payment</h2>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-5 rounded-t-xl flex justify-between items-center">
+              <h2 className="text-2xl font-bold flex items-center">
+                <CreditCard className="mr-3" size={24} />
+                Record New Payment
+              </h2>
               <button
                 onClick={() => setIsPaymentFormOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+              {/* Vendor Details Section */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <User className="mr-2" size={20} />
+                  Vendor Details
+                </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -645,7 +685,7 @@ const Payments = () => {
                       onFocus={() => setShowVendorDropdown(true)}
                       required
                       placeholder="Search or select vendor"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       autoComplete="off"
                     />
                     {showVendorDropdown && filteredVendors.length > 0 && (
@@ -682,7 +722,7 @@ const Payments = () => {
                       onClick={() => formData.vendor && setShowBillDropdown(true)}
                       required
                       placeholder="Select from bills or enter manually"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     {showBillDropdown && bills.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -750,7 +790,7 @@ const Payments = () => {
                     onChange={handleInputChange}
                     max={new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -779,7 +819,7 @@ const Payments = () => {
                     placeholder="0.00"
                     step="0.01"
                     min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -791,7 +831,7 @@ const Payments = () => {
                     name="tdsSection"
                     value={formData.tdsSection}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select TDS Section</option>
                     {tdsSection.map((section, idx) => (
@@ -814,7 +854,7 @@ const Payments = () => {
                     placeholder="0.00"
                     step="0.01"
                     min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -826,9 +866,19 @@ const Payments = () => {
                     type="text"
                     value={formData.amount && formData.tdsAmount ? (parseFloat(formData.amount) - parseFloat(formData.tdsAmount)).toFixed(2) : formData.amount || '0.00'}
                     readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
                   />
                 </div>
+              </div>
+              </div>
+
+              {/* Payment Details Section */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <Banknote className="mr-2" size={20} />
+                  Payment Details
+                </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -841,7 +891,7 @@ const Payments = () => {
                     onChange={handleInputChange}
                     max={new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -854,7 +904,7 @@ const Payments = () => {
                     value={formData.paymentMethod}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="Check">Cheque</option>
@@ -878,7 +928,7 @@ const Payments = () => {
                       onFocus={() => setShowBankDropdown(true)}
                       required
                       placeholder="Search or select bank account"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       autoComplete="off"
                     />
                     {showBankDropdown && filteredBanks.length > 0 && (
@@ -916,7 +966,7 @@ const Payments = () => {
                     onChange={handleInputChange}
                     placeholder="TXN123456789"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -930,7 +980,7 @@ const Payments = () => {
                     onChange={handleInputChange}
                     rows="3"
                     placeholder="Add any additional notes..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   />
                 </div>
 
@@ -1001,23 +1051,26 @@ const Payments = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setIsPaymentFormOpen(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Record Payment
-                </button>
               </div>
             </form>
+
+            <div className="bg-white border-t-2 border-gray-200 px-6 py-4 rounded-b-xl flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPaymentFormOpen(false)}
+                className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <Save size={18} />
+                Record Payment
+              </button>
+            </div>
           </div>
         </div>
       )}

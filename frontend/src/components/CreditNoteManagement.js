@@ -452,6 +452,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   setCreditNotes(creditNotes.map(cn => 
                     cn._id === editingCreditNote._id ? updatedCreditNote : cn
                   ));
+                } else {
+                  const errorData = await response.json();
+                  if (errorData.isPastDateError) {
+                    alert(errorData.message);
+                  } else {
+                    alert('Error updating credit note');
+                  }
+                  throw new Error(errorData.message);
                 }
               } else {
                 const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
@@ -465,6 +473,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 if (response.ok) {
                   const newCreditNote = await response.json();
                   setCreditNotes([newCreditNote, ...creditNotes]);
+                } else {
+                  const errorData = await response.json();
+                  if (errorData.isPastDateError) {
+                    alert(errorData.message);
+                  } else {
+                    alert('Error creating credit note');
+                  }
+                  throw new Error(errorData.message);
                 }
               }
               setIsFormOpen(false);

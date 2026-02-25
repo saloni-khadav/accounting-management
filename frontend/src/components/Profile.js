@@ -372,15 +372,13 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
-          <div className="flex items-center mb-3">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-3 rounded-xl mr-4">
-              <Building className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">Company Profile</h1>
-              <p className="text-gray-500 text-sm sm:text-base mt-1">Manage your company information and settings</p>
-            </div>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-xl">
+            <h1 className="text-2xl font-bold flex items-center">
+              <Building className="mr-3" size={28} />
+              Company Profile
+            </h1>
+            <p className="text-blue-100 mt-1">Manage your company information and settings</p>
           </div>
         </div>
 
