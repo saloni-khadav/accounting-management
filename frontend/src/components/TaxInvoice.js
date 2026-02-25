@@ -373,20 +373,20 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${baseUrl}/api/profile`, {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (response.ok) {
-          const data = await response.json();
-          const profile = data.profile || {};
+          const userData = await response.json();
+          const profile = userData.user.profile || {};
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setInvoiceData(prev => ({
             ...prev,
-            supplierName: profile.tradeName || prev.supplierName,
+            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN,
