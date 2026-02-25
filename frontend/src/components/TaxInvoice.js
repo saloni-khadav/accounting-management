@@ -273,7 +273,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch clients data
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     const fetchClients = async () => {
       try {
         const response = await fetch(`${baseUrl}/api/clients`);
@@ -293,7 +293,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch approved proforma invoices for selected client
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     const fetchApprovedProformas = async () => {
       if (!selectedClient) {
         setApprovedProformas([]);
@@ -365,7 +365,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch user profile data
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     const fetchUserProfile = async () => {
       if (!isOpen) return;
       
@@ -744,7 +744,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const downloadAttachment = (attachment) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     if (attachment.file) {
       // New file - use local URL
       const link = document.createElement('a');
@@ -761,7 +761,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const viewAttachment = (attachment) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     if (attachment.file) {
       // New file - use local URL
       window.open(attachment.fileUrl, '_blank');
@@ -773,7 +773,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const handleSave = async () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
     
     // Validate customer selected from dropdown
     if (!selectedClient) {
@@ -860,8 +860,12 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         }
       });
 
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
       
@@ -875,7 +879,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       } else {
         const error = await response.json();
         console.error('Server error:', error);
-        alert(error.message || 'Error saving invoice');
+        if (error.isPastDateError) {
+          alert(error.message || 'Past date entry not allowed. Contact manager for permission.');
+        } else {
+          alert(error.message || 'Error saving invoice');
+        }
       }
     } catch (error) {
       console.error('Save error:', error);

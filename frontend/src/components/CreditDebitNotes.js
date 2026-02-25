@@ -21,7 +21,7 @@ const CreditDebitNotes = () => {
   const fetchCreditDebitNotes = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', {
+      const response = await fetch('http://localhost:5001/api/credit-debit-notes', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -56,7 +56,7 @@ const CreditDebitNotes = () => {
   const handleDeleteNote = async (noteId) => {
     if (window.confirm('Are you sure you want to delete this note?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${noteId}`, {
+        const response = await fetch(`http://localhost:5001/api/credit-debit-notes/${noteId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -420,8 +420,8 @@ const CreditDebitNotes = () => {
           try {
             const method = editingNote ? 'PUT' : 'POST';
             const url = editingNote 
-              ? `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${editingNote._id}`
-              : 'https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes';
+              ? `http://localhost:5001/api/credit-debit-notes/${editingNote._id}`
+              : 'http://localhost:5001/api/credit-debit-notes';
             
             // Format the data properly
             const formattedNote = {
@@ -446,8 +446,12 @@ const CreditDebitNotes = () => {
               alert(`${savedNote.type} ${editingNote ? 'updated' : 'created'} successfully!`);
             } else {
               const errorData = await response.json();
-              console.error('Server error:', errorData);
-              alert(`Error: ${errorData.message || 'Failed to save note'}`);
+              if (errorData.isPastDateError) {
+                alert('Past date entry not allowed. Contact manager for permission.');
+              } else {
+                console.error('Server error:', errorData);
+                alert(`Error: ${errorData.message || 'Failed to save note'}`);
+              }
             }
           } catch (error) {
             console.error('Error saving note:', error);

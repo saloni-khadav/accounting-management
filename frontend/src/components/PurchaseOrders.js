@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download, ShoppingCart, Clock, CheckCircle } from 'lucide-react';
+import { Search, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download, ShoppingCart, Clock, CheckCircle, FileText, Save } from 'lucide-react';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
 import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
 import MetricsCard from './ui/MetricsCard';
@@ -70,7 +70,7 @@ const PurchaseOrders = () => {
 
   const generatePONumber = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders/next-po-number');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/next-po-number');
       if (response.ok) {
         const data = await response.json();
         setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
@@ -87,7 +87,7 @@ const PurchaseOrders = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/vendors');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -102,7 +102,7 @@ const PurchaseOrders = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://nextbook-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -121,7 +121,7 @@ const PurchaseOrders = () => {
 
   const fetchPurchaseOrders = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.onrender.com/api/purchase-orders');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders');
       if (response.ok) {
         const data = await response.json();
         setPurchaseOrders(data);
@@ -292,8 +292,8 @@ const PurchaseOrders = () => {
       };
 
       const url = editingOrder 
-        ? `https://nextbook-backend.onrender.com/api/purchase-orders/${editingOrder._id}`
-        : 'https://nextbook-backend.onrender.com/api/purchase-orders';
+        ? `https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${editingOrder._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/purchase-orders';
       
       const method = editingOrder ? 'PUT' : 'POST';
 
@@ -324,10 +324,11 @@ const PurchaseOrders = () => {
         fetchPurchaseOrders();
       } else {
         const errorData = await response.json();
+        console.log('Error response:', errorData);
         if (errorData.isPastDateError) {
           alert(errorData.message || 'Past date entry not allowed. Contact manager for permission.');
         } else {
-          alert(editingOrder ? 'Error updating Purchase Order' : 'Error creating Purchase Order');
+          alert(`Error: ${errorData.message || 'Failed to save Purchase Order'}`);
         }
       }
     } catch (error) {
@@ -358,7 +359,7 @@ const PurchaseOrders = () => {
   const handleDelete = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this Purchase Order?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.onrender.com/api/purchase-orders/${orderId}`, {
+        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${orderId}`, {
           method: 'DELETE'
         });
 
@@ -436,14 +437,14 @@ const PurchaseOrders = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8 lg:mb-10">
+        <div className="mb-6 sm:mb-8 lg:mb-10 bg-gradient-to-r from-blue-300 to-blue-400 rounded-xl shadow-lg p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 flex items-center">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 flex items-center">
                 <ShoppingCart className="mr-3" />
                 Purchase Orders
               </h1>
-              <p className="text-gray-500 text-sm sm:text-base">Manage purchase orders and supplier transactions</p>
+              <p className="text-white text-sm sm:text-base">Manage purchase orders and supplier transactions</p>
             </div>
             <button 
               onClick={() => {
@@ -461,7 +462,7 @@ const PurchaseOrders = () => {
                 setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
                 setShowCreateForm(true);
               }}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Create New
@@ -808,6 +809,7 @@ const PurchaseOrders = () => {
 
       {/* Create PO Modal */}
       {showCreateForm && (
+<<<<<<< HEAD
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto m-4">
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
@@ -838,15 +840,54 @@ const PurchaseOrders = () => {
               <form onSubmit={handleSubmit}>
               {/* Supplier, PO Number, Dates */}
               <div className="grid grid-cols-4 gap-6 mb-6">
+=======
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">{editingOrder ? 'Edit Purchase Order' : 'Create Purchase Order'}</h2>
+                <button 
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingOrder(null);
+                    setFormData({
+                      supplier: '',
+                      poNumber: '',
+                      poDate: new Date().toISOString().split('T')[0],
+                      deliveryDate: '',
+                      gstNumber: '',
+                      deliveryAddress: '',
+                      remarks: ''
+                    });
+                    setSupplierSearch('');
+                    setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+              <div className="p-6 space-y-6">
+              {/* Basic Information Section */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <ShoppingCart className="w-5 h-5 mr-2 text-blue-600" />
+                  Basic Information
+                </h3>
+              <div className="grid grid-cols-4 gap-6">
+>>>>>>> f7819d72f10c10b8d5b2d30b0442758161879c00
                 <div>
-                  <label className="block text-sm font-medium mb-2">Supplier</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Supplier <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <input
                       type="text"
                       value={supplierSearch}
                       onChange={handleSupplierSearch}
                       onFocus={() => setShowSupplierDropdown(true)}
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg"
+                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Search or select supplier"
                       required
                     />
@@ -874,44 +915,50 @@ const PurchaseOrders = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">PO Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">PO Number <span className="text-red-500">*</span></label>
                   <input 
                     type="text"
                     name="poNumber"
                     value={formData.poNumber}
                     onChange={handleInputChange}
                     placeholder="PO-2627-001" 
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">PO Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">PO Date <span className="text-red-500">*</span></label>
                   <input
                     type="date"
                     name="poDate"
                     value={formData.poDate}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Delivery Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Date</label>
                   <input
                     type="date"
                     name="deliveryDate"
                     value={formData.deliveryDate}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
+              </div>
 
-              {/* GST Number and Delivery Address */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              {/* Address & GST Information Section */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                  Address & GST Information
+                </h3>
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">GST Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -919,7 +966,7 @@ const PurchaseOrders = () => {
                       value={formData.gstNumber}
                       onChange={handleInputChange}
                       onFocus={() => selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 1 && setShowGSTDropdown(true)}
-                      className="w-full p-3 pr-10 border border-gray-300 rounded-lg"
+                      className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="GST Number"
                     />
                     {selectedVendor && selectedVendor.gstNumbers && selectedVendor.gstNumbers.length > 1 && (
@@ -948,23 +995,28 @@ const PurchaseOrders = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Delivery Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
                   <textarea
                     name="deliveryAddress"
                     value={formData.deliveryAddress}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter delivery address..."
                   />
                 </div>
               </div>
+              </div>
 
               {/* Item Details and Summary Side by Side */}
-              <div className="flex gap-6 mb-6">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <ShoppingCart className="w-5 h-5 mr-2 text-blue-600" />
+                  Item Details & Summary
+                </h3>
+              <div className="flex gap-6">
                 {/* Item Details */}
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold mb-4">Item Details</h2>
                   
                   <div className="overflow-x-auto">
                     <table className="w-full border border-gray-200 rounded-lg">
@@ -1134,7 +1186,7 @@ const PurchaseOrders = () => {
 
                 {/* Summary */}
                 <div className="w-96 min-w-[400px]">
-                  <div className="bg-gray-50 p-6 rounded-lg border">
+                  <div className="bg-white p-6 rounded-lg border-2 border-gray-200">
                     <h3 className="text-lg font-semibold mb-4 text-gray-800">Order Summary</h3>
                     <div className="space-y-4">
                     <div className="flex justify-between text-lg">
@@ -1169,23 +1221,32 @@ const PurchaseOrders = () => {
                   </div>
                 </div>
               </div>
+              </div>
 
-              {/* Remarks */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium mb-2">Remarks</label>
+              {/* Remarks Section */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                  Additional Information
+                </h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Remarks</label>
                 <textarea
                   name="remarks"
                   value={formData.remarks}
                   onChange={handleInputChange}
                   rows="3"
-                  className="w-full p-3 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter any additional remarks or notes..."
                 />
               </div>
+              </div>
+              </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-4">
+              {/* Form Actions */}
+              <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-end gap-3">
                 <button 
+                  type="button"
                   onClick={() => {
                     setShowCreateForm(false);
                     setEditingOrder(null);
@@ -1201,19 +1262,19 @@ const PurchaseOrders = () => {
                     setSupplierSearch('');
                     setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
                   }}
-                  className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
                 >
-                  {editingOrder ? 'Update' : 'Create'}
+                  <Save className="w-4 h-4" />
+                  {editingOrder ? 'Update Purchase Order' : 'Create Purchase Order'}
                 </button>
               </div>
               </form>
-            </div>
           </div>
         </div>
       )}

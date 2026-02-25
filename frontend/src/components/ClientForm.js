@@ -114,7 +114,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   }, [editingClient]);
 
   const generateClientCode = async () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = 'http://localhost:5001';
     try {
       // First try to get existing clients to calculate next code
       const response = await fetch(`${baseUrl}/api/clients`);
@@ -251,7 +251,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = 'http://localhost:5001';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
@@ -484,7 +484,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const downloadDocument = (file, index) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = 'http://localhost:5001';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
@@ -500,7 +500,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const viewDocument = (file) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = 'http://localhost:5001';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       window.open(url, '_blank');
@@ -521,7 +521,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = 'http://localhost:5001'; // Hard-coded for testing
     e.preventDefault();
     
     // Validate GST numbers
@@ -589,18 +589,35 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         : `${baseUrl}/api/clients`;
       const method = editingClient ? 'PUT' : 'POST';
       
+      console.log('=== SENDING CLIENT REQUEST ===');
+      console.log('URL:', url);
+      console.log('Method:', method);
+      console.log('contractStartDate:', formData.contractStartDate);
+      console.log('Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+      
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formDataToSend
       });
+      
+      console.log('Response status:', response.status);
       
       if (response.ok) {
         const savedClient = await response.json();
         onSave(savedClient);
         onClose();
+        alert(editingClient ? 'Client updated successfully!' : 'Client added successfully!');
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Error saving client');
+        if (errorData.isPastDateError) {
+          alert(errorData.message);
+        } else {
+          alert(errorData.message || 'Error saving client');
+        }
       }
     } catch (error) {
       console.error('Error saving client:', error);

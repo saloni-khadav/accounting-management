@@ -156,7 +156,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
 
   useEffect(() => {
     calculateTotals();
-  }, [creditNoteData.items]);
+  }, [creditNoteData.items.length, JSON.stringify(creditNoteData.items.map(i => ({ qty: i.quantity, rate: i.rate, disc: i.discount, cgst: i.cgstRate, sgst: i.sgstRate, igst: i.igstRate })))]);
 
   // Fetch user profile data - runs for both new and edit
   useEffect(() => {
@@ -652,7 +652,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
               onClick={handleClose}
               className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
             >
-              ×
+              <X size={24} />
             </button>
           </div>
         </div>

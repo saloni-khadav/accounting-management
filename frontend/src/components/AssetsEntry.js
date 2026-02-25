@@ -73,7 +73,11 @@ const AssetsEntry = () => {
   const fetchPurchaseOrders = async (vendorName) => {
     try {
       console.log('Fetching Purchase Orders for vendor:', vendorName);
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/purchase-orders/vendor/${encodeURIComponent(vendorName)}`);
+      const response = await fetch(`http://localhost:5001/api/purchase-orders/vendor/${encodeURIComponent(vendorName)}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       console.log('Purchase Orders received:', data);
       setPurchaseOrders(data);
@@ -85,7 +89,11 @@ const AssetsEntry = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch('http://localhost:5001/api/vendors', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       setVendors(data);
     } catch (error) {
@@ -96,7 +104,7 @@ const AssetsEntry = () => {
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      let url = 'https://nextbook-backend.nextsphere.co.in/api/assets';
+      let url = 'http://localhost:5001/api/assets';
       const params = new URLSearchParams();
       
       if (categoryFilter) params.append('category', categoryFilter);
@@ -116,7 +124,11 @@ const AssetsEntry = () => {
 
   const generateAssetCode = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/assets/next-code');
+      const response = await fetch('http://localhost:5001/api/assets/next-code', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       // Add random suffix to make it unique even if not saved
       const randomSuffix = Math.floor(Math.random() * 100);
@@ -312,8 +324,8 @@ const AssetsEntry = () => {
     if (validateForm()) {
       try {
         const url = editingAsset 
-          ? `https://nextbook-backend.nextsphere.co.in/api/assets/${editingAsset._id}`
-          : 'https://nextbook-backend.nextsphere.co.in/api/assets';
+          ? `http://localhost:5001/api/assets/${editingAsset._id}`
+          : 'http://localhost:5001/api/assets';
         
         const method = editingAsset ? 'PUT' : 'POST';
         
@@ -349,6 +361,9 @@ const AssetsEntry = () => {
         
         const response = await fetch(url, {
           method,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
           body: formDataToSend,
         });
         
@@ -371,8 +386,12 @@ const AssetsEntry = () => {
           resetForm();
         } else {
           const errorData = await response.json();
-          console.error('Error response:', errorData);
-          showNotification('error', errorData.message || 'Error saving asset');
+          if (errorData.isPastDateError) {
+            showNotification('error', 'Past date entry not allowed. Contact manager for permission.');
+          } else {
+            console.error('Error response:', errorData);
+            showNotification('error', errorData.message || 'Error saving asset');
+          }
         }
       } catch (error) {
         console.error('Error saving asset:', error);
@@ -430,8 +449,11 @@ const AssetsEntry = () => {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/assets/${deleteConfirm.assetId}`, {
+      const response = await fetch(`http://localhost:5001/api/assets/${deleteConfirm.assetId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
       
       if (response.ok) {
@@ -527,10 +549,11 @@ const AssetsEntry = () => {
   const handleVendorSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors', {
+      const response = await fetch('http://localhost:5001/api/vendors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(vendorData),
       });
