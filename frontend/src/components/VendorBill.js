@@ -1012,6 +1012,13 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
         <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">{editingBill ? 'Edit Vendor Bill' : 'Create Vendor Bill'}</h2>
+            <button
+              onClick={handleClose}
+              className="text-white hover:text-gray-200 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
         
         <div className="p-6 overflow-y-auto flex-1">

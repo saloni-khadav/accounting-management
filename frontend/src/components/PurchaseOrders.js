@@ -809,38 +809,6 @@ const PurchaseOrders = () => {
 
       {/* Create PO Modal */}
       {showCreateForm && (
-<<<<<<< HEAD
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto m-4">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
-              <h1 className="text-3xl font-bold">{editingOrder ? 'Edit Purchase Order' : 'Create Purchase Order'}</h1>
-              <button 
-                onClick={() => {
-                  setShowCreateForm(false);
-                  setEditingOrder(null);
-                  setFormData({
-                    supplier: '',
-                    poNumber: '',
-                    poDate: new Date().toISOString().split('T')[0],
-                    deliveryDate: '',
-                    gstNumber: '',
-                    deliveryAddress: '',
-                    remarks: ''
-                  });
-                  setSupplierSearch('');
-                  setItems([{ name: '', hsn: '', quantity: 0, rate: 0, discount: 0, cgstRate: 9, sgstRate: 9, igstRate: 0 }]);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="p-8">
-              <form onSubmit={handleSubmit}>
-              {/* Supplier, PO Number, Dates */}
-              <div className="grid grid-cols-4 gap-6 mb-6">
-=======
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
@@ -878,7 +846,6 @@ const PurchaseOrders = () => {
                   Basic Information
                 </h3>
               <div className="grid grid-cols-4 gap-6">
->>>>>>> f7819d72f10c10b8d5b2d30b0442758161879c00
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Supplier <span className="text-red-500">*</span></label>
                   <div className="relative">
