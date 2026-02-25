@@ -373,7 +373,9 @@ billSchema.pre('save', function(next) {
       const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
       
       // Use net payable amount (grandTotal - TDS - creditNotes) for payment comparison
-      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0) - (this.creditNoteAmount || 0);
+      // Only deduct TDS if it's actually greater than 0
+      const actualTDS = (this.tdsAmount && parseFloat(this.tdsAmount) > 0) ? parseFloat(this.tdsAmount) : 0;
+      const netPayable = (this.grandTotal || 0) - actualTDS - (this.creditNoteAmount || 0);
       
       if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';
@@ -388,7 +390,8 @@ billSchema.pre('save', function(next) {
       }
     } else {
       // No due date - only check payment status
-      const netPayable = (this.grandTotal || 0) - (this.tdsAmount || 0) - (this.creditNoteAmount || 0);
+      const actualTDS = (this.tdsAmount && parseFloat(this.tdsAmount) > 0) ? parseFloat(this.tdsAmount) : 0;
+      const netPayable = (this.grandTotal || 0) - actualTDS - (this.creditNoteAmount || 0);
       
       if (this.paidAmount >= netPayable) {
         this.status = 'Fully Paid';

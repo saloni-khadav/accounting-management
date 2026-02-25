@@ -74,8 +74,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -156,7 +156,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!isOpen || profileLoaded) return;
+      if (!isOpen) return;
       
       try {
         const token = localStorage.getItem('token');
@@ -175,6 +175,10 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           console.log('✅ User data received:', userData);
           const profile = userData.user.profile || {};
           console.log('📋 Profile data:', profile);
+          console.log('🔍 GST Number from profile:', profile.gstNumber);
+          console.log('🔍 Trade Name from profile:', profile.tradeName);
+          console.log('🔍 PAN from profile:', profile.panNumber);
+          console.log('🔍 Address from profile:', profile.address);
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setCompanyGST(profile.gstNumber || '');
@@ -187,14 +191,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
             placeOfSupply: gstBasedState || ''
           });
           
-          setBillData(prev => ({
-            ...prev,
-            supplierName: profile.tradeName || userData.user.companyName || '',
-            supplierAddress: profile.address || '',
-            supplierGSTIN: profile.gstNumber || '',
-            supplierPAN: profile.panNumber || '',
-            placeOfSupply: gstBasedState || ''
-          }));
+          // Only update if not editing
+          if (!editingBill) {
+            setBillData(prev => ({
+              ...prev,
+              supplierName: profile.tradeName || userData.user.companyName || '',
+              supplierAddress: profile.address || '',
+              supplierGSTIN: profile.gstNumber || '',
+              supplierPAN: profile.panNumber || '',
+              placeOfSupply: gstBasedState || ''
+            }));
+          }
           
           setProfileLoaded(true);
         } else {
@@ -206,7 +213,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     };
 
     fetchUserProfile();
-  }, [isOpen, baseUrl, profileLoaded]);
+  }, [isOpen, baseUrl, editingBill]);
 
   useEffect(() => {
     if (editingBill) {
@@ -775,18 +782,18 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
     // Calculate total size including existing attachments
     const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
     const newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
-    const totalSize = existingSize + newFilesSize;
-    const maxTotalSize = 50 * 1024 * 1024; // 50MB
+    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
     
     console.log('📎 File upload:', {
       existing: (existingSize / 1024 / 1024).toFixed(2) + 'MB',
       new: (newFilesSize / 1024 / 1024).toFixed(2) + 'MB',
       total: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
-      limit: '50MB'
+      limit: '10MB'
     });
     
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
+      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
       return;
     }
     
@@ -853,11 +860,11 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       return;
     }
 
-    // Check total attachment size (max 50MB total)
+    // Check total attachment size (max 10MB total)
     const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
-    const maxTotalSize = 50 * 1024 * 1024; // 50MB
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
     if (totalSize > maxTotalSize) {
-      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 50MB\n\nPlease remove some files.`);
+      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
       return;
     }
 
@@ -1002,7 +1009,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
           <h1 className="text-2xl font-bold text-gray-800">{editingBill ? 'Edit Vendor Bill' : 'Vendor Bill'}</h1>
           <button
             onClick={handleClose}
@@ -1023,8 +1030,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <input
                   type="text"
                   value={billData.supplierName}
-                  onChange={(e) => handleInputChange('supplierName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -1042,17 +1049,18 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <input
                   type="text"
                   value={billData.supplierPAN}
-                  onChange={(e) => handleInputChange('supplierPAN', e.target.value)}
+                  readOnly
                   maxLength="10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Place of Supply *</label>
                 <select
                   value={billData.placeOfSupply}
-                  onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
                 >
                   <option value="">Select State</option>
                   <option value="Andaman and Nicobar Islands">35 - Andaman and Nicobar Islands</option>
@@ -1099,9 +1107,9 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Registered Address *</label>
               <textarea
                 value={billData.supplierAddress}
-                onChange={(e) => handleInputChange('supplierAddress', e.target.value)}
+                readOnly
                 rows="2"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
               />
             </div>
           </div>
@@ -1466,7 +1474,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           step="0.01"
                         />
                       </td>
-                      <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2">
                         <input
                           type="number"
@@ -1500,7 +1508,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           step="0.01"
                         />
                       </td>
-                      <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2">
                         <button
                           onClick={() => removeItem(index)}
@@ -1641,7 +1649,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                 <label className="flex flex-col items-center cursor-pointer">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600">Click to upload files</span>
-                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 50MB total)</span>
+                  <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB total)</span>
                   <input
                     type="file"
                     multiple

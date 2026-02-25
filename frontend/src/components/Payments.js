@@ -35,8 +35,8 @@ const Payments = () => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -160,7 +160,10 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (response.ok) {
         const data = await response.json();
         setPayments(data);
@@ -247,30 +250,44 @@ const Payments = () => {
   };
 
   const handleBillSelect = (bill) => {
-    console.log('Selected bill:', bill); // Debug log
-    const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const actualTDS = (bill.tdsAmount && parseFloat(bill.tdsAmount) > 0) ? parseFloat(bill.tdsAmount) : 0;
+    const netPayableAmount = (bill.grandTotal || 0) - actualTDS;
     const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
     const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
     
-    // Check if Bill has TDS - if yes, populate TDS fields (read-only)
-    const hasBillTDS = bill.tdsSection && bill.tdsAmount > 0;
+    const hasBillTDS = bill.tdsSection && actualTDS > 0;
+    
+    // Calculate TDS for this payment based on remaining amount
+    let paymentTDS = 0;
+    if (hasBillTDS && bill.tdsPercentage > 0) {
+      paymentTDS = (remainingAmount * bill.tdsPercentage) / 100;
+    }
     
     setFormData(prev => ({
       ...prev,
-      billId: bill._id, // Store the bill ID
+      billId: bill._id,
       invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: remainingAmount, // Set to adjusted remaining amount
-      // Populate TDS from Bill if exists
+      amount: remainingAmount,
       tdsSection: hasBillTDS ? bill.tdsSection : '',
       tdsPercentage: hasBillTDS ? bill.tdsPercentage : '',
-      tdsAmount: hasBillTDS ? bill.tdsAmount : ''
+      tdsAmount: hasBillTDS ? paymentTDS.toFixed(2) : ''
     }));
     setShowBillDropdown(false);
   };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    
+    // Check individual file sizes
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    
+    if (oversizedFiles.length > 0) {
+      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...files]
@@ -369,6 +386,9 @@ const Payments = () => {
       
       const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: formDataToSend,
       });
       
@@ -447,8 +467,6 @@ const Payments = () => {
   };
 
   const paymentsData = payments.map(payment => {
-    console.log('Payment data:', payment); // Debug log
-    
     // Determine display status based on approvalStatus and status
     let displayStatus;
     if (payment.approvalStatus === 'pending') {
@@ -628,7 +646,7 @@ const Payments = () => {
       {isPaymentFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
               <h2 className="text-xl font-bold text-gray-900">Record New Payment</h2>
               <button
                 onClick={() => setIsPaymentFormOpen(false)}
@@ -791,25 +809,46 @@ const Payments = () => {
                   />
                 </div>
 
-                {/* TDS Section - Conditional: Read-only if from Bill, Editable if not */}
+                {/* TDS Section - Always Editable */}
                 {formData.billId && formData.tdsSection ? (
-                  // TDS from Bill - Read Only
                   <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
                     <div className="text-xs text-blue-600 font-medium mb-2">
-                      ℹ️ TDS is already deducted at Bill level
+                      ℹ️ TDS will be deducted from this payment (Bill TDS: {formData.tdsSection})
                     </div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      TDS Section (from Bill)
-                    </label>
-                    <input
-                      type="text"
-                      value={`${formData.tdsSection} - ${formData.tdsPercentage}%`}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed mb-2"
-                    />
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">TDS Amount (from Bill):</span>
-                      <span className="text-sm font-semibold text-red-600">₹{(parseFloat(formData.tdsAmount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          TDS Section
+                        </label>
+                        <select
+                          name="tdsSection"
+                          value={formData.tdsSection}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select TDS Section</option>
+                          {tdsSection.map((section, idx) => (
+                            <option key={idx} value={section.code}>
+                              {section.code} - {section.rate}% ({section.description})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          TDS Amount
+                        </label>
+                        <input
+                          type="number"
+                          name="tdsAmount"
+                          value={formData.tdsAmount}
+                          onChange={handleInputChange}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
