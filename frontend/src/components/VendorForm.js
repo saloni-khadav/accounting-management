@@ -101,24 +101,25 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   const generateVendorCode = async () => {
     try {
-      // First try to get existing vendors to calculate next code
-      const response = await fetch(`${API_URL}/api/vendors`);
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       if (response.ok) {
         const vendors = await response.json();
         
-        // Extract vendor codes and find the highest number
-        const vendorCodes = vendors
-          .map(vendor => vendor.vendorCode)
-          .filter(code => code && code.startsWith('VC'))
-          .map(code => {
-            const num = parseInt(code.substring(2));
-            return isNaN(num) ? 0 : num;
-          });
+        // Extract all vendor codes and find next available
+        const existingCodes = new Set(
+          vendors
+            .map(vendor => vendor.vendorCode)
+            .filter(code => code && code.startsWith('VC'))
+        );
         
-        const maxNumber = vendorCodes.length > 0 ? Math.max(...vendorCodes) : 0;
-        const nextNumber = maxNumber + 1;
-        const nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
+        // Find next available code
+        let nextNumber = 1;
+        let nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
         
+        while (existingCodes.has(nextCode)) {
+          nextNumber++;
+          nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
+        }
         setFormData({
           vendorCode: nextCode,
           vendorName: '',
@@ -521,17 +522,22 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingVendor 
-        ? `${API_URL}/api/vendors/${editingVendor._id}`
-        : `${API_URL}/api/vendors`;
+        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
       const method = editingVendor ? 'PUT' : 'POST';
       
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formDataToSend
       });
       
       if (response.ok) {
         const savedVendor = await response.json();
+        alert(editingVendor ? 'Vendor updated successfully!' : 'Vendor added successfully!');
         onSave(savedVendor);
         onClose();
       } else {

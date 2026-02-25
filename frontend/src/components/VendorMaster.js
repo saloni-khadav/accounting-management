@@ -57,40 +57,8 @@ const VendorMaster = () => {
     exportToExcel([exportData], 'vendor_' + vendor.vendorCode);
   };
 
-  const handleAddVendor = async (vendorData) => {
-    try {
-      const url = editingVendor 
-        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
-      const method = editingVendor ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(vendorData),
-      });
-      
-      if (response.ok) {
-        const updatedVendor = await response.json();
-        if (editingVendor) {
-          setVendors(vendors.map(vendor => 
-            vendor._id === editingVendor._id ? updatedVendor : vendor
-          ));
-          alert('Vendor updated successfully!');
-        } else {
-          setVendors([updatedVendor, ...vendors]);
-          alert('Vendor added successfully!');
-        }
-        setEditingVendor(null);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error saving vendor');
-      }
-    } catch (error) {
-      alert('Network error. Please check if backend is running.');
-    }
+  const handleAddVendor = async () => {
+    await fetchVendors();
   };
 
   const handleEditVendor = (vendor) => {
