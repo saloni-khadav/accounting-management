@@ -93,6 +93,13 @@ router.get('/reconciliation', async (req, res) => {
 
 // Create new credit/debit note
 router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Credit/Debit Notes'), async (req, res) => {
+  console.log('📥 Credit/Debit Note POST request received');
+  console.log('📥 Request body keys:', Object.keys(req.body));
+  console.log('📥 Note type:', req.body.type);
+  console.log('📥 Original bill number:', req.body.originalBillNumber);
+  console.log('📥 Grand total:', req.body.grandTotal);
+  console.log('📥 TDS amount:', req.body.tdsAmount);
+  
   try {
     const noteData = {
       ...req.body,
@@ -102,8 +109,7 @@ router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('C
     // Check if note number already exists (only for new notes)
     if (noteData.noteNumber) {
       const existingNote = await CreditDebitNote.findOne({ 
-        noteNumber: noteData.noteNumber,
-        userId: req.user.id 
+        noteNumber: noteData.noteNumber
       });
       if (existingNote) {
         return res.status(400).json({ message: 'Note number already exists' });
@@ -152,12 +158,48 @@ router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('C
     const note = new CreditDebitNote(noteData);
     await note.save();
     
+    // Update Bill's creditNoteAmount if this is a Credit Note
+    if (noteData.type === 'Credit Note') {
+      // Use originalBillNumber or fallback to originalInvoiceNumber
+      const billNumber = noteData.originalBillNumber || noteData.originalInvoiceNumber;
+      
+      if (billNumber) {
+        const Bill = require('../models/Bill');
+        const bill = await Bill.findOne({ billNumber: billNumber });
+        
+        if (bill) {
+          // Use Net Amount (Grand Total - TDS) for credit note
+          const grandTotal = parseFloat(noteData.grandTotal) || 0;
+          const tdsAmount = parseFloat(noteData.tdsAmount) || 0;
+          const creditAmount = grandTotal - tdsAmount;
+          
+          console.log('💳 Credit Note Applied:', {
+            billNumber: billNumber,
+            grandTotal,
+            tdsAmount,
+            netCreditAmount: creditAmount
+          });
+          
+          bill.creditNoteAmount = (bill.creditNoteAmount || 0) + creditAmount;
+          await bill.save();
+          
+          console.log('✅ Bill updated with credit note amount:', bill.creditNoteAmount);
+        } else {
+          console.log('⚠️ Bill not found:', billNumber);
+        }
+      } else {
+        console.log('⚠️ No bill number provided in credit note');
+      }
+    }
+    
     res.status(201).json(note);
   } catch (error) {
-    console.error('Error creating credit/debit note:', error);
+    console.error('❌ Error creating credit/debit note:', error);
+    console.error('❌ Error stack:', error.stack);
     if (error.code === 11000) {
       res.status(400).json({ message: 'Note number already exists', error: error.message });
     } else if (error.name === 'ValidationError') {
+      console.error('❌ Validation error details:', error.errors);
       res.status(400).json({ message: 'Validation error', error: error.message });
     } else {
       res.status(500).json({ message: 'Server error', error: error.message });

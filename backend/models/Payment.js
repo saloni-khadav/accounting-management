@@ -86,8 +86,8 @@ const paymentSchema = new mongoose.Schema({
     default: false
   },
   createdBy: {
-    type: String,
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   attachments: [{
     fileName: String,

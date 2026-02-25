@@ -35,8 +35,8 @@ const Payments = () => {
 
   const tdsSection = [
     { code: '194H', rate: 5, description: 'Commission or Brokerage' },
-    { code: '194C', rate: 1, description: 'Individual/HUF' },
-    { code: '194C', rate: 2, description: 'Company' },
+    { code: '194C-1', rate: 1, description: 'Individual/HUF' },
+    { code: '194C-2', rate: 2, description: 'Company' },
     { code: '194J(a)', rate: 2, description: 'Technical Services' },
     { code: '194J(b)', rate: 10, description: 'Professional' },
     { code: '194I(a)', rate: 2, description: 'Rent - Plant & Machinery' },
@@ -176,10 +176,9 @@ const Payments = () => {
   const fetchPayments = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5001/api/payments', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (response.ok) {
         const data = await response.json();
@@ -271,22 +270,44 @@ const Payments = () => {
   };
 
   const handleBillSelect = (bill) => {
-    console.log('Selected bill:', bill); // Debug log
-    const netPayableAmount = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+    const actualTDS = (bill.tdsAmount && parseFloat(bill.tdsAmount) > 0) ? parseFloat(bill.tdsAmount) : 0;
+    const netPayableAmount = (bill.grandTotal || 0) - actualTDS;
     const adjustedAmount = netPayableAmount - (bill.creditDebitAdjustment || 0);
     const remainingAmount = adjustedAmount - (bill.paidAmount || 0);
+    
+    const hasBillTDS = bill.tdsSection && actualTDS > 0;
+    
+    // Calculate TDS for this payment based on remaining amount
+    let paymentTDS = 0;
+    if (hasBillTDS && bill.tdsPercentage > 0) {
+      paymentTDS = (remainingAmount * bill.tdsPercentage) / 100;
+    }
+    
     setFormData(prev => ({
       ...prev,
-      billId: bill._id, // Store the bill ID
+      billId: bill._id,
       invoiceNumber: bill.billNumber || bill.billId || bill.invoiceNumber,
       invoiceDate: bill.billDate ? bill.billDate.split('T')[0] : '',
-      amount: remainingAmount // Set to adjusted remaining amount
+      amount: remainingAmount,
+      tdsSection: hasBillTDS ? bill.tdsSection : '',
+      tdsPercentage: hasBillTDS ? bill.tdsPercentage : '',
+      tdsAmount: hasBillTDS ? paymentTDS.toFixed(2) : ''
     }));
     setShowBillDropdown(false);
   };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    
+    // Check individual file sizes
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    
+    if (oversizedFiles.length > 0) {
+      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       attachments: [...prev.attachments, ...files]
@@ -470,8 +491,6 @@ const Payments = () => {
   };
 
   const paymentsData = payments.map(payment => {
-    console.log('Payment data:', payment); // Debug log
-    
     // Determine display status based on approvalStatus and status
     let displayStatus;
     if (payment.approvalStatus === 'pending') {
@@ -823,40 +842,87 @@ const Payments = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Section
-                  </label>
-                  <select
-                    name="tdsSection"
-                    value={formData.tdsSection}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select TDS Section</option>
-                    {tdsSection.map((section, idx) => (
-                      <option key={idx} value={section.code}>
-                        {section.code} - {section.rate}% ({section.description})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* TDS Section - Always Editable */}
+                {formData.billId && formData.tdsSection ? (
+                  <div className="md:col-span-2 bg-blue-50 p-3 rounded-lg">
+                    <div className="text-xs text-blue-600 font-medium mb-2">
+                      ℹ️ TDS will be deducted from this payment (Bill TDS: {formData.tdsSection})
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          TDS Section
+                        </label>
+                        <select
+                          name="tdsSection"
+                          value={formData.tdsSection}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select TDS Section</option>
+                          {tdsSection.map((section, idx) => (
+                            <option key={idx} value={section.code}>
+                              {section.code} - {section.rate}% ({section.description})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          TDS Amount
+                        </label>
+                        <input
+                          type="number"
+                          name="tdsAmount"
+                          value={formData.tdsAmount}
+                          onChange={handleInputChange}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // No TDS in Bill - Editable
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        TDS Section
+                      </label>
+                      <select
+                        name="tdsSection"
+                        value={formData.tdsSection}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select TDS Section</option>
+                        {tdsSection.map((section, idx) => (
+                          <option key={idx} value={section.code}>
+                            {section.code} - {section.rate}% ({section.description})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Amount
-                  </label>
-                  <input
-                    type="number"
-                    name="tdsAmount"
-                    value={formData.tdsAmount}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        TDS Amount
+                      </label>
+                      <input
+                        type="number"
+                        name="tdsAmount"
+                        value={formData.tdsAmount}
+                        onChange={handleInputChange}
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

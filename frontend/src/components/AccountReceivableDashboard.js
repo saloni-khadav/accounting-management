@@ -60,7 +60,10 @@ const AccountReceivableDashboard = () => {
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
+        console.log('Stats Data:', statsData);
         setStats(statsData);
+      } else {
+        console.error('Failed to fetch stats:', statsRes.status);
       }
 
       if (revenueRes.ok) {
@@ -70,7 +73,10 @@ const AccountReceivableDashboard = () => {
 
       if (overdueRes.ok) {
         const overdueData = await overdueRes.json();
+        console.log('Overdue Invoices Data:', overdueData);
         setOverdueInvoices(overdueData);
+      } else {
+        console.error('Failed to fetch overdue invoices:', overdueRes.status);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

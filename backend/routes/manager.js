@@ -132,6 +132,7 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     
     // Get pending Payments
     const pendingPayments = await Payment.find({ approvalStatus: 'pending' })
+      .populate('createdBy', 'name email')
       .select('paymentNumber vendor netAmount createdAt approvalStatus reminderSent createdBy')
       .limit(10)
       .sort({ createdAt: -1 });
@@ -139,12 +140,14 @@ router.get('/pending', auth, requireManager, async (req, res) => {
     console.log('Pending Payments:', pendingPayments.length);
     
     pendingPayments.forEach(payment => {
+      const createdByName = payment.createdBy ? 
+        (payment.createdBy.name || payment.createdBy.email || 'User') : 'User';
       pendingApprovals.push({
         id: payment._id,
         type: 'Payment',
         description: `Payment ${payment.paymentNumber} - ${payment.vendor}`,
         amount: `₹${payment.netAmount.toLocaleString()}`,
-        requestedBy: payment.createdBy || 'User',
+        requestedBy: createdByName,
         requestDate: payment.createdAt.toISOString().split('T')[0],
         createdAt: payment.createdAt,
         status: 'pending',

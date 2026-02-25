@@ -236,6 +236,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
@@ -270,6 +271,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       });
 
       const result = await response.json();
+      console.log('OCR API Response:', result);
 
       if (result.success) {
         const updates = {};
@@ -298,13 +300,49 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
         
         if (documentType === 'gstCertificate') {
           if (result.data.gstNumber) {
+            const extractedGST = result.data.gstNumber;
+            const extractedPAN = extractedGST.substring(2, 12);
+            
+            // Validate PAN matches existing GST entries
+            const existingPANs = formData.gstNumbers
+              .filter((gst, idx) => idx !== gstIndex && gst.gstNumber)
+              .map(gst => gst.gstNumber.substring(2, 12));
+            
+            if (existingPANs.length > 0 && !existingPANs.includes(extractedPAN)) {
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).' }
+              }));
+              alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
+              return;
+            }
+            
+            // If PAN field is empty, fill it from GST
+            if (!formData.panNumber) {
+              updates.panNumber = extractedPAN;
+            } else if (formData.panNumber !== extractedPAN) {
+              // If PAN already exists but doesn't match
+              setUploadStates(prev => ({
+                ...prev,
+                [stateKey]: { loading: false, error: 'GST PAN does not match the existing PAN number.' }
+              }));
+              alert('Error: GST PAN does not match the existing PAN number.');
+              return;
+            }
+            
             const updatedGSTNumbers = [...formData.gstNumbers];
             if (gstIndex !== null) {
               updatedGSTNumbers[gstIndex].gstNumber = result.data.gstNumber;
+              if (result.data.billingAddress) {
+                updatedGSTNumbers[gstIndex].billingAddress = result.data.billingAddress;
+              }
               updatedGSTNumbers[gstIndex].hasDocument = true;
             }
             updates.gstNumbers = updatedGSTNumbers;
             updates.gstNumber = updatedGSTNumbers.find(gst => gst.isDefault)?.gstNumber || updatedGSTNumbers[0]?.gstNumber || '';
+            if (updatedGSTNumbers[gstIndex]?.isDefault && result.data.billingAddress) {
+              updates.billingAddress = result.data.billingAddress;
+            }
             dataFound = true;
           }
         }
@@ -356,18 +394,19 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
         } else {
           setUploadStates(prev => ({
             ...prev,
-            [stateKey]: { loading: false, error: `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
+            [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
           }));
           
-          alert(`${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
+          alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
         }
       } else {
+        console.log('OCR failed - result.success is false');
         setUploadStates(prev => ({
           ...prev,
-          [stateKey]: { loading: false, error: `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
+          [stateKey]: { loading: false, error: result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document.` }
         }));
         
-        alert(`${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
+        alert(result.message || `${documentType === 'panCard' ? 'PAN number' : documentType === 'gstCertificate' ? 'GST number' : documentType === 'aadharCard' ? 'Aadhar number' : 'Bank details'} not found in this document. Please upload the correct document.`);
       }
     } catch (error) {
       console.error('OCR error:', error);
@@ -420,6 +459,29 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate GST numbers
+    for (let i = 0; i < formData.gstNumbers.length; i++) {
+      const gst = formData.gstNumbers[i];
+      if (gst.gstNumber && gst.gstNumber.length !== 15) {
+        alert(`GST Number ${i + 1} must be exactly 15 characters. Current length: ${gst.gstNumber.length}`);
+        return;
+      }
+    }
+    
+    // Validate contact details (mobile number)
+    const digits = formData.contactDetails.replace(/[^0-9]/g, '');
+    if (digits.length !== 10) {
+      alert(`Contact Details must contain exactly 10 digits. Current: ${digits.length} digits`);
+      return;
+    }
+    
+    // Validate account number (9-18 digits)
+    const accountDigits = formData.accountNumber.replace(/[^0-9]/g, '');
+    if (formData.accountNumber !== accountDigits || accountDigits.length < 9 || accountDigits.length > 18) {
+      alert(`Account Number must contain only numbers and be between 9 to 18 digits. Current: ${accountDigits.length} digits`);
+      return;
+    }
     
     try {
       const defaultGST = formData.gstNumbers.find(gst => gst.isDefault);

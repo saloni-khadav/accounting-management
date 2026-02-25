@@ -200,23 +200,33 @@ router.post('/login', async (req, res) => {
 
 // Get current user
 router.get('/me', auth, async (req, res) => {
-  res.json({
-    user: {
-      id: req.user._id,
-      fullName: req.user.fullName,
-      workEmail: req.user.workEmail,
-      companyName: req.user.companyName,
-      role: req.user.role,
-      permissions: req.user.permissions || getDefaultPermissions(req.user.role),
-      profile: req.user.profile || {}
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-  });
+    
+    res.json({
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        workEmail: user.workEmail,
+        companyName: user.companyName,
+        role: user.role,
+        permissions: user.permissions || getDefaultPermissions(user.role),
+        profile: user.profile || {}
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 });
 
 // Save profile data
 router.post('/profile', auth, async (req, res) => {
   try {
-    const { companyLogo, gstNumber, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
+    const { companyLogo, gstNumber, gstNumbers, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
     
     const currentUser = await User.findById(req.user._id);
     
@@ -226,6 +236,7 @@ router.post('/profile', auth, async (req, res) => {
     
     if (companyLogo) currentUser.profile.companyLogo = companyLogo;
     if (gstNumber) currentUser.profile.gstNumber = gstNumber;
+    if (gstNumbers) currentUser.profile.gstNumbers = gstNumbers;
     if (tradeName) currentUser.profile.tradeName = tradeName;
     if (address) currentUser.profile.address = address;
     if (panNumber) currentUser.profile.panNumber = panNumber;
@@ -269,6 +280,30 @@ router.delete('/profile/bank/:index', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Bank delete error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update company name
+router.put('/update-company', auth, async (req, res) => {
+  try {
+    const { companyName } = req.body;
+    
+    const currentUser = await User.findById(req.user._id);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    currentUser.companyName = companyName;
+    await currentUser.save();
+
+    res.json({
+      message: 'Company name updated successfully',
+      success: true,
+      companyName: currentUser.companyName
+    });
+  } catch (error) {
+    console.error('Company update error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

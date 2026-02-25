@@ -342,12 +342,12 @@ const CreditDebitNotes = () => {
                             <td className="px-3 py-2">{item.description || '-'}</td>
                             <td className="px-3 py-2">{item.hsnCode || '-'}</td>
                             <td className="px-3 py-2">{item.quantity || 0}</td>
-                            <td className="px-3 py-2">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2">₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="px-3 py-2">{item.discount || 0}%</td>
                             <td className="px-3 py-2">{item.cgstRate || 0}%</td>
                             <td className="px-3 py-2">{item.sgstRate || 0}%</td>
                             <td className="px-3 py-2">{item.igstRate || 0}%</td>
-                            <td className="px-3 py-2 text-right">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 text-right">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -360,23 +360,23 @@ const CreditDebitNotes = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Summary</h3>
                 <div className="space-y-2">
-                  <div className="flex justify-between"><span>Subtotal:</span><span>₹{(viewingNote.subtotal || 0).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>Total Discount:</span><span>₹{(viewingNote.totalDiscount || 0).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(viewingNote.totalTaxableValue || 0).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>CGST:</span><span>₹{(viewingNote.totalCGST || 0).toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>SGST:</span><span>₹{(viewingNote.totalSGST || 0).toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Subtotal:</span><span>₹{(viewingNote.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Total Discount:</span><span>₹{(viewingNote.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(viewingNote.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>CGST:</span><span>₹{(viewingNote.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>SGST:</span><span>₹{(viewingNote.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {(viewingNote.totalIGST || 0) > 0 && (
-                    <div className="flex justify-between"><span>IGST:</span><span>₹{(viewingNote.totalIGST || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>IGST:</span><span>₹{(viewingNote.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   )}
                   {(viewingNote.totalCESS || 0) > 0 && (
-                    <div className="flex justify-between"><span>CESS:</span><span>₹{(viewingNote.totalCESS || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>CESS:</span><span>₹{(viewingNote.totalCESS || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   )}
                   {viewingNote.tdsAmount > 0 && (
-                    <div className="flex justify-between text-red-600"><span>TDS ({viewingNote.tdsPercentage}%):</span><span>-₹{(viewingNote.tdsAmount || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between text-red-600"><span>TDS ({viewingNote.tdsPercentage}%):</span><span>-₹{(viewingNote.tdsAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   )}
-                  <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Grand Total:</span><span>₹{(viewingNote.grandTotal || 0).toFixed(2)}</span></div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Grand Total:</span><span>₹{(viewingNote.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {viewingNote.tdsAmount > 0 && (
-                    <div className="flex justify-between font-bold text-lg text-green-600 border-t pt-2"><span>Net Amount:</span><span>₹{((viewingNote.grandTotal || 0) - (viewingNote.tdsAmount || 0)).toFixed(2)}</span></div>
+                    <div className="flex justify-between font-bold text-lg text-green-600 border-t pt-2"><span>Net Amount:</span><span>₹{((viewingNote.grandTotal || 0) - (viewingNote.tdsAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   )}
                 </div>
               </div>

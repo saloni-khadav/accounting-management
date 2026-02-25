@@ -34,6 +34,11 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     }
   ]);
   const [showNotification, setShowNotification] = useState(false);
+  
+  // Format number with Indian comma style
+  const formatIndianNumber = (num) => {
+    return Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
   const handleClose = () => {
     if (window.confirm('Are you sure you want to close? Any unsaved changes will be lost.')) {
       onClose();
@@ -70,13 +75,13 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
     placeOfSupply: '',
     
     // Supplier Details
-    supplierName: 'ABC Enterprises',
-    supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
-    supplierGSTIN: '29ABCDE1234F1Z5',
-    supplierPAN: 'ABCDE1234F',
-    supplierEmail: 'info@abcenterprises.com',
-    supplierPhone: '+91 80 1234 5678',
-    supplierWebsite: 'www.abcenterprises.com',
+    supplierName: '',
+    supplierAddress: '',
+    supplierGSTIN: '',
+    supplierPAN: '',
+    supplierEmail: '',
+    supplierPhone: '',
+    supplierWebsite: '',
     
     // Customer Details
     customerName: '',
@@ -158,6 +163,9 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         }]
       });
       setAttachments(editingInvoice.attachments || []);
+      setClientSearchTerm(editingInvoice.customerName || '');
+      // Set selectedClient as a dummy object for editing mode
+      setSelectedClient({ clientName: editingInvoice.customerName });
     } else {
       // Reset to default for new invoice
       setInvoiceData({
@@ -167,13 +175,13 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         referenceNumber: '',
         placeOfSupply: '',
         
-        supplierName: 'ABC Enterprises',
-        supplierAddress: '125 Business St., Bangalore, Karnataka - 550001',
-        supplierGSTIN: '29ABCDE1234F1Z5',
-        supplierPAN: 'ABCDE1234F',
-        supplierEmail: 'info@abcenterprises.com',
-        supplierPhone: '+91 80 1234 5678',
-        supplierWebsite: 'www.abcenterprises.com',
+        supplierName: '',
+        supplierAddress: '',
+        supplierGSTIN: '',
+        supplierPAN: '',
+        supplierEmail: '',
+        supplierPhone: '',
+        supplierWebsite: '',
         
         customerName: '',
         customerAddress: '',
@@ -221,6 +229,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         qrCode: ''
       });
       setAttachments([]);
+      setClientSearchTerm('');
+      setSelectedClient(null);
     }
   }, [editingInvoice]);
 
@@ -263,7 +273,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch clients data
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchClients = async () => {
       try {
         const response = await fetch(`${baseUrl}/api/clients`);
@@ -283,7 +293,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch approved proforma invoices for selected client
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchApprovedProformas = async () => {
       if (!selectedClient) {
         setApprovedProformas([]);
@@ -355,7 +365,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
 
   // Fetch user profile data
   useEffect(() => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const fetchUserProfile = async () => {
       if (!isOpen) return;
       
@@ -363,20 +373,20 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${baseUrl}/api/profile`, {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (response.ok) {
-          const data = await response.json();
-          const profile = data.profile || {};
+          const userData = await response.json();
+          const profile = userData.user.profile || {};
           const gstBasedState = getStateFromGST(profile.gstNumber);
           
           setInvoiceData(prev => ({
             ...prev,
-            supplierName: profile.tradeName || prev.supplierName,
+            supplierName: profile.tradeName || userData.user.companyName || prev.supplierName,
             supplierAddress: profile.address || prev.supplierAddress,
             supplierGSTIN: profile.gstNumber || prev.supplierGSTIN,
             supplierPAN: profile.panNumber || prev.supplierPAN,
@@ -734,7 +744,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const downloadAttachment = (attachment) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (attachment.file) {
       // New file - use local URL
       const link = document.createElement('a');
@@ -751,7 +761,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const viewAttachment = (attachment) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (attachment.file) {
       // New file - use local URL
       window.open(attachment.fileUrl, '_blank');
@@ -763,23 +773,17 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   };
 
   const handleSave = async () => {
-    // For local development, use localhost. For production, change to production URL
-    const baseUrl = 'http://localhost:5001';
-    console.log('=== INVOICE SAVE DEBUG ===');
-    console.log('baseUrl:', baseUrl);
-    // Validate required fields
-    if (!invoiceData.customerName || !invoiceData.customerName.trim()) {
-      alert('Customer name is required');
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    
+    // Validate customer selected from dropdown
+    if (!selectedClient) {
+      alert('Please select a customer from the dropdown. Manual entry is not allowed.');
       return;
     }
     
-    // Validate customer exists in client master
-    const customerExists = clients.some(client => 
-      client.clientName.toLowerCase() === invoiceData.customerName.toLowerCase()
-    );
-    
-    if (!customerExists) {
-      alert('Customer not found in Client Master. Please select a valid customer from the dropdown or add them in Client Master first.');
+    // Validate required fields
+    if (!invoiceData.customerName || !invoiceData.customerName.trim()) {
+      alert('Customer name is required');
       return;
     }
     
@@ -948,8 +952,9 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 <input
                   type="text"
                   value={invoiceData.supplierName}
-                  onChange={(e) => handleInputChange('supplierName', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-filled from profile"
+                  readOnly
                 />
               </div>
               <div>
@@ -957,9 +962,10 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 <input
                   type="text"
                   value={invoiceData.supplierGSTIN}
-                  onChange={(e) => handleInputChange('supplierGSTIN', e.target.value)}
                   maxLength="15"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-filled from profile"
+                  readOnly
                 />
               </div>
               <div>
@@ -967,66 +973,31 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                 <input
                   type="text"
                   value={invoiceData.supplierPAN}
-                  onChange={(e) => handleInputChange('supplierPAN', e.target.value)}
                   maxLength="10"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-filled from profile"
+                  readOnly
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Place of Supply <span className="text-red-500">*</span></label>
-                <select
+                <input
+                  type="text"
                   value={invoiceData.placeOfSupply}
-                  onChange={(e) => handleInputChange('placeOfSupply', e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-              <option value="">Select State</option>
-              <option value="Andaman and Nicobar Islands">35 - Andaman and Nicobar Islands</option>
-              <option value="Andhra Pradesh">28 - Andhra Pradesh</option>
-              <option value="Andhra Pradesh (New)">37 - Andhra Pradesh (New)</option>
-              <option value="Arunachal Pradesh">12 - Arunachal Pradesh</option>
-              <option value="Assam">18 - Assam</option>
-              <option value="Bihar">10 - Bihar</option>
-              <option value="Chandigarh">04 - Chandigarh</option>
-              <option value="Chhattisgarh">22 - Chhattisgarh</option>
-              <option value="Dadra and Nagar Haveli">26 - Dadra and Nagar Haveli</option>
-              <option value="Daman and Diu">25 - Daman and Diu</option>
-              <option value="Delhi">07 - Delhi</option>
-              <option value="Goa">30 - Goa</option>
-              <option value="Gujarat">24 - Gujarat</option>
-              <option value="Haryana">06 - Haryana</option>
-              <option value="Himachal Pradesh">02 - Himachal Pradesh</option>
-              <option value="Jammu and Kashmir">01 - Jammu and Kashmir</option>
-              <option value="Jharkhand">20 - Jharkhand</option>
-              <option value="Karnataka">29 - Karnataka</option>
-              <option value="Kerala">32 - Kerala</option>
-              <option value="Lakshadweep">31 - Lakshadweep</option>
-              <option value="Madhya Pradesh">23 - Madhya Pradesh</option>
-              <option value="Maharashtra">27 - Maharashtra</option>
-              <option value="Manipur">14 - Manipur</option>
-              <option value="Meghalaya">17 - Meghalaya</option>
-              <option value="Mizoram">15 - Mizoram</option>
-              <option value="Nagaland">13 - Nagaland</option>
-              <option value="Odisha">21 - Odisha</option>
-              <option value="Puducherry">34 - Puducherry</option>
-              <option value="Punjab">03 - Punjab</option>
-              <option value="Rajasthan">08 - Rajasthan</option>
-              <option value="Sikkim">11 - Sikkim</option>
-              <option value="Tamil Nadu">33 - Tamil Nadu</option>
-              <option value="Telangana">36 - Telangana</option>
-              <option value="Tripura">16 - Tripura</option>
-              <option value="Uttar Pradesh">09 - Uttar Pradesh</option>
-              <option value="Uttarakhand">05 - Uttarakhand</option>
-              <option value="West Bengal">19 - West Bengal</option>
-            </select>
-          </div>
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                  placeholder="Auto-filled from Supplier GSTIN"
+                  readOnly
+                />
+              </div>
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Registered Address <span className="text-red-500">*</span></label>
           <textarea
             value={invoiceData.supplierAddress}
-            onChange={(e) => handleInputChange('supplierAddress', e.target.value)}
             rows="2"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+            placeholder="Auto-filled from profile"
+            readOnly
           />
         </div>
       </div>
@@ -1132,17 +1103,20 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
             <div className="relative">
               <input
                 type="text"
-                value={clientSearchTerm || invoiceData.customerName}
+                value={clientSearchTerm}
                 onChange={(e) => {
                   setClientSearchTerm(e.target.value);
                   setShowClientDropdown(true);
-                  handleInputChange('customerName', e.target.value);
+                  setSelectedClient(null);
                 }}
                 onFocus={() => setShowClientDropdown(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Search or enter customer name"
+                placeholder="Search customer name..."
               />
-              <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+              <ChevronDown 
+                className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" 
+                onClick={() => setShowClientDropdown(!showClientDropdown)}
+              />
               
               {showClientDropdown && filteredClients.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -1169,15 +1143,15 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
               <input
                 type="text"
                 value={invoiceData.customerGSTIN}
-                onChange={(e) => handleInputChange('customerGSTIN', e.target.value)}
                 onFocus={() => {
                   if (selectedClient && selectedClient.gstNumbers && selectedClient.gstNumbers.length > 0) {
                     setShowGSTDropdown(true);
                   }
                 }}
                 maxLength="15"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Select from dropdown or enter manually"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+                placeholder="Select from dropdown"
+                readOnly
               />
               {selectedClient && selectedClient.gstNumbers && selectedClient.gstNumbers.length > 0 && (
                 <ChevronDown 
@@ -1208,6 +1182,15 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer Place</label>
+            <input
+              type="text"
+              value={invoiceData.customerPlace}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+              placeholder="Auto-filled from GST"
+              readOnly
+            />
+          </div>
+          <div style={{display: 'none'}}>
             <select
               value={invoiceData.customerPlace}
               onChange={(e) => handleInputChange('customerPlace', e.target.value)}
@@ -1258,8 +1241,9 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
             <input
               type="text"
               value={invoiceData.contactPerson}
-              onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+              placeholder="Auto-filled from customer"
+              readOnly
             />
           </div>
           <div>
@@ -1267,17 +1251,19 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
             <input
               type="text"
               value={invoiceData.contactDetails}
-              onChange={(e) => handleInputChange('contactDetails', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+              placeholder="Auto-filled from customer"
+              readOnly
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Billing Address *</label>
             <textarea
               value={invoiceData.customerAddress}
-              onChange={(e) => handleInputChange('customerAddress', e.target.value)}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+              placeholder="Auto-filled from GST"
+              readOnly
             />
           </div>
         </div>
@@ -1452,36 +1438,36 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           <div className="bg-gray-50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">₹{(invoiceData.subtotal || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.subtotal || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Total Discount:</span>
-              <span className="font-medium">₹{(invoiceData.totalDiscount || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalDiscount || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Taxable Value:</span>
-              <span className="font-medium">₹{(invoiceData.totalTaxableValue || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalTaxableValue || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">CGST:</span>
-              <span className="font-medium">₹{(invoiceData.totalCGST || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalCGST || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">SGST:</span>
-              <span className="font-medium">₹{(invoiceData.totalSGST || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalSGST || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">IGST:</span>
-              <span className="font-medium">₹{(invoiceData.totalIGST || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalIGST || 0)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Total Tax:</span>
-              <span className="font-medium">₹{(invoiceData.totalTax || 0).toFixed(2)}</span>
+              <span className="font-medium">₹{formatIndianNumber(invoiceData.totalTax || 0)}</span>
             </div>
             <hr className="my-2" />
             <div className="flex justify-between text-lg font-bold">
               <span>Grand Total:</span>
-              <span>₹{(invoiceData.grandTotal || 0).toFixed(2)}</span>
+              <span>₹{formatIndianNumber(invoiceData.grandTotal || 0)}</span>
             </div>
           </div>
         </div>

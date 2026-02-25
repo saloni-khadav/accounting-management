@@ -110,6 +110,11 @@ router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('P
       }));
     }
     
+    // Set createdBy from authenticated user if available
+    if (req.user && req.user.id) {
+      paymentData.createdBy = req.user.id;
+    }
+    
     const payment = new Payment(paymentData);
     const savedPayment = await payment.save();
     

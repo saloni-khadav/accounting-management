@@ -239,14 +239,17 @@ router.get('/overdue-invoices', async (req, res) => {
     const { period, client } = req.query;
     
     let invoices = await Invoice.find({ approvalStatus: 'Approved' });
+    console.log('Total approved invoices:', invoices.length);
     
     if (client && client !== 'All Clients') {
       invoices = invoices.filter(inv => inv.customerName === client);
+      console.log('After client filter:', invoices.length);
     }
     
-    if (period) {
-      invoices = filterByPeriod(invoices, period, 'invoiceDate');
-    }
+    // Don't filter by period for overdue invoices - we want all overdue regardless of invoice date
+    // if (period) {
+    //   invoices = filterByPeriod(invoices, period, 'invoiceDate');
+    // }
     
     let collections = await Collection.find({ approvalStatus: 'Approved' });
     if (client && client !== 'All Clients') {
@@ -262,7 +265,10 @@ router.get('/overdue-invoices', async (req, res) => {
     const overdueInvoices = [];
     
     invoices.forEach(invoice => {
-      if (!invoice.dueDate) return;
+      if (!invoice.dueDate) {
+        console.log('Invoice without due date:', invoice.invoiceNumber);
+        return;
+      }
       
       const invoiceCollections = collections.filter(col => 
         col.invoiceNumber?.includes(invoice.invoiceNumber)
@@ -294,6 +300,8 @@ router.get('/overdue-invoices', async (req, res) => {
         });
       }
     });
+    
+    console.log('Total overdue invoices found:', overdueInvoices.length);
     
     // Sort by days overdue (descending)
     overdueInvoices.sort((a, b) => b.daysOverdue - a.daysOverdue);
