@@ -15,7 +15,7 @@ const ClientMaster = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const baseUrl = 'http://localhost:5001';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
 
   useEffect(() => {
     fetchClients();
@@ -479,3 +479,4 @@ const ClientMaster = () => {
 };
 
 export default ClientMaster;
+

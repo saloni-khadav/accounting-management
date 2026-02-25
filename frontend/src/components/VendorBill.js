@@ -7,7 +7,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   console.log('🔵 VendorBill component loaded');
   
   // API URL - uses local from env, falls back to production
-  const baseUrl = 'http://localhost:5001';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
   
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -1746,6 +1746,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 };
 
 export default VendorBill;
+
 
 
 

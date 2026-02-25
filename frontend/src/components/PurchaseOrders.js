@@ -69,8 +69,9 @@ const PurchaseOrders = () => {
   }, []);
 
   const generatePONumber = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders/next-po-number');
+      const response = await fetch(`${baseUrl}/api/purchase-orders/next-po-number`);
       if (response.ok) {
         const data = await response.json();
         setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
@@ -86,8 +87,9 @@ const PurchaseOrders = () => {
   };
 
   const fetchVendors = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch(`${baseUrl}/api/vendors`);
       if (response.ok) {
         const data = await response.json();
         setVendors(data);
@@ -98,11 +100,12 @@ const PurchaseOrders = () => {
   };
 
   const fetchCompanyProfile = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -120,8 +123,9 @@ const PurchaseOrders = () => {
   };
 
   const fetchPurchaseOrders = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/purchase-orders');
+      const response = await fetch(`${baseUrl}/api/purchase-orders`);
       if (response.ok) {
         const data = await response.json();
         setPurchaseOrders(data);
@@ -292,8 +296,8 @@ const PurchaseOrders = () => {
       };
 
       const url = editingOrder 
-        ? `https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${editingOrder._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/purchase-orders';
+        ? `${baseUrl}/api/purchase-orders/${editingOrder._id}`
+        : `${baseUrl}/api/purchase-orders`;
       
       const method = editingOrder ? 'PUT' : 'POST';
 
@@ -359,7 +363,8 @@ const PurchaseOrders = () => {
   const handleDelete = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this Purchase Order?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/purchase-orders/${orderId}`, {
+        const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+        const response = await fetch(`${baseUrl}/api/purchase-orders/${orderId}`, {
           method: 'DELETE'
         });
 
@@ -1251,3 +1256,4 @@ const PurchaseOrders = () => {
 };
 
 export default PurchaseOrders;
+

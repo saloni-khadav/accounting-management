@@ -34,7 +34,7 @@ const PeriodManagement = () => {
   const fetchPeriodPermissions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/period-permissions', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/period-permissions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -54,7 +54,7 @@ const PeriodManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/period-permissions', {
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/period-permissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const PeriodManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/period-permissions/${id}`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/period-permissions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -98,7 +98,7 @@ const PeriodManagement = () => {
   const togglePermissionStatus = async (id, currentStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/period-permissions/${id}`, {
+      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/period-permissions/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -235,3 +235,4 @@ const PeriodManagement = () => {
 };
 
 export default PeriodManagement;
+
