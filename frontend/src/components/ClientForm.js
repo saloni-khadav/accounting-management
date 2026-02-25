@@ -114,7 +114,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   }, [editingClient]);
 
   const generateClientCode = async () => {
-    const baseUrl = 'http://localhost:5001';
+    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
     try {
       // First try to get existing clients to calculate next code
       const response = await fetch(`${baseUrl}/api/clients`);
@@ -251,7 +251,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
-    const baseUrl = 'http://localhost:5001';
+    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
@@ -484,7 +484,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const downloadDocument = (file, index) => {
-    const baseUrl = 'http://localhost:5001';
+    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
@@ -500,7 +500,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const viewDocument = (file) => {
-    const baseUrl = 'http://localhost:5001';
+    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       window.open(url, '_blank');
@@ -521,7 +521,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = 'http://localhost:5001'; // Hard-coded for testing
+    const baseUrl = 'https://nextbook-backend.nextsphere.co.in'; // Hard-coded for testing
     e.preventDefault();
     
     // Validate GST numbers
@@ -1307,3 +1307,4 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
 };
 
 export default ClientForm;
+

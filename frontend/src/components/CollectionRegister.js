@@ -3,7 +3,7 @@ import { X, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const CollectionRegister = () => {
-  const baseUrl = 'http://localhost:5001';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
   const [showModal, setShowModal] = useState(false);
   const [collections, setCollections] = useState([]);
   const [clients, setClients] = useState([]);
@@ -809,4 +809,5 @@ const CollectionRegister = () => {
 };
 
 export default CollectionRegister;
+
 

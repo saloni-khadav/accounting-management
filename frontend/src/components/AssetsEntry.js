@@ -72,8 +72,9 @@ const AssetsEntry = () => {
 
   const fetchPurchaseOrders = async (vendorName) => {
     try {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       console.log('Fetching Purchase Orders for vendor:', vendorName);
-      const response = await fetch(`http://localhost:5001/api/purchase-orders/vendor/${encodeURIComponent(vendorName)}`, {
+      const response = await fetch(`${baseUrl}/api/purchase-orders/vendor/${encodeURIComponent(vendorName)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -89,7 +90,8 @@ const AssetsEntry = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/vendors', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/vendors`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -104,7 +106,8 @@ const AssetsEntry = () => {
   const fetchAssets = async () => {
     setLoading(true);
     try {
-      let url = 'http://localhost:5001/api/assets';
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      let url = `${baseUrl}/api/assets`;
       const params = new URLSearchParams();
       
       if (categoryFilter) params.append('category', categoryFilter);
@@ -124,7 +127,8 @@ const AssetsEntry = () => {
 
   const generateAssetCode = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/assets/next-code', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/assets/next-code`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -323,9 +327,10 @@ const AssetsEntry = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
         const url = editingAsset 
-          ? `http://localhost:5001/api/assets/${editingAsset._id}`
-          : 'http://localhost:5001/api/assets';
+          ? `${baseUrl}/api/assets/${editingAsset._id}`
+          : `${baseUrl}/api/assets`;
         
         const method = editingAsset ? 'PUT' : 'POST';
         
@@ -449,7 +454,8 @@ const AssetsEntry = () => {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/assets/${deleteConfirm.assetId}`, {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/assets/${deleteConfirm.assetId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -549,7 +555,8 @@ const AssetsEntry = () => {
   const handleVendorSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5001/api/vendors', {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/vendors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
