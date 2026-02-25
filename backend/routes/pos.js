@@ -1,5 +1,7 @@
 const express = require('express');
 const PO = require('../models/PO');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 const router = express.Router();
 
 // Generate next PI number
@@ -40,8 +42,9 @@ router.get('/next-number', async (req, res) => {
 });
 
 // Create new PI
-router.post('/', async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Proforma Invoices'), async (req, res) => {
   try {
+    console.log('=== CREATE PI ROUTE ENTERED ===');
     console.log('Received PI data:', JSON.stringify(req.body, null, 2));
     
     // Check if PI number already exists
@@ -145,7 +148,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update PI
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Proforma Invoices'), async (req, res) => {
   try {
     // Sync poNumber/piNumber and poDate/piDate
     const updateData = { ...req.body };

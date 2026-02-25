@@ -351,6 +351,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, activePage, setActivePage }) => 
               </button>
             </li>
           )}
+
+          {/* Period Management - Only for Managers */}
+          {userRole === 'manager' && (
+            <li>
+              <button
+                onClick={() => setActivePage('Period Management')}
+                className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                  activePage === 'Period Management'
+                    ? 'bg-sidebar-active text-white'
+                    : 'hover:bg-sidebar-hover'
+                }`}
+              >
+                <Clock size={20} />
+                {!isCollapsed && (
+                  <span className="ml-3 font-medium">Period Management</span>
+                )}
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
     </div>

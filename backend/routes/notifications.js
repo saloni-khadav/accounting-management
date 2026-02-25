@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
+const { checkPermission } = require('../middleware/permissions');
 
 // Get all notifications for user
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, checkPermission('view_notifications'), async (req, res) => {
   try {
     const notifications = await Notification.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
@@ -22,7 +23,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', auth, async (req, res) => {
+router.put('/:id/read', auth, checkPermission('view_notifications'), async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
@@ -41,7 +42,7 @@ router.put('/:id/read', auth, async (req, res) => {
 });
 
 // Mark all as read
-router.put('/read-all', auth, async (req, res) => {
+router.put('/read-all', auth, checkPermission('view_notifications'), async (req, res) => {
   try {
     await Notification.updateMany(
       { userId: req.user.id, isRead: false },
@@ -55,7 +56,7 @@ router.put('/read-all', auth, async (req, res) => {
 });
 
 // Delete notification
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, checkPermission('manage_notifications'), async (req, res) => {
   try {
     const notification = await Notification.findOneAndDelete({
       _id: req.params.id,
@@ -73,7 +74,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // Create notification (for testing or system use)
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, checkPermission('manage_notifications'), async (req, res) => {
   try {
     const notification = new Notification({
       userId: req.user.id,
@@ -88,7 +89,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Create test notifications (for development)
-router.post('/test/create', auth, async (req, res) => {
+router.post('/test/create', auth, checkPermission('view_notifications'), async (req, res) => {
   try {
     const testNotifications = [
       {
