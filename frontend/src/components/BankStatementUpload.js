@@ -394,25 +394,25 @@ const BankStatementUpload = () => {
                 {filteredFiles.map((file) => (
                   <div key={file.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-6 h-6 text-red-600" />
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-6 h-6 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 truncate text-sm">{file.name}</h3>
-                          <p className="text-xs text-gray-500">{file.size}</p>
+                          <h3 className="font-medium text-gray-900 text-sm break-words line-clamp-2">{file.name}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{file.size}</p>
                         </div>
                       </div>
                     </div>
                     
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>{file.period}</span>
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate">{file.period}</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <span className="font-medium">Bank:</span>
-                        <span>{file.bank}</span>
+                        <span className="font-medium flex-shrink-0">Bank:</span>
+                        <span className="truncate">{file.bank}</span>
                       </div>
                       <div className="text-xs text-gray-500">Uploaded: {file.uploadDate}</div>
                     </div>

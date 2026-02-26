@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, Download, Eye, X, Plus, AlertTriangle, Clock, CreditCard, CheckCircle, DollarSign } from 'lucide-react';
+import { Search, Edit, Trash2, Download, Eye, X, Plus, AlertTriangle, Clock, CreditCard, CheckCircle, IndianRupee } from 'lucide-react';
 import VendorBill from './VendorBill';
 import MetricsCard from './ui/MetricsCard';
 
@@ -357,7 +357,7 @@ const Bills = () => {
           <MetricsCard
             title="Partially Paid"
             value={partiallyPaidCount}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="warning"
           />
         </div>
@@ -430,19 +430,19 @@ const Bills = () => {
               const originalBill = bills.find(b => b.billNumber === bill.id);
               return (
                 <tr key={bill.id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <span className="text-blue-600 font-medium">{bill.id}</span>
                   </td>
-                  <td className="py-4 px-6 text-gray-900">{bill.vendor}</td>
-                  <td className="py-4 px-6 text-gray-600">{bill.billDate}</td>
-                  <td className="py-4 px-6 text-gray-600">{bill.dueDate}</td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{bill.vendor}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{bill.billDate}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{bill.dueDate}</td>
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <span className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getStatusColor(bill.status)}`}>
                       {bill.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right font-semibold text-gray-900">{bill.amount}</td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">{bill.amount}</td>
+                  <td className="py-4 px-6 text-center whitespace-nowrap">
                     {userRole === 'manager' && originalBill.approvalStatus === 'pending' ? (
                       <div className="flex items-center justify-center gap-2">
                         <button
@@ -471,7 +471,7 @@ const Bills = () => {
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleViewBill(originalBill)}

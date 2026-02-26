@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, IndianRupee, Receipt, AlertCircle, BookOpen } from 'lucide-react';
 
 const BankReconciliation = () => {
   const [collections, setCollections] = useState([]);
@@ -298,32 +298,60 @@ const BankReconciliation = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
             <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Bank Total</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <IndianRupee className="w-4 h-4" strokeWidth={2} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Bank Total</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
             <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Books Total</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <BookOpen className="w-4 h-4" strokeWidth={2} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Books Total</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
             <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">TDS Total</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Receipt className="w-4 h-4" strokeWidth={2} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">TDS Total</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
             <div className="ml-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Difference</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{Math.abs(filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0) - filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0) + filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <AlertCircle className="w-4 h-4" strokeWidth={2} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Difference</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{Math.abs(filteredTransactions.reduce((s, t) => s + (t.bankAmount || 0), 0) - filteredTransactions.reduce((s, t) => s + (t.bookAmount || 0), 0) + filteredTransactions.reduce((s, t) => s + (t.tdsAmount || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -349,11 +377,11 @@ const BankReconciliation = () => {
               <tbody className="divide-y divide-gray-100">
                 {filteredTransactions.map((t, i) => (
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3.5 px-4 text-sm text-gray-900 font-medium">{t.date}</td>
-                    <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{(t.bankAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{(t.bookAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="py-3.5 px-4 text-sm text-gray-900">{t.partyName}</td>
-                    <td className="py-3.5 px-4 text-sm w-32">
+                    <td className="py-3.5 px-4 text-sm text-gray-900 font-medium whitespace-nowrap">{t.date}</td>
+                    <td className="py-3.5 px-4 text-sm font-semibold text-gray-900 whitespace-nowrap">₹{(t.bankAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-3.5 px-4 text-sm font-semibold text-gray-900 whitespace-nowrap">₹{(t.bookAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-3.5 px-4 text-sm text-gray-900 whitespace-nowrap">{t.partyName}</td>
+                    <td className="py-3.5 px-4 text-sm w-32 whitespace-nowrap">
                       {editingNarration === i ? (
                         <select value={t.selectedNarration || ''} onChange={(e) => handleNarrationChange(i, e.target.value)} onBlur={() => setEditingNarration(null)} autoFocus className="w-full px-2 py-1.5 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white shadow-sm">
                           <option value="">Select...</option>
@@ -363,14 +391,14 @@ const BankReconciliation = () => {
                         <span onClick={() => setEditingNarration(i)} className="cursor-pointer text-gray-900 hover:text-blue-600 font-medium">{t.selectedNarration || 'Select'}</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-sm w-48">
+                    <td className="py-3.5 px-4 text-sm w-48 whitespace-nowrap">
                       {editingRemarks === i ? (
                         <input type="text" value={t.remarks} onChange={(e) => handleRemarksChange(i, e.target.value)} onBlur={() => setEditingRemarks(null)} autoFocus className="w-full px-0 py-1 text-sm border-0 focus:outline-none bg-transparent" />
                       ) : (
                         <span onClick={() => setEditingRemarks(i)} className="cursor-pointer text-gray-600 hover:text-gray-900 block truncate">{t.remarks || 'Add remarks'}</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       {editingStatus === i ? (
                         <select value={t.status} onChange={(e) => handleStatusChange(i, e.target.value)} onBlur={() => setEditingStatus(null)} autoFocus className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white shadow-sm">
                           <option value="matched">Matched</option>

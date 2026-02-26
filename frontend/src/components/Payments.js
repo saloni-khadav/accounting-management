@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, DollarSign, Eye, Save, User, FileText, Banknote } from 'lucide-react';
+import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, IndianRupee, Eye, Save, User, FileText, Banknote } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const Payments = () => {
@@ -567,7 +567,7 @@ const Payments = () => {
           <MetricsCard
             title="Pending Payments"
             value={`₹${stats.pending.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="primary"
           />
         </div>
@@ -614,20 +614,20 @@ const Payments = () => {
               ) : (
                 paymentsData.map((payment, index) => (
                 <tr key={payment.paymentNo} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <span className="text-blue-600 font-medium">{payment.paymentNo}</span>
                   </td>
-                  <td className="py-4 px-6 text-gray-600">{new Date(payment.originalPayment.paymentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                  <td className="py-4 px-6 text-gray-900 font-medium">{payment.vendor}</td>
-                  <td className="py-4 px-6 text-gray-600">{payment.invoiceNumber}</td>
-                  <td className="py-4 px-6 text-gray-600">{payment.referenceNumber}</td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{new Date(payment.originalPayment.paymentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                  <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{payment.vendor}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{payment.invoiceNumber}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{payment.referenceNumber}</td>
+                  <td className="py-4 px-6 text-center whitespace-nowrap">
                     <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${getPaymentStatusColor(payment.status)}`}>
                       {payment.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right font-semibold text-gray-900">{payment.amount}</td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">{payment.amount}</td>
+                  <td className="py-4 px-6 text-center whitespace-nowrap">
                     {userRole === 'manager' && payment.originalPayment.approvalStatus === 'pending' ? (
                       <div className="flex items-center justify-center gap-2">
                         <button

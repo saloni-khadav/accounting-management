@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Download, Search, BarChart3, DollarSign, CheckCircle, AlertTriangle, Calculator, FileText } from 'lucide-react';
+import { RefreshCw, Download, Search, BarChart3, IndianRupee, CheckCircle, AlertTriangle, Calculator, FileText } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const APReconciliation = () => {
@@ -175,7 +175,7 @@ const APReconciliation = () => {
           <MetricsCard
             title="Total Payable"
             value={`₹${totalPayable.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="primary"
           />
         </div>
@@ -331,12 +331,12 @@ const APReconciliation = () => {
                   
                   return (
                     <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <td className="py-4 px-6 text-gray-600">{new Date(row.sortDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{new Date(row.sortDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                      <td className="py-4 px-6 whitespace-nowrap">
                         <span className={`font-medium ${row.type === 'Payment' ? 'text-green-600' : 'text-blue-600'}`}>{row.invoiceNo}</span>
                       </td>
-                      <td className="py-4 px-6 text-gray-900 font-medium">{row.vendor}</td>
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{row.vendor}</td>
+                      <td className="py-4 px-6 whitespace-nowrap">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
                           row.type === 'Payment' ? 'bg-green-100 text-green-800' :
                           row.type === 'Credit Note' ? 'bg-blue-100 text-blue-800' :
@@ -346,13 +346,13 @@ const APReconciliation = () => {
                           {row.type}
                         </span>
                       </td>
-                      <td className={`py-4 px-6 text-right font-semibold ${
+                      <td className={`py-4 px-6 text-right font-semibold whitespace-nowrap ${
                         row.type === 'Payment' ? 'text-green-600' :
                         row.type === 'Credit Note' ? 'text-blue-600' :
                         row.type === 'Debit Note' ? 'text-orange-600' :
                         'text-gray-900'
                       }`}>{row.amount}</td>
-                      <td className="py-4 px-6 text-center">
+                      <td className="py-4 px-6 text-center whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(row.status, row.type)}`}>
                           {row.status}
                         </span>

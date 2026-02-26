@@ -412,9 +412,9 @@ const InvoiceManagement = ({ setActivePage }) => {
               ) : (
                 filteredInvoices.map((invoice, index) => (
                   <tr key={invoice._id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="py-4 px-6 text-blue-600 font-medium">{invoice.invoiceNumber}</td>
+                    <td className="py-4 px-6 text-blue-600 font-medium whitespace-nowrap">{invoice.invoiceNumber}</td>
                     <td className="py-4 px-6 text-gray-600">{new Date(invoice.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{invoice.customerName}</td>
+                    <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{invoice.customerName}</td>
                     <td className="py-4 px-6 text-gray-600">{invoice.referenceNumber || '-'}</td>
                     <td className="py-4 px-6 text-right font-semibold text-gray-900">₹{invoice.grandTotal.toLocaleString('en-IN')}</td>
                     <td className="py-4 px-6 text-center">
@@ -427,7 +427,7 @@ const InvoiceManagement = ({ setActivePage }) => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(calculateInvoiceStatus(invoice))}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(calculateInvoiceStatus(invoice))}`}>
                         {calculateInvoiceStatus(invoice)}
                       </span>
                     </td>

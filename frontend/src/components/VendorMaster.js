@@ -204,18 +204,18 @@ const VendorMaster = () => {
                 ) : (
                   filteredVendors.map((vendor) => (
                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{vendor.vendorName || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.vendorCode || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.contactPerson || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.email || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{vendor.vendorName || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.vendorCode || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.contactPerson || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.email || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           vendor.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {vendor.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <div className="flex gap-2">
                           <button 
                             onClick={() => handleEditVendor(vendor)}

@@ -531,26 +531,30 @@ const Approvals = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Manager Approvals</h1>
-            <p className="text-gray-600">Review and approve pending requests</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">Manager Approvals</h1>
+                <p className="text-white text-sm sm:text-base">Review and approve pending requests</p>
+              </div>
+              <button
+                onClick={() => {
+                  fetchPendingApprovals();
+                }}
+                className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              fetchPendingApprovals();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Refresh
-          </button>
         </div>
-      </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
+      <div className="mb-6 sm:mb-8 lg:mb-10">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
@@ -558,15 +562,15 @@ const Approvals = () => {
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
-          <p className="text-sm text-gray-600 mt-1">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+          <h2 className="text-base sm:text-lg font-semibold text-white">Pending Approvals</h2>
+          <p className="text-sm text-white/90 mt-1">
             {[...pendingApprovals, ...pendingPayments].filter(item => item.status === 'pending').length} items awaiting your approval
           </p>
         </div>
@@ -670,6 +674,7 @@ const Approvals = () => {
             <p className="text-gray-600">All requests have been processed.</p>
           </div>
         )}
+      </div>
       </div>
 
       {/* Rejection Modal */}
