@@ -271,6 +271,7 @@ const PurchaseOrders = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       // Filter out empty items (items without name or with zero quantity/rate)
       const validItems = items.filter(item => 
