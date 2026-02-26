@@ -1080,93 +1080,86 @@ const CreatePO = () => {
                     </td>
                     <td className="px-3 py-2 w-24">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.quantity}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].quantity = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          newItems[idx].quantity = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-20"
                         placeholder="Qty"
-                        min="0"
                       />
                     </td>
                     <td className="px-3 py-2 w-28">
                       <input 
-                        type="number" 
-                        value={item.rate}
+                        type="text" 
+                        value={item.rate ? item.rate.toLocaleString('en-IN') : ''}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].rate = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/,/g, '');
+                          newItems[idx].rate = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-24"
                         placeholder="Rate"
-                        min="0"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.discount}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].discount = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          newItems[idx].discount = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="0"
-                        min="0"
-                        max="100"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.cgstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].cgstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].cgstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="9"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.sgstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].sgstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].sgstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="9"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.igstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].igstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].igstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="0"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2 text-sm font-medium">

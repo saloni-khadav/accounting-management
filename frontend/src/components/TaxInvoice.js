@@ -135,6 +135,34 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
   });
 
   useEffect(() => {
+    const fetchInvoiceNumber = async () => {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      try {
+        const token = localStorage.getItem('token');
+        const [settingsRes, invoicesRes] = await Promise.all([
+          fetch(`${baseUrl}/api/settings`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${baseUrl}/api/invoices`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        
+        if (settingsRes.ok && invoicesRes.ok) {
+          const settings = await settingsRes.json();
+          const invoices = await invoicesRes.json();
+          const prefix = settings.invoicePrefix || 'INV';
+          
+          const existingNumbers = invoices
+            .map(inv => inv.invoiceNumber)
+            .filter(num => num && num.startsWith(prefix + '-'))
+            .map(num => parseInt(num.replace(prefix + '-', '')) || 0);
+          
+          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+          return `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+        }
+      } catch (error) {
+        console.error('Error fetching invoice number:', error);
+      }
+      return generateInvoiceNumber();
+    };
+
     if (editingInvoice) {
       // Pre-fill form with editing invoice data
       setInvoiceData({
@@ -168,65 +196,67 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       setSelectedClient({ clientName: editingInvoice.customerName });
     } else {
       // Reset to default for new invoice
-      setInvoiceData({
-        invoiceNumber: generateInvoiceNumber(),
-        invoiceDate: new Date().toISOString().split('T')[0],
-        invoiceSeries: 'INV',
-        referenceNumber: '',
-        placeOfSupply: '',
-        
-        supplierName: '',
-        supplierAddress: '',
-        supplierGSTIN: '',
-        supplierPAN: '',
-        supplierEmail: '',
-        supplierPhone: '',
-        supplierWebsite: '',
-        
-        customerName: '',
-        customerAddress: '',
-        customerGSTIN: '',
-        customerPlace: '',
-        contactPerson: '',
-        contactDetails: '',
-        
-        paymentTerms: '30 Days',
-        dueDate: '',
-        
-        items: [{
-          product: '',
-          description: '',
-          hsnCode: '',
-          quantity: 1,
-          unitPrice: 0,
-          discount: 0,
-          taxableValue: 0,
-          cgstRate: 9,
-          sgstRate: 9,
-          igstRate: 0,
-          cessRate: 0,
-          cgstAmount: 0,
-          sgstAmount: 0,
-          igstAmount: 0,
-          cessAmount: 0,
-          totalAmount: 0
-        }],
-        
-        subtotal: 0,
-        totalDiscount: 0,
-        totalTaxableValue: 0,
-        totalCGST: 0,
-        totalSGST: 0,
-        totalIGST: 0,
-        totalCESS: 0,
-        totalTax: 0,
-        grandTotal: 0,
-        
-        notes: '',
-        termsConditions: 'This is a tax invoice as per GST compliance requirements.',
-        currency: 'INR',
-        eInvoiceIRN: '',
-        qrCode: ''
+      fetchInvoiceNumber().then(invoiceNumber => {
+        setInvoiceData({
+          invoiceNumber,
+          invoiceDate: new Date().toISOString().split('T')[0],
+          invoiceSeries: 'INV',
+          referenceNumber: '',
+          placeOfSupply: '',
+          
+          supplierName: '',
+          supplierAddress: '',
+          supplierGSTIN: '',
+          supplierPAN: '',
+          supplierEmail: '',
+          supplierPhone: '',
+          supplierWebsite: '',
+          
+          customerName: '',
+          customerAddress: '',
+          customerGSTIN: '',
+          customerPlace: '',
+          contactPerson: '',
+          contactDetails: '',
+          
+          paymentTerms: '30 Days',
+          dueDate: '',
+          
+          items: [{
+            product: '',
+            description: '',
+            hsnCode: '',
+            quantity: 1,
+            unitPrice: 0,
+            discount: 0,
+            taxableValue: 0,
+            cgstRate: 9,
+            sgstRate: 9,
+            igstRate: 0,
+            cessRate: 0,
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 0,
+            cessAmount: 0,
+            totalAmount: 0
+          }],
+          
+          subtotal: 0,
+          totalDiscount: 0,
+          totalTaxableValue: 0,
+          totalCGST: 0,
+          totalSGST: 0,
+          totalIGST: 0,
+          totalCESS: 0,
+          totalTax: 0,
+          grandTotal: 0,
+          
+          notes: '',
+          termsConditions: 'This is a tax invoice as per GST compliance requirements.',
+          currency: 'INR',
+          eInvoiceIRN: '',
+          qrCode: ''
+        });
       });
       setAttachments([]);
       setClientSearchTerm('');
@@ -1322,66 +1352,69 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'quantity', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
-                      value={item.unitPrice}
-                      onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                      type="text"
+                      value={item.unitPrice && item.unitPrice > 0 ? parseInt(item.unitPrice).toLocaleString('en-IN') : item.unitPrice}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '');
+                        handleItemChange(index, 'unitPrice', parseInt(value) || 0);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.discount}
-                      onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'discount', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      step="0.01"
                     />
                   </td>
-                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.cgstRate}
-                      onChange={(e) => handleItemChange(index, 'cgstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'cgstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.sgstRate}
-                      onChange={(e) => handleItemChange(index, 'sgstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'sgstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.igstRate}
-                      onChange={(e) => handleItemChange(index, 'igstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'igstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
