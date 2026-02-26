@@ -384,10 +384,10 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><span className="font-medium">Name:</span> {currentUserProfile?.supplierName || 'N/A'}</div>
-                    <div><span className="font-medium">GSTIN:</span> {currentUserProfile?.supplierGSTIN || 'N/A'}</div>
-                    <div><span className="font-medium">PAN:</span> {currentUserProfile?.supplierPAN || 'N/A'}</div>
-                    <div className="md:col-span-2"><span className="font-medium">Address:</span> {currentUserProfile?.supplierAddress || 'N/A'}</div>
+                    <div><span className="font-medium">Name:</span> {viewingCreditNote.supplierName || 'N/A'}</div>
+                    <div><span className="font-medium">GSTIN:</span> {viewingCreditNote.supplierGSTIN || 'N/A'}</div>
+                    <div><span className="font-medium">PAN:</span> {viewingCreditNote.supplierPAN || 'N/A'}</div>
+                    <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewingCreditNote.supplierAddress || 'N/A'}</div>
                   </div>
                 </div>
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg">

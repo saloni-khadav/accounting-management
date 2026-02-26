@@ -218,4 +218,48 @@ creditNoteSchema.post('save', async function(doc) {
   }
 });
 
+// Post-remove hook to update invoice status when credit note is deleted
+creditNoteSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.approvalStatus === 'Approved' && doc.originalInvoiceNumber) {
+    try {
+      const Invoice = require('./Invoice');
+      const Collection = require('./Collection');
+      
+      const invoice = await Invoice.findOne({ invoiceNumber: doc.originalInvoiceNumber });
+      if (!invoice) return;
+
+      const collections = await Collection.find({ 
+        invoiceNumber: { $regex: doc.originalInvoiceNumber },
+        approvalStatus: 'Approved'
+      });
+      
+      const creditNotes = await mongoose.model('CreditNote').find({ 
+        originalInvoiceNumber: doc.originalInvoiceNumber,
+        approvalStatus: 'Approved',
+        _id: { $ne: doc._id } // Exclude the deleted one
+      });
+
+      const totalCollected = collections.reduce((sum, col) => sum + (parseFloat(col.netAmount) || 0), 0);
+      const totalCredited = creditNotes.reduce((sum, cn) => sum + (parseFloat(cn.grandTotal) || 0), 0);
+      const totalReceived = totalCollected + totalCredited;
+
+      const grandTotal = invoice.grandTotal || 0;
+      let newStatus = 'Not Received';
+      
+      if (totalReceived >= grandTotal) {
+        newStatus = 'Fully Received';
+      } else if (totalReceived > 0) {
+        newStatus = 'Partially Received';
+      }
+
+      if (invoice.status !== newStatus) {
+        invoice.status = newStatus;
+        await invoice.save();
+      }
+    } catch (error) {
+      console.error('Error updating invoice status after credit note deletion:', error);
+    }
+  }
+});
+
 module.exports = mongoose.model('CreditNote', creditNoteSchema);

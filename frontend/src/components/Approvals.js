@@ -332,13 +332,47 @@ const Approvals = () => {
       } else {
         console.error(`Failed to fetch ${type} details:`, response.status);
         if (response.status === 404) {
-          alert(`This ${type} has been deleted from the system but the approval record still exists. Please contact your administrator to clean up stale approval records.`);
+          const confirmDelete = window.confirm(
+            `This ${type} has been deleted from the system but the approval record still exists.\n\n` +
+            `Would you like to remove this stale approval record?\n\n` +
+            `Click OK to reject and remove, or Cancel to keep it.`
+          );
+          
+          if (confirmDelete) {
+            // Automatically reject the approval to clean it up
+            try {
+              const rejectResponse = await fetch(`${baseUrl}/api/manager/action`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                  itemId: id, 
+                  action: 'reject', 
+                  type: type,
+                  rejectionReason: 'Record deleted - cleaning up stale approval'
+                })
+              });
+              
+              if (rejectResponse.ok) {
+                alert('Stale approval record has been removed.');
+                fetchPendingApprovals(); // Refresh the list
+              } else {
+                alert('Unable to remove the approval record. Please contact your administrator.');
+              }
+            } catch (err) {
+              console.error('Error removing stale approval:', err);
+              alert('Error removing the approval record. Please contact your administrator.');
+            }
+          }
         } else {
           alert(`Unable to load ${type} details. Error: ${response.status}`);
         }
       }
     } catch (error) {
       console.error('Error fetching details:', error);
+      alert('Network error while fetching details. Please try again.');
     }
   };
 
