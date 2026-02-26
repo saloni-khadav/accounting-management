@@ -171,27 +171,27 @@ const PurchaseOrderManagement = ({ setActivePage }) => {
             ) : (
               filteredPOs.map((po) => (
                 <tr key={po._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
+                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium whitespace-nowrap">
                     {po.poNumber}
                   </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
+                  <td className="px-4 py-3 border-b text-sm text-gray-700 whitespace-nowrap">
                     {po.vendor}
                   </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
+                  <td className="px-4 py-3 border-b text-sm text-gray-700 whitespace-nowrap">
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700">
+                  <td className="px-4 py-3 border-b text-sm text-gray-700 whitespace-nowrap">
                     {new Date(po.deliveryDate).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium">
+                  <td className="px-4 py-3 border-b text-sm text-gray-700 font-medium whitespace-nowrap">
                     ₹{po.amount.toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 border-b text-sm">
+                  <td className="px-4 py-3 border-b text-sm whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(po.status)}`}>
                       {po.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 border-b text-sm">
+                  <td className="px-4 py-3 border-b text-sm whitespace-nowrap">
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleEditPO(po)}

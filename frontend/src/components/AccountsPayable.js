@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { X, DollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { X, IndianRupee, AlertTriangle, Clock } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const AccountsPayable = () => {
@@ -260,7 +260,7 @@ const AccountsPayable = () => {
     {
       title: 'Total Payable',
       value: `₹${totalPayable.toLocaleString('en-IN')}`,
-      icon: DollarSign,
+      icon: IndianRupee,
       color: 'primary'
     },
     {

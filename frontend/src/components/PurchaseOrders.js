@@ -581,12 +581,12 @@ const PurchaseOrders = () => {
                 ) : (
                   ordersData.map((order, index) => (
                     <tr key={order._id || index} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-5 px-6">
+                      <td className="py-5 px-6 whitespace-nowrap">
                         <span className="text-blue-600 font-medium">{order.poNumber}</span>
                       </td>
-                      <td className="py-5 px-6 text-gray-900 font-medium">{order.supplier}</td>
-                      <td className="py-5 px-6 text-gray-700">{new Date(order.poDate).toLocaleDateString()}</td>
-                      <td className="py-5 px-6">
+                      <td className="py-5 px-6 text-gray-900 font-medium whitespace-nowrap">{order.supplier}</td>
+                      <td className="py-5 px-6 text-gray-700 whitespace-nowrap">{new Date(order.poDate).toLocaleDateString()}</td>
+                      <td className="py-5 px-6 whitespace-nowrap">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(order.status, order.approvalStatus)}`}>
                           {order.approvalStatus === 'pending' ? 'Pending Approval' : 
                            order.approvalStatus === 'approved' ? 'Approved' :
@@ -594,8 +594,8 @@ const PurchaseOrders = () => {
                            order.status || 'Draft'}
                         </span>
                       </td>
-                      <td className="py-5 px-6 text-right font-semibold text-gray-900">₹{order.totalAmount?.toLocaleString() || '0'}</td>
-                      <td className="py-5 px-6">
+                      <td className="py-5 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">₹{order.totalAmount?.toLocaleString() || '0'}</td>
+                      <td className="py-5 px-6 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleView(order)}

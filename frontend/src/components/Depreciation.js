@@ -275,55 +275,59 @@ const Depreciation = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Monthly Depreciation</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.monthlyTotal.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Current month</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <TrendingDown className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <TrendingDown size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monthly Depreciation</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{depreciationData.monthlyTotal.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">YTD Depreciation</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.ytdTotal.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Year to date</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Calendar className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <Calendar size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">YTD Depreciation</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{depreciationData.ytdTotal.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Accumulated</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.accumulatedTotal.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Total accumulated</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Calculator className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <Calculator size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Accumulated</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{depreciationData.accumulatedTotal.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Net Book Value</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{depreciationData.netBookValue.toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Current value</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <TrendingDown className="w-4 h-4" strokeWidth={2} style={{ transform: 'rotate(180deg)' }} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <TrendingDown size={20} className="sm:w-6 sm:h-6" strokeWidth={2} style={{ transform: 'rotate(180deg)' }} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Net Book Value</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹{depreciationData.netBookValue.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
@@ -391,12 +395,12 @@ const Depreciation = () => {
               <tbody className="divide-y divide-gray-100">
                 {displaySchedule.map((item, index) => (
                   <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm">{item.year}</td>
-                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">₹{item.opening.toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-red-600 font-semibold text-sm">₹{item.depreciation.toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm">₹{item.accumulated.toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-green-600 font-semibold text-sm">₹{item.closing.toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">{item.rate}%</td>
+                    <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm whitespace-nowrap">{item.year}</td>
+                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm whitespace-nowrap">₹{item.opening.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-red-600 font-semibold text-sm whitespace-nowrap">₹{item.depreciation.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm whitespace-nowrap">₹{item.accumulated.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-green-600 font-semibold text-sm whitespace-nowrap">₹{item.closing.toLocaleString()}</td>
+                    <td className="py-3.5 px-4 text-gray-700 font-medium text-sm whitespace-nowrap">{item.rate}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -441,18 +445,18 @@ const Depreciation = () => {
                     
                     return (
                       <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm">{asset.assetName}</td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 font-semibold text-gray-900 text-sm whitespace-nowrap">{asset.assetName}</td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                             {asset.assetCode}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-gray-900 font-semibold text-sm">₹{asset.purchaseValue.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-gray-700 capitalize text-sm">{asset.depreciationMethod?.replace('-', ' ') || 'straight line'}</td>
-                        <td className="py-3.5 px-4 text-gray-700 font-medium text-sm">{asset.usefulLife ? `${asset.usefulLife} years` : '5 years'}</td>
-                        <td className="py-3.5 px-4 text-red-600 font-semibold text-sm">₹{monthlyDep.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm">₹{accumulated.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-green-600 font-semibold text-sm">₹{netValue.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-gray-900 font-semibold text-sm whitespace-nowrap">₹{asset.purchaseValue.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-gray-700 capitalize text-sm whitespace-nowrap">{asset.depreciationMethod?.replace('-', ' ') || 'straight line'}</td>
+                        <td className="py-3.5 px-4 text-gray-700 font-medium text-sm whitespace-nowrap">{asset.usefulLife ? `${asset.usefulLife} years` : '5 years'}</td>
+                        <td className="py-3.5 px-4 text-red-600 font-semibold text-sm whitespace-nowrap">₹{monthlyDep.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-orange-600 font-semibold text-sm whitespace-nowrap">₹{accumulated.toLocaleString()}</td>
+                        <td className="py-3.5 px-4 text-green-600 font-semibold text-sm whitespace-nowrap">₹{netValue.toLocaleString()}</td>
                       </tr>
                     );
                   })}

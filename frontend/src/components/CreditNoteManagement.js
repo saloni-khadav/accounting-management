@@ -281,24 +281,24 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 ) : (
                   filteredCreditNotes.map((creditNote) => (
                     <tr key={creditNote._id} className="border-b last:border-b-0 hover:bg-gray-50">
-                      <td className="p-4 text-sm text-gray-700 font-medium">
+                      <td className="p-4 text-sm text-gray-700 font-medium whitespace-nowrap">
                         {creditNote.creditNoteNumber}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {new Date(creditNote.creditNoteDate).toLocaleDateString()}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {creditNote.customerName}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {creditNote.originalInvoiceNumber || '-'}
                       </td>
-                      <td className="p-4 text-sm text-gray-700 font-medium">
+                      <td className="p-4 text-sm text-gray-700 font-medium whitespace-nowrap">
                         ₹{creditNote.grandTotal?.toLocaleString() || '0'}
                       </td>
                       <td className="p-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(creditNote.approvalStatus || 'Pending')}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getApprovalColor(creditNote.approvalStatus || 'Pending')}`}>
                             {creditNote.approvalStatus || 'Pending'}
                           </span>
                           {userRole === 'manager' && creditNote.approvalStatus === 'Pending' && (

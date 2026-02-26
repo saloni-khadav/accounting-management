@@ -414,12 +414,12 @@ const ClientMaster = () => {
               ) : (
                 filteredClients.map((client, index) => (
                   <tr key={client._id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{client.clientName || 'N/A'}</td>
-                    <td className="py-4 px-6 text-blue-600 font-medium">{client.clientCode || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-600">{client.contactPerson || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-600">{client.email || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{client.clientName || 'N/A'}</td>
+                    <td className="py-4 px-6 text-blue-600 font-medium whitespace-nowrap">{client.clientCode || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{client.contactPerson || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{client.email || 'N/A'}</td>
                     <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                         client.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {client.status || 'Unknown'}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import { X, CheckCircle, Clock, IndianRupee } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const CollectionRegister = () => {
@@ -413,7 +413,7 @@ const CollectionRegister = () => {
           <MetricsCard
             title="Collected This Month"
             value={`₹${stats.monthlyAmount.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="success"
           />
         </div>
@@ -757,25 +757,25 @@ const CollectionRegister = () => {
             <tbody>
               {collections.map((collection) => (
                 <tr key={collection._id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                  <td className="py-4 px-6 text-gray-900 font-medium">{collection.collectionNumber || '-'}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatDate(collection.collectionDate)}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.customer}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.invoiceNumber}</td>
-                  <td className="py-4 px-6 text-gray-900">₹{collection.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-4 px-6 text-gray-900">
+                  <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{collection.collectionNumber || '-'}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{formatDate(collection.collectionDate)}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.customer}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.invoiceNumber}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">₹{collection.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">
                     {collection.tdsAmount && parseFloat(collection.tdsAmount) > 0 ? 
                       `₹${parseFloat(collection.tdsAmount).toLocaleString('en-IN')}` : '-'}
                   </td>
-                  <td className="py-4 px-6 text-gray-900 font-semibold">
+                  <td className="py-4 px-6 text-gray-900 font-semibold whitespace-nowrap">
                     {collection.netAmount && parseFloat(collection.netAmount) > 0 ? 
                       `₹${parseFloat(collection.netAmount).toLocaleString('en-IN')}` : 
                       `₹${collection.amount.toLocaleString('en-IN')}`}
                   </td>
-                  <td className="py-4 px-6 text-gray-900">{collection.paymentMode}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.referenceNumber || '-'}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.paymentMode}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.referenceNumber || '-'}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(collection.approvalStatus || 'Pending')}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getApprovalColor(collection.approvalStatus || 'Pending')}`}>
                         {collection.approvalStatus || 'Pending'}
                       </span>
                       {userRole === 'manager' && collection.approvalStatus === 'Pending' && (

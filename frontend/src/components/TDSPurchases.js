@@ -293,7 +293,7 @@ const TDSPurchases = () => {
               <tbody>
                 {transactionsData.map((transaction, index) => (
                   <tr key={transaction._id || index} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6 whitespace-nowrap">
                       <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
                         transaction.source === 'Payment' 
                           ? 'bg-blue-100 text-blue-800' 
@@ -306,16 +306,16 @@ const TDSPurchases = () => {
                         {transaction.source}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{transaction.vendorName}</td>
-                    <td className="py-4 px-6 text-blue-600 font-medium">{transaction.invoiceNo}</td>
-                    <td className="py-4 px-6 text-gray-600">{new Date(transaction.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                    <td className="py-4 px-6 text-gray-600 font-mono text-sm">{transaction.panNo}</td>
-                    <td className="py-4 px-6 text-gray-600">{transaction.tdsSection}</td>
-                    <td className="py-4 px-6 text-right font-semibold text-gray-900">₹{transaction.taxableValue.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-6 text-right font-semibold text-gray-900">₹{transaction.tdsAmount.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-6 text-right text-gray-600">{transaction.interest > 0 ? `₹${transaction.interest.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="py-4 px-6 text-right font-semibold text-gray-900">₹{transaction.totalTdsPayable.toLocaleString('en-IN')}</td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{transaction.vendorName}</td>
+                    <td className="py-4 px-6 text-blue-600 font-medium whitespace-nowrap">{transaction.invoiceNo}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{new Date(transaction.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                    <td className="py-4 px-6 text-gray-600 font-mono text-sm whitespace-nowrap">{transaction.panNo}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{transaction.tdsSection}</td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">₹{transaction.taxableValue.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">₹{transaction.tdsAmount.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-6 text-right text-gray-600 whitespace-nowrap">{transaction.interest > 0 ? `₹${transaction.interest.toLocaleString('en-IN')}` : '—'}</td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">₹{transaction.totalTdsPayable.toLocaleString('en-IN')}</td>
+                    <td className="py-4 px-6 text-center whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         transaction.status === 'Paid' 
                           ? 'bg-green-100 text-green-800' 
@@ -324,8 +324,8 @@ const TDSPurchases = () => {
                         {transaction.status}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-gray-600">{transaction.chalanNo || '—'}</td>
-                    <td className="py-4 px-6 text-gray-600">{transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{transaction.chalanNo || '—'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{transaction.chalanDate ? new Date(transaction.chalanDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

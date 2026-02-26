@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, DollarSign, Upload, Paperclip, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Download, Building, Car, Monitor, Wrench, X, Save, IndianRupee, Upload, Paperclip, CheckCircle, AlertCircle } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 
 const AssetsEntry = () => {
@@ -650,51 +650,59 @@ const AssetsEntry = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Assets</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{filteredAssets.length}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Building className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <Building size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Total Assets</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">{filteredAssets.length}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Value</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{(totalValue/100000).toFixed(1)}L</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <IndianRupee className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <DollarSign size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Total Value</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">₹{totalValue.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Active Assets</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{filteredAssets.filter(a => a.status === 'Active').length}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <CheckCircle className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <CheckCircle size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Active Assets</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">{filteredAssets.filter(a => a.status === 'Active').length}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Categories</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Monitor className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <Monitor size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categories</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">{[...new Set(filteredAssets.map(a => a.category))].length}</p>
               </div>
             </div>
           </div>
@@ -789,38 +797,38 @@ const AssetsEntry = () => {
                   </tr>
                 ) : filteredAssets.map((asset) => (
                   <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900 text-sm">{asset.assetName}</div>
                         <div className="text-xs text-gray-500">{asset.assetCode}</div>
                         <div className="text-xs text-gray-500">S/N: {asset.serialNumber || 'N/A'}</div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getCategoryIcon(asset.category)}
                         <span className="ml-2 text-sm text-gray-900">{asset.category}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-semibold text-gray-900">₹{asset.purchaseValue.toLocaleString()}</div>
                         <div className="text-xs text-gray-500">{new Date(asset.purchaseDate).toLocaleDateString()}</div>
                         <div className="text-xs text-gray-500">Warranty: {asset.warrantyPeriod || 0}M</div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{asset.vendor || 'N/A'}</div>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{asset.location || 'N/A'}</div>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(asset.status)}`}>
                         {asset.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex space-x-2 justify-center">
                         <button 
                           onClick={() => setViewingAsset(asset)}
