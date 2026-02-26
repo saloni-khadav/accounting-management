@@ -85,16 +85,13 @@ const CollectionRegister = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${baseUrl}/api/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        if (data.profile && data.profile.bankAccounts) {
-          setBankAccounts(data.profile.bankAccounts);
-        }
+        const userData = await response.json();
+        const accounts = userData.user?.profile?.bankAccounts || [];
+        setBankAccounts(accounts.filter(acc => acc.bankName && acc.accountNumber));
       }
     } catch (error) {
       console.error('Error fetching bank accounts:', error);
@@ -692,7 +689,11 @@ const CollectionRegister = () => {
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
                             <div className="font-medium text-gray-900">{bank.bankName}</div>
-                            <div className="text-sm text-gray-500">{bank.accountNumber} | {bank.ifscCode}</div>
+                            <div className="text-sm text-gray-500">
+                              {bank.ifscCode && `${bank.ifscCode} | `}
+                              {bank.accountNumber && `****${bank.accountNumber.slice(-4)}`}
+                              {bank.branchName && ` | ${bank.branchName}`}
+                            </div>
                           </div>
                         ))}
                       </div>
