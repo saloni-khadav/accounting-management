@@ -16,13 +16,13 @@ const settingsSchema = new mongoose.Schema({
   
   // Invoice Settings
   invoicePrefix: { type: String, default: 'INV' },
-  invoiceStartNumber: { type: Number, default: 1 },
+  invoiceStartNumber: { type: String, default: '1' },
   autoGenerateInvoice: { type: Boolean, default: true },
   invoiceTemplate: { type: String, default: 'Standard' },
   
   // Credit Note Settings
   creditNotePrefix: { type: String, default: 'CN' },
-  creditNoteStartNumber: { type: Number, default: 1 },
+  creditNoteStartNumber: { type: String, default: '1' },
   autoGenerateCreditNote: { type: Boolean, default: true },
   creditNoteTemplate: { type: String, default: 'Standard' },
   

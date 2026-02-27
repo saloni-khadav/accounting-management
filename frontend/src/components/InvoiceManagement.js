@@ -246,7 +246,7 @@ const InvoiceManagement = ({ setActivePage }) => {
       (invoice.referenceNumber && invoice.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const calculatedStatus = calculateInvoiceStatus(invoice);
-    const matchesStatus = statusFilter === '' || calculatedStatus === statusFilter;
+    const matchesStatus = !statusFilter || statusFilter === '' || calculatedStatus === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -573,13 +573,13 @@ const InvoiceManagement = ({ setActivePage }) => {
                             <td className="px-3 py-2 border">{item.product || item.description || '-'}</td>
                             <td className="px-3 py-2 border">{item.hsnCode || '-'}</td>
                             <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
-                            <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="px-3 py-2 border text-right">{(item.discount || 0).toFixed(2)}%</td>
-                            <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
-                            <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
-                            <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>
-                            <td className="px-3 py-2 border text-right">{item.igstRate || 0}% (₹{(item.igstAmount || 0).toFixed(2)})</td>
-                            <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                            <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                            <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                            <td className="px-3 py-2 border text-right">{item.igstRate || 0}% (₹{(item.igstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                            <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           </tr>
                         ))}
                       </tbody>

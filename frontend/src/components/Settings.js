@@ -105,8 +105,6 @@ const Settings = () => {
     try {
       const token = localStorage.getItem('token');
       
-      console.log('Saving settings with company name:', settings.companyName); // Debug log
-      
       // Update Settings
       const settingsResponse = await fetch(`${baseUrl}/api/settings`, {
         method: 'PUT',
@@ -127,19 +125,13 @@ const Settings = () => {
         body: JSON.stringify({ companyName: settings.companyName })
       });
       
-      console.log('Settings response:', settingsResponse.ok); // Debug log
-      console.log('User update response:', userResponse.ok); // Debug log
-      
       if (settingsResponse.ok && userResponse.ok) {
         alert('Settings saved successfully!');
-        console.log('Triggering settingsUpdated event'); // Debug log
         // Trigger header refresh
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
+        // Refresh settings from server
+        await fetchSettings();
       } else {
-        const settingsError = await settingsResponse.text();
-        const userError = await userResponse.text();
-        console.error('Settings error:', settingsError);
-        console.error('User error:', userError);
         alert('Failed to save settings');
       }
     } catch (error) {
@@ -265,10 +257,10 @@ const Settings = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
                 <input
-                  type="number"
+                  type="text"
                   value={settings.invoiceStartNumber}
                   onChange={(e) => handleInputChange('invoiceStartNumber', e.target.value)}
-                  min="1"
+                  placeholder="001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -328,10 +320,10 @@ const Settings = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
                 <input
-                  type="number"
+                  type="text"
                   value={settings.creditNoteStartNumber}
                   onChange={(e) => handleInputChange('creditNoteStartNumber', e.target.value)}
-                  min="1"
+                  placeholder="001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>

@@ -148,14 +148,23 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
           const settings = await settingsRes.json();
           const invoices = await invoicesRes.json();
           const prefix = settings.invoicePrefix || 'INV';
+          const startNumber = String(settings.invoiceStartNumber || '1');
           
+          // Extract numbers from existing invoices
           const existingNumbers = invoices
             .map(inv => inv.invoiceNumber)
-            .filter(num => num && num.startsWith(prefix + '-'))
-            .map(num => parseInt(num.replace(prefix + '-', '')) || 0);
+            .filter(num => num && num.startsWith(prefix))
+            .map(num => {
+              // Remove prefix and extract only the numeric part at the end
+              const withoutPrefix = num.substring(prefix.length);
+              const numericPart = withoutPrefix.match(/\d+$/);
+              return numericPart ? parseInt(numericPart[0]) : 0;
+            })
+            .filter(num => num > 0);
           
-          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-          return `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : parseInt(startNumber);
+          const paddedNumber = nextNumber.toString().padStart(startNumber.length, '0');
+          return `${prefix}${paddedNumber}`;
         }
       } catch (error) {
         console.error('Error fetching invoice number:', error);

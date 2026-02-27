@@ -854,12 +854,12 @@ const CreatePO = () => {
                           <td className="px-4 py-3">{item.name}</td>
                           <td className="px-4 py-3">{item.hsn}</td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className="px-4 py-3 text-right">{item.discount}%</td>
                           <td className="px-4 py-3 text-right">{item.cgstRate || 0}%</td>
                           <td className="px-4 py-3 text-right">{item.sgstRate || 0}%</td>
                           <td className="px-4 py-3 text-right">{item.igstRate || 0}%</td>
-                          <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       );
                     })}

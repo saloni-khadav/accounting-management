@@ -100,15 +100,27 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         if (settingsRes.ok && creditNotesRes.ok) {
           const settings = await settingsRes.json();
           const creditNotes = await creditNotesRes.json();
-          const prefix = settings.creditNotePrefix || 'CN';
           
+          const prefix = settings.creditNotePrefix || 'CN';
+          const startNumber = String(settings.creditNoteStartNumber || '1');
+          
+          // Extract numbers from existing credit notes
           const existingNumbers = creditNotes
             .map(cn => cn.creditNoteNumber)
-            .filter(num => num && num.startsWith(prefix + '-'))
-            .map(num => parseInt(num.replace(prefix + '-', '')) || 0);
+            .filter(num => num && num.startsWith(prefix))
+            .map(num => {
+              // Remove prefix and extract only the numeric part at the end
+              const withoutPrefix = num.substring(prefix.length);
+              const numericPart = withoutPrefix.match(/\d+$/);
+              return numericPart ? parseInt(numericPart[0]) : 0;
+            })
+            .filter(num => num > 0);
           
-          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-          return `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : parseInt(startNumber);
+          const paddedNumber = nextNumber.toString().padStart(startNumber.length, '0');
+          const finalNumber = `${prefix}${paddedNumber}`;
+          
+          return finalNumber;
         }
       } catch (error) {
         console.error('Error fetching credit note number:', error);
@@ -120,6 +132,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       setCreditNoteData({
         ...editingCreditNote,
         creditNoteDate: editingCreditNote.creditNoteDate ? new Date(editingCreditNote.creditNoteDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        originalInvoiceDate: editingCreditNote.originalInvoiceDate ? new Date(editingCreditNote.originalInvoiceDate).toISOString().split('T')[0] : '',
         items: editingCreditNote.items || [{
           product: '',
           description: '',
@@ -368,13 +381,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
           );
           
-          // Calculate total credit notes
+          // Get credit notes for this invoice
           const invoiceCreditNotes = creditNotes.filter(cn => 
             cn.originalInvoiceNumber === invoice.invoiceNumber && 
             cn.approvalStatus === 'Approved'
-          );
-          const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
-            sum + (cn.grandTotal || 0), 0
           );
           
           // Calculate TDS from collections
@@ -383,11 +393,34 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           );
           
           // Calculate remaining amount (subtract TDS)
-          const totalSettled = totalReceived + totalCreditNotes;
+          const totalSettled = totalReceived + invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
           const remainingAmount = (invoice.grandTotal || 0) - totalSettled - totalTDS;
           
+          // Calculate invoice's subtotal from items (qty × rate)
+          const invoiceSubtotal = invoice.items?.reduce((sum, item) => 
+            sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0
+          ) || 0;
+          
+          // Calculate remaining subtotal proportionally
+          const remainingSubtotal = invoiceSubtotal > 0 
+            ? (remainingAmount * invoiceSubtotal) / (invoice.grandTotal || 1)
+            : 0;
+          
+          // Calculate remaining rate per item
+          const itemsWithRemaining = invoice.items?.map(item => {
+            const itemSubtotal = (item.quantity || 0) * (item.unitPrice || 0);
+            const itemRemainingRate = invoiceSubtotal > 0 
+              ? (remainingSubtotal * itemSubtotal) / invoiceSubtotal
+              : 0;
+            return {
+              ...item,
+              remainingRate: itemRemainingRate > 0 ? itemRemainingRate : 0
+            };
+          }) || [];
+          
           return { 
-            ...invoice, 
+            ...invoice,
+            items: itemsWithRemaining,
             remainingAmount: remainingAmount > 0 ? remainingAmount : 0 
           };
         }).filter(invoice => invoice.remainingAmount > 0); // Only show invoices with remaining amount
@@ -407,25 +440,19 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
 
     console.log('Invoice items:', invoice.items);
 
-    // Calculate remaining taxable value (remove GST from remaining amount)
-    const firstItem = invoice.items && invoice.items.length > 0 ? invoice.items[0] : null;
-    const totalGSTRate = firstItem ? (firstItem.cgstRate || 0) + (firstItem.sgstRate || 0) + (firstItem.igstRate || 0) : 0;
-    const remainingTaxableValue = totalGSTRate > 0 ? remainingAmount / (1 + totalGSTRate / 100) : remainingAmount;
-
-    // Map items from invoice with remaining amount proportionally distributed
+    // Map items from invoice with remaining rates
     const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => {
       const originalQuantity = item.quantity || 1;
+      const remainingRate = item.remainingRate || 0;
+      const unitPrice = remainingRate / originalQuantity;
+      const discount = item.discount || 0;
       const cgstRate = item.cgstRate || 0;
       const sgstRate = item.sgstRate || 0;
       const igstRate = item.igstRate || 0;
       
-      // Calculate new unit price based on remaining taxable value (no discount)
-      const unitPrice = remainingTaxableValue / originalQuantity;
-      const discount = 0; // No discount on remaining amount
-      
       const grossAmount = originalQuantity * unitPrice;
-      const discountAmount = 0;
-      const itemTaxableValue = grossAmount;
+      const discountAmount = (grossAmount * discount) / 100;
+      const itemTaxableValue = grossAmount - discountAmount;
       const cgstAmount = Math.max(0, (itemTaxableValue * cgstRate) / 100);
       const sgstAmount = Math.max(0, (itemTaxableValue * sgstRate) / 100);
       const igstAmount = Math.max(0, (itemTaxableValue * igstRate) / 100);
@@ -437,6 +464,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         hsnCode: item.hsnCode || '',
         quantity: originalQuantity,
         unitPrice: unitPrice,
+        maxUnitPrice: unitPrice,
         discount: discount,
         taxableValue: itemTaxableValue,
         cgstRate: cgstRate,
@@ -522,7 +550,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       const maxUnitPrice = item.maxUnitPrice || 0;
       
       if (maxUnitPrice > 0 && newValue > maxUnitPrice) {
-        alert(`Rate cannot exceed original invoice rate of ₹${maxUnitPrice.toFixed(2)}`);
+        alert(`Rate cannot exceed remaining rate of ₹${maxUnitPrice.toFixed(2)}`);
         return;
       }
     }
@@ -851,24 +879,33 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             
             {showInvoiceDropdown && invoices.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {invoices.map((invoice) => (
-                  <div
-                    key={invoice._id}
-                    onClick={() => handleInvoiceSelect(invoice)}
-                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
-                    <div className="text-sm text-gray-500">
-                      Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
+                {invoices.map((invoice) => {
+                  return (
+                    <div
+                      key={invoice._id}
+                      onClick={() => handleInvoiceSelect(invoice)}
+                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
+                      <div className="text-sm text-gray-500">
+                        Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Total: ₹{(invoice.grandTotal || 0).toFixed(2)} | Remaining: ₹{(invoice.remainingAmount || invoice.grandTotal || 0).toFixed(2)}
+                      </div>
+                      {invoice.items && invoice.items.length > 0 && (
+                        <div className="text-xs text-green-600 mt-1">
+                          {invoice.items.map((item, idx) => 
+                            `${item.product || 'Item'} @ ₹${(item.unitPrice || 0).toFixed(2)} (Rem Rate: ₹${(item.remainingRate || 0).toFixed(2)})`
+                          ).join(', ')}
+                        </div>
+                      )}
+                      <div className="text-xs text-blue-600">
+                        Status: {invoice.status}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400">
-                      Total: ₹{(invoice.grandTotal || 0).toFixed(2)} | Remaining: ₹{(invoice.remainingAmount || invoice.grandTotal || 0).toFixed(2)}
-                    </div>
-                    <div className="text-xs text-blue-600">
-                      Status: {invoice.status}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
