@@ -36,14 +36,14 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const response = await fetch(`${baseUrl}/api/auth/me`, {
+        const response = await fetch(`${baseUrl}/api/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
           const result = await response.json();
-          if (result.user && result.user.profile && Object.keys(result.user.profile).length > 0) {
-            const profile = result.user.profile;
+          if (result.success && result.profile && Object.keys(result.profile).length > 0) {
+            const profile = result.profile;
             setProfileData(prev => ({
               ...prev,
               gstNumber: profile.gstNumber || '',
@@ -69,7 +69,7 @@ const Profile = () => {
       }
     };
     loadProfileData();
-  }, []);
+  }, [baseUrl]);
 
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
@@ -423,7 +423,7 @@ const Profile = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${baseUrl}/api/auth/profile/bank/${index}`, {
+      const response = await fetch(`${baseUrl}/api/profile/bank/${index}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -494,7 +494,7 @@ const Profile = () => {
           reader.readAsDataURL(profileData.companyLogo);
         });
       }
-      const response = await fetch(`${baseUrl}/api/auth/profile`, {
+      const response = await fetch(`${baseUrl}/api/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({

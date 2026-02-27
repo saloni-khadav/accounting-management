@@ -1,14 +1,13 @@
 const mongoose = require('mongoose');
 
 const settingsSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  companyName: {
+    type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true
   },
   // General Settings
-  companyName: String,
   financialYear: { type: String, default: '2024-25' },
   currency: { type: String, default: 'INR' },
   dateFormat: { type: String, default: 'DD/MM/YYYY' },

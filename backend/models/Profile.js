@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 
 const profileSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  companyName: {
+    type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true
   },
   companyLogo: String,
   gstNumber: String,
