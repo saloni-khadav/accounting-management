@@ -1,169 +1,493 @@
+// const express = require('express');
+// const multer = require('multer');
+// const path = require('path');
+// const Profile = require('../models/Profile');
+// const User = require('../models/User');
+// const auth = require('../middleware/auth');
+// const fs = require('fs');
+
+// const router = express.Router();
+
+
+// const getRelativePath = (filePath) => {
+//   return filePath
+//     .replace(/\\/g, '/')              // Windows backslash fix
+//     .substring(filePath.indexOf('uploads'));
+// };
+
+// // Multer configuration
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     const uploadPath = path.join(__dirname, '../uploads/profile');
+
+//     // Check if folder exists
+//     if (!fs.existsSync(uploadPath)) {
+//       fs.mkdirSync(uploadPath, { recursive: true });
+//     }
+
+//     cb(null, uploadPath);
+//   },
+
+//   filename: (req, file, cb) => {
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+//   }
+// });
+
+// const upload = multer({ storage });
+
+// // Get company profile
+// router.get('/', auth, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: 'User not found' });
+
+//     const profile = await Profile.findOne({ companyName: user.companyName });
+//     res.json({ success: true, profile: profile || {} });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// });
+
+// // Save/Update company profile with file uploads
+// router.post('/', auth, upload.fields([
+//   { name: 'companyLogo', maxCount: 1 },
+//   { name: 'tanCertificate', maxCount: 1 },
+//   { name: 'mcaCertificate', maxCount: 1 },
+//   { name: 'msmeCertificate', maxCount: 1 },
+//   { name: 'gstCertificates', maxCount: 10 },
+//   { name: 'bankStatements', maxCount: 10 }
+// ]), async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: 'User not found' });
+
+//     const { gstNumber, gstNumbers, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
+    
+//     // Parse gstNumbers if it's a string
+//     let parsedGstNumbers = gstNumbers;
+//     if (typeof gstNumbers === 'string') {
+//       parsedGstNumbers = JSON.parse(gstNumbers);
+//     }
+    
+//     // Attach file paths to gstNumbers - only update entries that have new files
+//     if (req.files && req.files.gstCertificates && parsedGstNumbers) {
+//       let fileIndex = 0;
+//       parsedGstNumbers.forEach((gst, index) => {
+//         // Only assign file if this GST entry doesn't already have a certificate
+//         if (!gst.gstCertificate && fileIndex < req.files.gstCertificates.length) {
+//           gst.gstCertificate = req.files.gstCertificates[fileIndex].path;
+//           gst.gstCertificateName = req.files.gstCertificates[fileIndex].originalname;
+//           fileIndex++;
+//         }
+//       });
+//     }
+    
+//     // Parse bankAccounts
+//     let parsedBankAccounts = bankAccounts;
+//     if (typeof bankAccounts === 'string') {
+//       parsedBankAccounts = JSON.parse(bankAccounts);
+//     }
+    
+//     // Attach bank statement files
+//     if (req.files && req.files.bankStatements && parsedBankAccounts) {
+//       let fileIndex = 0;
+//       parsedBankAccounts.forEach((bank, index) => {
+//         if (!bank.bankStatement && fileIndex < req.files.bankStatements.length) {
+//           bank.bankStatement = req.files.bankStatements[fileIndex].path;
+//           bank.bankStatementName = req.files.bankStatements[fileIndex].originalname;
+//           fileIndex++;
+//         }
+//       });
+//     }
+    
+//     let profile = await Profile.findOne({ companyName: user.companyName });
+    
+//     if (profile) {
+//       // Update existing profile
+//       if (req.files?.companyLogo) profile.companyLogo = req.files.companyLogo[0].path;
+//       if (gstNumber !== undefined) profile.gstNumber = gstNumber;
+//       if (parsedGstNumbers !== undefined) profile.gstNumbers = parsedGstNumbers;
+//       if (tradeName !== undefined) profile.tradeName = tradeName;
+//       if (address !== undefined) profile.address = address;
+//       if (panNumber !== undefined) profile.panNumber = panNumber;
+//       if (tanNumber !== undefined) profile.tanNumber = tanNumber;
+//       if (req.files?.tanCertificate) {
+//         profile.tanCertificate = req.files.tanCertificate[0].path;
+//         profile.tanCertificateName = req.files.tanCertificate[0].originalname;
+//       }
+//       if (mcaNumber !== undefined) profile.mcaNumber = mcaNumber;
+//       if (req.files?.mcaCertificate) {
+//         profile.mcaCertificate = req.files.mcaCertificate[0].path;
+//         profile.mcaCertificateName = req.files.mcaCertificate[0].originalname;
+//       }
+//       if (msmeStatus !== undefined) profile.msmeStatus = msmeStatus;
+//       if (msmeNumber !== undefined) profile.msmeNumber = msmeNumber;
+//       if (req.files?.msmeCertificate) {
+//         profile.msmeCertificate = req.files.msmeCertificate[0].path;
+//         profile.msmeCertificateName = req.files.msmeCertificate[0].originalname;
+//       }
+//       if (parsedBankAccounts !== undefined) profile.bankAccounts = parsedBankAccounts;
+      
+//       await profile.save();
+//     } else {
+//       // Create new profile
+//       profile = new Profile({
+//         companyName: user.companyName,
+//         companyLogo: req.files?.companyLogo?.[0]?.path,
+//         gstNumber,
+//         gstNumbers: parsedGstNumbers,
+//         tradeName,
+//         address,
+//         panNumber,
+//         tanNumber,
+//         tanCertificate: req.files?.tanCertificate?.[0]?.path,
+//         tanCertificateName: req.files?.tanCertificate?.[0]?.originalname,
+//         mcaNumber,
+//         mcaCertificate: req.files?.mcaCertificate?.[0]?.path,
+//         mcaCertificateName: req.files?.mcaCertificate?.[0]?.originalname,
+//         msmeStatus,
+//         msmeNumber,
+//         msmeCertificate: req.files?.msmeCertificate?.[0]?.path,
+//         msmeCertificateName: req.files?.msmeCertificate?.[0]?.originalname,
+//         bankAccounts: parsedBankAccounts
+//       });
+//       await profile.save();
+//     }
+
+//     res.json({ success: true, message: 'Profile saved successfully', profile });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// });
+
+// // Delete bank account
+// router.delete('/bank/:index', auth, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ message: 'User not found' });
+
+//     const { index } = req.params;
+//     const profile = await Profile.findOne({ companyName: user.companyName });
+    
+//     if (!profile || !profile.bankAccounts) {
+//       return res.status(404).json({ message: 'No bank accounts found' });
+//     }
+    
+//     profile.bankAccounts.splice(parseInt(index), 1);
+//     await profile.save();
+
+//     res.json({ success: true, message: 'Bank account deleted successfully' });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// });
+
+// module.exports = router;
+
+
+
+
+
+
+
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const Profile = require('../models/Profile');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const fs = require('fs');
 
 const router = express.Router();
 
-// Multer configuration
+/* ------------------ Helper Function ------------------ */
+const buildFilePath = (file) => {
+  return file ? `/uploads/profile/${file.filename}` : undefined;
+};
+
+/* ------------------ Multer Configuration ------------------ */
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/profile/');
+    const uploadPath = path.join(__dirname, '../uploads/profile');
+
+    // Auto create folder if not exists
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    cb(null, uploadPath);
   },
+
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix =
+      Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname +
+        '-' +
+        uniqueSuffix +
+        path.extname(file.originalname)
+    );
+  },
 });
 
 const upload = multer({ storage });
 
-// Get company profile
+/* ------------------ Get Company Profile ------------------ */
 router.get('/', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user)
+      return res.status(404).json({ message: 'User not found' });
 
-    const profile = await Profile.findOne({ companyName: user.companyName });
+    const profile = await Profile.findOne({
+      companyName: user.companyName,
+    });
+
     res.json({ success: true, profile: profile || {} });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res
+      .status(500)
+      .json({ message: 'Server error', error: error.message });
   }
 });
 
-// Save/Update company profile with file uploads
-router.post('/', auth, upload.fields([
-  { name: 'companyLogo', maxCount: 1 },
-  { name: 'tanCertificate', maxCount: 1 },
-  { name: 'mcaCertificate', maxCount: 1 },
-  { name: 'msmeCertificate', maxCount: 1 },
-  { name: 'gstCertificates', maxCount: 10 },
-  { name: 'bankStatements', maxCount: 10 }
-]), async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+/* ------------------ Save / Update Profile ------------------ */
+router.post(
+  '/',
+  auth,
+  upload.fields([
+    { name: 'companyLogo', maxCount: 1 },
+    { name: 'tanCertificate', maxCount: 1 },
+    { name: 'mcaCertificate', maxCount: 1 },
+    { name: 'msmeCertificate', maxCount: 1 },
+    { name: 'gstCertificates', maxCount: 10 },
+    { name: 'bankStatements', maxCount: 10 },
+  ]),
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user._id);
+      if (!user)
+        return res.status(404).json({ message: 'User not found' });
 
-    const { gstNumber, gstNumbers, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
-    
-    // Parse gstNumbers if it's a string
-    let parsedGstNumbers = gstNumbers;
-    if (typeof gstNumbers === 'string') {
-      parsedGstNumbers = JSON.parse(gstNumbers);
-    }
-    
-    // Attach file paths to gstNumbers - only update entries that have new files
-    if (req.files && req.files.gstCertificates && parsedGstNumbers) {
-      let fileIndex = 0;
-      parsedGstNumbers.forEach((gst, index) => {
-        // Only assign file if this GST entry doesn't already have a certificate
-        if (!gst.gstCertificate && fileIndex < req.files.gstCertificates.length) {
-          gst.gstCertificate = req.files.gstCertificates[fileIndex].path;
-          gst.gstCertificateName = req.files.gstCertificates[fileIndex].originalname;
-          fileIndex++;
-        }
-      });
-    }
-    
-    // Parse bankAccounts
-    let parsedBankAccounts = bankAccounts;
-    if (typeof bankAccounts === 'string') {
-      parsedBankAccounts = JSON.parse(bankAccounts);
-    }
-    
-    // Attach bank statement files
-    if (req.files && req.files.bankStatements && parsedBankAccounts) {
-      let fileIndex = 0;
-      parsedBankAccounts.forEach((bank, index) => {
-        if (!bank.bankStatement && fileIndex < req.files.bankStatements.length) {
-          bank.bankStatement = req.files.bankStatements[fileIndex].path;
-          bank.bankStatementName = req.files.bankStatements[fileIndex].originalname;
-          fileIndex++;
-        }
-      });
-    }
-    
-    let profile = await Profile.findOne({ companyName: user.companyName });
-    
-    if (profile) {
-      // Update existing profile
-      if (req.files?.companyLogo) profile.companyLogo = req.files.companyLogo[0].path;
-      if (gstNumber !== undefined) profile.gstNumber = gstNumber;
-      if (parsedGstNumbers !== undefined) profile.gstNumbers = parsedGstNumbers;
-      if (tradeName !== undefined) profile.tradeName = tradeName;
-      if (address !== undefined) profile.address = address;
-      if (panNumber !== undefined) profile.panNumber = panNumber;
-      if (tanNumber !== undefined) profile.tanNumber = tanNumber;
-      if (req.files?.tanCertificate) {
-        profile.tanCertificate = req.files.tanCertificate[0].path;
-        profile.tanCertificateName = req.files.tanCertificate[0].originalname;
-      }
-      if (mcaNumber !== undefined) profile.mcaNumber = mcaNumber;
-      if (req.files?.mcaCertificate) {
-        profile.mcaCertificate = req.files.mcaCertificate[0].path;
-        profile.mcaCertificateName = req.files.mcaCertificate[0].originalname;
-      }
-      if (msmeStatus !== undefined) profile.msmeStatus = msmeStatus;
-      if (msmeNumber !== undefined) profile.msmeNumber = msmeNumber;
-      if (req.files?.msmeCertificate) {
-        profile.msmeCertificate = req.files.msmeCertificate[0].path;
-        profile.msmeCertificateName = req.files.msmeCertificate[0].originalname;
-      }
-      if (parsedBankAccounts !== undefined) profile.bankAccounts = parsedBankAccounts;
-      
-      await profile.save();
-    } else {
-      // Create new profile
-      profile = new Profile({
-        companyName: user.companyName,
-        companyLogo: req.files?.companyLogo?.[0]?.path,
+      const {
         gstNumber,
-        gstNumbers: parsedGstNumbers,
+        gstNumbers,
         tradeName,
         address,
         panNumber,
         tanNumber,
-        tanCertificate: req.files?.tanCertificate?.[0]?.path,
-        tanCertificateName: req.files?.tanCertificate?.[0]?.originalname,
         mcaNumber,
-        mcaCertificate: req.files?.mcaCertificate?.[0]?.path,
-        mcaCertificateName: req.files?.mcaCertificate?.[0]?.originalname,
         msmeStatus,
         msmeNumber,
-        msmeCertificate: req.files?.msmeCertificate?.[0]?.path,
-        msmeCertificateName: req.files?.msmeCertificate?.[0]?.originalname,
-        bankAccounts: parsedBankAccounts
+        bankAccounts,
+      } = req.body;
+
+      /* -------- Parse GST Numbers -------- */
+      let parsedGstNumbers =
+        typeof gstNumbers === 'string'
+          ? JSON.parse(gstNumbers)
+          : gstNumbers;
+
+      if (
+        req.files?.gstCertificates &&
+        parsedGstNumbers?.length
+      ) {
+        let fileIndex = 0;
+
+        parsedGstNumbers.forEach((gst) => {
+          if (
+            !gst.gstCertificate &&
+            fileIndex <
+              req.files.gstCertificates.length
+          ) {
+            gst.gstCertificate = buildFilePath(
+              req.files.gstCertificates[fileIndex]
+            );
+            gst.gstCertificateName =
+              req.files.gstCertificates[fileIndex]
+                .originalname;
+            fileIndex++;
+          }
+        });
+      }
+
+      /* -------- Parse Bank Accounts -------- */
+      let parsedBankAccounts =
+        typeof bankAccounts === 'string'
+          ? JSON.parse(bankAccounts)
+          : bankAccounts;
+
+      if (
+        req.files?.bankStatements &&
+        parsedBankAccounts?.length
+      ) {
+        let fileIndex = 0;
+
+        parsedBankAccounts.forEach((bank) => {
+          if (
+            !bank.bankStatement &&
+            fileIndex <
+              req.files.bankStatements.length
+          ) {
+            bank.bankStatement = buildFilePath(
+              req.files.bankStatements[fileIndex]
+            );
+            bank.bankStatementName =
+              req.files.bankStatements[fileIndex]
+                .originalname;
+            fileIndex++;
+          }
+        });
+      }
+
+      let profile = await Profile.findOne({
+        companyName: user.companyName,
       });
-      await profile.save();
+
+      /* ------------------ UPDATE ------------------ */
+      if (profile) {
+        if (req.files?.companyLogo)
+          profile.companyLogo = buildFilePath(
+            req.files.companyLogo[0]
+          );
+
+        if (req.files?.tanCertificate) {
+          profile.tanCertificate = buildFilePath(
+            req.files.tanCertificate[0]
+          );
+          profile.tanCertificateName =
+            req.files.tanCertificate[0].originalname;
+        }
+
+        if (req.files?.mcaCertificate) {
+          profile.mcaCertificate = buildFilePath(
+            req.files.mcaCertificate[0]
+          );
+          profile.mcaCertificateName =
+            req.files.mcaCertificate[0].originalname;
+        }
+
+        if (req.files?.msmeCertificate) {
+          profile.msmeCertificate = buildFilePath(
+            req.files.msmeCertificate[0]
+          );
+          profile.msmeCertificateName =
+            req.files.msmeCertificate[0].originalname;
+        }
+
+        if (gstNumber !== undefined)
+          profile.gstNumber = gstNumber;
+        if (parsedGstNumbers !== undefined)
+          profile.gstNumbers = parsedGstNumbers;
+        if (tradeName !== undefined)
+          profile.tradeName = tradeName;
+        if (address !== undefined)
+          profile.address = address;
+        if (panNumber !== undefined)
+          profile.panNumber = panNumber;
+        if (tanNumber !== undefined)
+          profile.tanNumber = tanNumber;
+        if (mcaNumber !== undefined)
+          profile.mcaNumber = mcaNumber;
+        if (msmeStatus !== undefined)
+          profile.msmeStatus = msmeStatus;
+        if (msmeNumber !== undefined)
+          profile.msmeNumber = msmeNumber;
+        if (parsedBankAccounts !== undefined)
+          profile.bankAccounts = parsedBankAccounts;
+
+        await profile.save();
+      }
+
+      /* ------------------ CREATE ------------------ */
+      else {
+        profile = new Profile({
+          companyName: user.companyName,
+          companyLogo: buildFilePath(
+            req.files?.companyLogo?.[0]
+          ),
+          tanCertificate: buildFilePath(
+            req.files?.tanCertificate?.[0]
+          ),
+          tanCertificateName:
+            req.files?.tanCertificate?.[0]
+              ?.originalname,
+          mcaCertificate: buildFilePath(
+            req.files?.mcaCertificate?.[0]
+          ),
+          mcaCertificateName:
+            req.files?.mcaCertificate?.[0]
+              ?.originalname,
+          msmeCertificate: buildFilePath(
+            req.files?.msmeCertificate?.[0]
+          ),
+          msmeCertificateName:
+            req.files?.msmeCertificate?.[0]
+              ?.originalname,
+          gstNumber,
+          gstNumbers: parsedGstNumbers,
+          tradeName,
+          address,
+          panNumber,
+          tanNumber,
+          mcaNumber,
+          msmeStatus,
+          msmeNumber,
+          bankAccounts: parsedBankAccounts,
+        });
+
+        await profile.save();
+      }
+
+      res.json({
+        success: true,
+        message: 'Profile saved successfully',
+        profile,
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Server error',
+        error: error.message,
+      });
     }
-
-    res.json({ success: true, message: 'Profile saved successfully', profile });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
   }
-});
+);
 
-// Delete bank account
+/* ------------------ Delete Bank Account ------------------ */
 router.delete('/bank/:index', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user)
+      return res.status(404).json({ message: 'User not found' });
 
-    const { index } = req.params;
-    const profile = await Profile.findOne({ companyName: user.companyName });
-    
-    if (!profile || !profile.bankAccounts) {
-      return res.status(404).json({ message: 'No bank accounts found' });
-    }
-    
-    profile.bankAccounts.splice(parseInt(index), 1);
+    const profile = await Profile.findOne({
+      companyName: user.companyName,
+    });
+
+    if (!profile?.bankAccounts)
+      return res
+        .status(404)
+        .json({ message: 'No bank accounts found' });
+
+    profile.bankAccounts.splice(
+      parseInt(req.params.index),
+      1
+    );
+
     await profile.save();
 
-    res.json({ success: true, message: 'Bank account deleted successfully' });
+    res.json({
+      success: true,
+      message: 'Bank account deleted successfully',
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message,
+    });
   }
 });
 

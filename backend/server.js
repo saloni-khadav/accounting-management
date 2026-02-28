@@ -48,6 +48,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Home / Health route
 app.get("/", (req, res) => {
   res.send("Accounting Backend API is Running 🚀");

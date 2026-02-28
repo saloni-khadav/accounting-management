@@ -74,7 +74,16 @@ const Header = ({ setActivePage, onLogout }) => {
             
             if (result.user.profile && result.user.profile.companyLogo) {
               console.log('Header - Setting logo from profile');
-              setCompanyLogo(`${baseUrl}/${result.user.profile.companyLogo}`);
+              // setCompanyLogo(`${baseUrl}/${result.user.profile.companyLogo}`);
+              if (result.user.profile?.companyLogo) {
+  const logoPath = result.user.profile.companyLogo;
+
+  const finalUrl = logoPath.startsWith('http')
+    ? logoPath
+    : `${baseUrl}${logoPath}`;
+
+  setCompanyLogo(finalUrl);
+}
             } else {
               console.log('Header - No logo in profile');
             }
