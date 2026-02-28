@@ -92,7 +92,7 @@ router.get('/reconciliation', async (req, res) => {
 });
 
 // Create new credit/debit note
-router.post('/', auth, checkPeriodPermission('Credit/Debit Notes'), upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Credit/Debit Notes'), async (req, res) => {
   console.log('📥 Credit/Debit Note POST request received');
   console.log('📥 Request body keys:', Object.keys(req.body));
   console.log('📥 Note type:', req.body.type);
@@ -208,7 +208,7 @@ router.post('/', auth, checkPeriodPermission('Credit/Debit Notes'), upload.array
 });
 
 // Update credit/debit note
-router.put('/:id', auth, checkPeriodPermission('Credit/Debit Notes'), upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Credit/Debit Notes'), async (req, res) => {
   try {
     const existingNote = await CreditDebitNote.findOne({
       _id: req.params.id,

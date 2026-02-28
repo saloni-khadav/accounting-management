@@ -87,6 +87,8 @@ function App() {
   const handleLogin = () => {
     setIsAuthenticated(true);
     setCurrentView('dashboard');
+    setActivePage('dashboard');
+    localStorage.setItem('activePage', 'dashboard');
   };
 
   const handleLogout = () => {

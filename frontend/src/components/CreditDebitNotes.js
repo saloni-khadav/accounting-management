@@ -217,32 +217,32 @@ const CreditDebitNotes = () => {
               ) : (
                 filteredNotes.map((note, index) => (
                   <tr key={note._id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6 whitespace-nowrap">
                       <span className="text-blue-600 font-medium">{note.noteNumber}</span>
                     </td>
-                    <td className="py-4 px-6 text-gray-600">
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">
                       {new Date(note.noteDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </td>
-                    <td className="py-4 px-6 text-gray-600">
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">
                       {note.invoiceDate ? new Date(note.invoiceDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-'}
                     </td>
-                    <td className="py-4 px-6 text-gray-900">{note.vendorName}</td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{note.vendorName}</td>
+                    <td className="py-4 px-6 whitespace-nowrap">
                       <span className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getTypeColor(note.type)}`}>
                         {note.type}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-gray-600">{note.originalInvoiceNumber || '-'}</td>
-                    <td className="py-4 px-6 text-right font-semibold text-gray-900">
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{note.originalInvoiceNumber || '-'}</td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">
                       ₹{((note.grandTotal || 0) - (note.tdsAmount || 0)).toLocaleString('en-IN')}
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-6 text-center whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getApprovalStatusColor(note.approvalStatus)}`}>
                         {note.approvalStatus === 'approved' ? 'Approved' : 
                          note.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-6 whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <button 
                           onClick={() => handleViewNote(note)}
@@ -446,8 +446,12 @@ const CreditDebitNotes = () => {
               alert(`${savedNote.type} ${editingNote ? 'updated' : 'created'} successfully!`);
             } else {
               const errorData = await response.json();
-              console.error('Server error:', errorData);
-              alert(`Error: ${errorData.message || 'Failed to save note'}`);
+              if (errorData.isPastDateError) {
+                alert('Past date entry not allowed. Contact manager for permission.');
+              } else {
+                console.error('Server error:', errorData);
+                alert(`Error: ${errorData.message || 'Failed to save note'}`);
+              }
             }
           } catch (error) {
             console.error('Error saving note:', error);
@@ -461,3 +465,4 @@ const CreditDebitNotes = () => {
 };
 
 export default CreditDebitNotes;
+

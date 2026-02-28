@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChevronDown, FileText, CheckCircle, Clock, DollarSign, CreditCard } from 'lucide-react';
+import { ChevronDown, FileText, CheckCircle, Clock, IndianRupee, CreditCard } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const APReport = () => {
@@ -406,7 +406,7 @@ const APReport = () => {
           <MetricsCard
             title="Total Paid"
             value={loading ? '...' : `₹${totalPaid.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="success"
           />
         </div>

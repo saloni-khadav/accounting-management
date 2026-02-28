@@ -3,7 +3,12 @@ const PeriodPermission = require('../models/PeriodPermission');
 const checkPeriodPermission = (section) => {
   return async (req, res, next) => {
     try {
-      const entryDate = req.body.date || req.body.billDate || req.body.invoiceDate || req.body.paymentDate || req.body.collectionDate || req.body.poDate || req.body.transactionDate || req.body.noteDate || req.body.purchaseDate || req.body.creditNoteDate || req.body.uploadDate;
+      console.log('=== PERIOD PERMISSION MIDDLEWARE ===');
+      console.log('Section:', section);
+      console.log('req.body keys:', Object.keys(req.body));
+      console.log('req.body:', JSON.stringify(req.body, null, 2));
+      
+      const entryDate = req.body.date || req.body.billDate || req.body.invoiceDate || req.body.paymentDate || req.body.collectionDate || req.body.poDate || req.body.transactionDate || req.body.noteDate || req.body.purchaseDate || req.body.creditNoteDate || req.body.uploadDate || req.body.piDate || req.body.contractStartDate;
       
       console.log('Period Permission Check:', { section, entryDate });
       

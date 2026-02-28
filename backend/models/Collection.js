@@ -49,6 +49,10 @@ const collectionSchema = new mongoose.Schema({
     enum: ['Online', 'Cheque', 'Bank Transfer', 'UPI', 'Cash'],
     default: 'Online'
   },
+  bankAccount: {
+    type: String,
+    trim: true
+  },
   bankName: {
     type: String,
     enum: ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Kotak Mahindra Bank', 'Yes Bank'],

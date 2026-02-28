@@ -32,7 +32,7 @@ const upload = multer({
   }
 });
 
-router.post('/upload', auth, checkPeriodPermission('Bank Statement Upload'), upload.single('file'), async (req, res) => {
+router.post('/upload', auth, upload.single('file'), checkPeriodPermission('Bank Statement Upload'), async (req, res) => {
   try {
     const { bankName, period } = req.body;
     

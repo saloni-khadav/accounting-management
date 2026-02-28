@@ -15,7 +15,7 @@ const ClientMaster = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
 
   useEffect(() => {
     fetchClients();
@@ -35,38 +35,11 @@ const ClientMaster = () => {
 
   const handleAddClient = async (clientData) => {
     try {
-      const url = editingClient 
-        ? `${baseUrl}/api/clients/${editingClient._id}`
-        : `${baseUrl}/api/clients`;
-      const method = editingClient ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(clientData),
-      });
-      
-      if (response.ok) {
-        const updatedClient = await response.json();
-        if (editingClient) {
-          setClients(clients.map(client => 
-            client._id === editingClient._id ? updatedClient : client
-          ));
-          alert('Client updated successfully!');
-        } else {
-          setClients([updatedClient, ...clients]);
-          alert('Client added successfully!');
-        }
-        setEditingClient(null);
-        setIsFormOpen(false);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error saving client');
-      }
+      await fetchClients();
+      setEditingClient(null);
+      setIsFormOpen(false);
     } catch (error) {
-      alert('Network error. Please check if backend is running.');
+      console.error('Error in handleAddClient:', error);
     }
   };
 
@@ -441,12 +414,12 @@ const ClientMaster = () => {
               ) : (
                 filteredClients.map((client, index) => (
                   <tr key={client._id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{client.clientName || 'N/A'}</td>
-                    <td className="py-4 px-6 text-blue-600 font-medium">{client.clientCode || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-600">{client.contactPerson || 'N/A'}</td>
-                    <td className="py-4 px-6 text-gray-600">{client.email || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{client.clientName || 'N/A'}</td>
+                    <td className="py-4 px-6 text-blue-600 font-medium whitespace-nowrap">{client.clientCode || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{client.contactPerson || 'N/A'}</td>
+                    <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{client.email || 'N/A'}</td>
                     <td className="py-4 px-6 text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                         client.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {client.status || 'Unknown'}
@@ -506,3 +479,4 @@ const ClientMaster = () => {
 };
 
 export default ClientMaster;
+

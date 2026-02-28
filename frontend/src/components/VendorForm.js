@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Save, FileText, Upload, Download, Plus } from 'lucide-react';
+import { API_URL } from '../utils/apiConfig';
+import { X, Save, FileText, Upload, Download, Plus, Users, CreditCard, Building } from 'lucide-react';
 import { exportToExcel } from '../utils/excelExport';
 import DocumentUpload from './DocumentUpload';
 
@@ -42,8 +43,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     gst: {},
     pan: { loading: false, error: null },
     bank: { loading: false, error: null },
-    aadhar: { loading: false, error: null },
-    smart: { loading: false, error: null }
+    aadhar: { loading: false, error: null }
   });
 
   React.useEffect(() => {
@@ -100,26 +100,26 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   }, [editingVendor]);
 
   const generateVendorCode = async () => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      // First try to get existing vendors to calculate next code
-      const response = await fetch(`${baseUrl}/api/vendors`);
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
       if (response.ok) {
         const vendors = await response.json();
         
-        // Extract vendor codes and find the highest number
-        const vendorCodes = vendors
-          .map(vendor => vendor.vendorCode)
-          .filter(code => code && code.startsWith('VC'))
-          .map(code => {
-            const num = parseInt(code.substring(2));
-            return isNaN(num) ? 0 : num;
-          });
+        // Extract all vendor codes and find next available
+        const existingCodes = new Set(
+          vendors
+            .map(vendor => vendor.vendorCode)
+            .filter(code => code && code.startsWith('VC'))
+        );
         
-        const maxNumber = vendorCodes.length > 0 ? Math.max(...vendorCodes) : 0;
-        const nextNumber = maxNumber + 1;
-        const nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
+        // Find next available code
+        let nextNumber = 1;
+        let nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
         
+        while (existingCodes.has(nextCode)) {
+          nextNumber++;
+          nextCode = `VC${nextNumber.toString().padStart(3, '0')}`;
+        }
         setFormData({
           vendorCode: nextCode,
           vendorName: '',
@@ -266,7 +266,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     formDataUpload.append('documentType', documentType);
 
     try {
-      const response = await fetch(`${baseUrl}/api/ocr/extract`, {
+      const response = await fetch(`${API_URL}/api/ocr/extract`, {
         method: 'POST',
         body: formDataUpload
       });
@@ -274,7 +274,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       const result = await response.json();
       console.log('OCR API Response:', result);
 
-      if (result.success && result.data) {
+      if (result.success) {
         const updates = {};
         let dataFound = false;
         
@@ -420,106 +420,6 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     }
   };
 
-  const handleSmartUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    console.log('Uploading file:', file.name, file.type, file.size);
-
-    setUploadStates(prev => ({
-      ...prev,
-      smart: { loading: true, error: null }
-    }));
-
-    const formDataUpload = new FormData();
-    formDataUpload.append('document', file);
-
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
-    try {
-      const response = await fetch(`${baseUrl}/api/ocr/extract`, {
-        method: 'POST',
-        body: formDataUpload
-      });
-
-      const result = await response.json();
-      console.log('OCR Result:', result);
-
-      if (result.success && result.data && Object.keys(result.data).length > 0) {
-        const updates = {};
-        const extractedFields = [];
-        
-        if (result.data.panNumber) {
-          updates.panNumber = result.data.panNumber;
-          updates.documents = { ...formData.documents, panCard: file };
-          extractedFields.push('PAN: ' + result.data.panNumber);
-        }
-        
-        if (result.data.gstNumber) {
-          const updatedGSTNumbers = [...formData.gstNumbers];
-          updatedGSTNumbers[0].gstNumber = result.data.gstNumber;
-          updatedGSTNumbers[0].hasDocument = true;
-          updates.gstNumbers = updatedGSTNumbers;
-          updates.gstNumber = result.data.gstNumber;
-          updates.documents = { ...formData.documents, gstCertificate: file };
-          extractedFields.push('GST: ' + result.data.gstNumber);
-        }
-        
-        if (result.data.accountNumber) {
-          updates.accountNumber = result.data.accountNumber;
-          extractedFields.push('Account: ' + result.data.accountNumber);
-        }
-        
-        if (result.data.ifscCode) {
-          updates.ifscCode = result.data.ifscCode;
-          extractedFields.push('IFSC: ' + result.data.ifscCode);
-        }
-        
-        if (result.data.bankName) {
-          updates.bankName = result.data.bankName;
-          extractedFields.push('Bank: ' + result.data.bankName);
-        }
-        
-        if (result.data.accountNumber || result.data.ifscCode || result.data.bankName) {
-          updates.documents = { ...formData.documents, bankStatement: file };
-        }
-        
-        if (result.data.aadharNumber) {
-          updates.aadharNumber = result.data.aadharNumber;
-          updates.documents = { ...formData.documents, aadharCard: file };
-          extractedFields.push('Aadhar: ' + result.data.aadharNumber);
-        }
-
-        setFormData(prev => ({
-          ...prev,
-          ...updates
-        }));
-
-        setUploadStates(prev => ({
-          ...prev,
-          smart: { loading: false, error: null }
-        }));
-        
-        alert('✅ Success!\n\n' + extractedFields.join('\n'));
-      } else {
-        console.log('No data found. Raw text preview:', result.rawTextPreview);
-        setUploadStates(prev => ({
-          ...prev,
-          smart: { loading: false, error: result.message || 'No data found' }
-        }));
-        alert('⚠️ ' + (result.message || 'No relevant data found in document'));
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadStates(prev => ({
-        ...prev,
-        smart: { loading: false, error: error.message }
-      }));
-      alert('❌ Upload failed: ' + error.message);
-    }
-    
-    e.target.value = '';
-  };
-
   const handleOtherDocumentUpload = (e) => {
     const files = Array.from(e.target.files);
     setFormData({
@@ -542,8 +442,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
-      window.open(`${baseUrl}/api/vendors/download/${file}`, '_blank');
+      // Handle existing uploaded files (file paths)
+      window.open(`${API_URL}/api/vendors/download/${file}`, '_blank');
     }
   };
 
@@ -559,7 +459,6 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
     
     // Validate GST numbers
@@ -623,17 +522,22 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingVendor 
-        ? `${baseUrl}/api/vendors/${editingVendor._id}`
-        : `${baseUrl}/api/vendors`;
+        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
+        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
       const method = editingVendor ? 'PUT' : 'POST';
       
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formDataToSend
       });
       
       if (response.ok) {
         const savedVendor = await response.json();
+        alert(editingVendor ? 'Vendor updated successfully!' : 'Vendor added successfully!');
         onSave(savedVendor);
         onClose();
       } else {
@@ -649,41 +553,50 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
-          <h2 className="text-xl font-bold">{editingVendor ? 'Edit Vendor' : 'Add New Vendor'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">{editingVendor ? 'Edit Vendor' : 'Add New Vendor'}</h2>
+            <button onClick={onClose} className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors">
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
+          <div className="p-6 space-y-6">
+            {/* Basic Information Section */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-blue-600" />
+                Basic Information
+              </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Code *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor Code <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="vendorCode"
                 value={formData.vendorCode}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600 font-medium"
                 readOnly
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Name / Company Name *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor Name / Company Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="vendorName"
                 value={formData.vendorName}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   editingVendor ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
                 readOnly={editingVendor}
@@ -692,53 +605,53 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Person Name *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Person Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="contactPerson"
                 value={formData.contactPerson}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Details (Mobile, Landline) *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Details (Mobile, Landline) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="contactDetails"
                 value={formData.contactDetails}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email ID *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email ID <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Website
               </label>
               <input
@@ -746,28 +659,35 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                 name="website"
                 value={formData.website}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
+          </div>
 
+          {/* Address & Tax Information Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
+              Address & Tax Information
+            </h3>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Billing Address with PIN Code *
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Billing Address with PIN Code <span className="text-red-500">*</span>
             </label>
             <textarea
               name="billingAddress"
               value={formData.billingAddress}
               onChange={handleInputChange}
               rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 cursor-not-allowed"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-100 cursor-not-allowed"
               placeholder="Auto-filled from default GST number - cannot be edited manually"
               readOnly
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -924,17 +844,24 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
               )}
             </div>
           </div>
+          </div>
 
+          {/* Payment & Banking Information Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
+              Payment & Banking Information
+            </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Terms *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Terms <span className="text-red-500">*</span>
               </label>
               <select
                 name="paymentTerms"
                 value={formData.paymentTerms}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select Payment Terms</option>
@@ -947,38 +874,38 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Credit Limit *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Credit Limit <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 name="creditLimit"
                 value={formData.creditLimit}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Account Number *
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Account Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="accountNumber"
               value={formData.accountNumber}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                IFSC Code *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                IFSC Code <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -987,13 +914,13 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                 onChange={handleInputChange}
                 maxLength="11"
                 placeholder="11 characters IFSC code"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bank Name *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bank Name <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -1001,7 +928,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                   name="bankName"
                   value={formData.bankName}
                   onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <div className="flex items-center">
@@ -1017,36 +944,43 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                   />
                   <label
                     htmlFor="bankFile"
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 text-sm flex items-center"
+                    className="px-3 py-2.5 bg-blue-50 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-blue-100 text-sm font-medium flex items-center gap-1 text-blue-600"
                   >
                     {uploadStates.bank.loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-1"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     ) : (
-                      <Upload className="w-4 h-4 mr-1" />
+                      <Upload className="w-4 h-4" />
                     )}
                     Upload
                   </label>
                   {formData.documents.bankStatement && (
-                    <span className="ml-2 text-green-600 text-sm">✓</span>
+                    <span className="ml-2 text-green-600 text-lg font-bold">✓</span>
                   )}
                 </div>
               </div>
               {uploadStates.bank.error && (
-                <p className="text-red-500 text-sm mt-1">{uploadStates.bank.error}</p>
+                <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{uploadStates.bank.error}</p>
               )}
             </div>
           </div>
+          </div>
 
+          {/* Business Information Section */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <Building className="w-5 h-5 mr-2 text-blue-600" />
+              Business Information
+            </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Industry Type *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Industry Type <span className="text-red-500">*</span>
               </label>
               <select
                 name="industryType"
                 value={formData.industryType}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select Industry Type</option>
@@ -1059,14 +993,14 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vendor Category *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor Category <span className="text-red-500">*</span>
               </label>
               <select
                 name="vendorCategory"
                 value={formData.vendorCategory}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="">Select Category</option>
@@ -1076,37 +1010,37 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contract Start Date *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contract Start Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 name="contractStartDate"
                 value={formData.contractStartDate || ''}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contract End Date *
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contract End Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 name="contractEndDate"
                 value={formData.contractEndDate || ''}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Preferred Currency
@@ -1115,7 +1049,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                 name="currency"
                 value={formData.currency}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="INR">INR</option>
                 <option value="USD">USD</option>
@@ -1131,7 +1065,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -1139,24 +1073,25 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned Account Manager *
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Assigned Account Manager <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="accountManager"
               value={formData.accountManager}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
+          </div>
 
           {/* Documents Section */}
-          <div className="border-t pt-4 mt-6">
+          <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2" />
+              <FileText className="w-5 h-5 mr-2 text-blue-600" />
               Other Documents
             </h3>
             
@@ -1255,20 +1190,22 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
               </div>
             )}
           </div>
+          </div>
 
-          <div className="flex justify-end gap-4 pt-4">
+          {/* Form Actions */}
+          <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4" />
               {editingVendor ? 'Update Vendor' : 'Save Vendor'}
             </button>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, DollarSign } from 'lucide-react';
+import { FileText, IndianRupee } from 'lucide-react';
 
 const GSTDashboard = () => {
   const missingInvoices = [
@@ -25,27 +25,31 @@ const GSTDashboard = () => {
 
       {/* Top Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
-        <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden">
+        <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-          <div className="ml-2 flex items-start justify-between">
+          <div className="ml-2">
+            <div className="flex items-start justify-end mb-1">
+              <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <FileText className="w-4 h-4" strokeWidth={2} />
+              </div>
+            </div>
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">GST Payable</p>
-              <p className="text-3xl font-bold text-gray-900">₹2,19,293.80</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <FileText className="text-blue-600" size={24} />
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹2,19,293.80</p>
             </div>
           </div>
         </div>
-        <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden">
+        <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-          <div className="ml-2 flex items-start justify-between">
+          <div className="ml-2">
+            <div className="flex items-start justify-end mb-1">
+              <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                <IndianRupee className="w-4 h-4" strokeWidth={2} />
+              </div>
+            </div>
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Net GST Payable</p>
-              <p className="text-3xl font-bold text-gray-900">₹1,96,422.85</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <DollarSign className="text-blue-600" size={24} />
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700 truncate">₹1,96,422.85</p>
             </div>
           </div>
         </div>
@@ -128,11 +132,11 @@ const GSTDashboard = () => {
             <tbody className="divide-y divide-gray-100">
               {missingInvoices.map((invoice, index) => (
                 <tr key={index} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-3.5 px-4 text-sm text-gray-900 font-medium">{invoice.date}</td>
-                  <td className="py-3.5 px-4 text-sm text-gray-900">{invoice.invoiceNo}</td>
-                  <td className="py-3.5 px-4 text-sm text-gray-900">{invoice.clientName}</td>
-                  <td className="py-3.5 px-4 text-sm text-gray-900">{invoice.gstin}</td>
-                  <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">{invoice.taxAmount}</td>
+                  <td className="py-3.5 px-4 text-sm text-gray-900 font-medium whitespace-nowrap">{invoice.date}</td>
+                  <td className="py-3.5 px-4 text-sm text-gray-900 whitespace-nowrap">{invoice.invoiceNo}</td>
+                  <td className="py-3.5 px-4 text-sm text-gray-900 whitespace-nowrap">{invoice.clientName}</td>
+                  <td className="py-3.5 px-4 text-sm text-gray-900 whitespace-nowrap">{invoice.gstin}</td>
+                  <td className="py-3.5 px-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{invoice.taxAmount}</td>
                 </tr>
               ))}
             </tbody>

@@ -178,8 +178,11 @@ router.get('/pending', auth, requireManager, async (req, res) => {
       });
     });
     
-    // Get pending Credit Notes
-    const pendingCreditNotes = await CreditNote.find({ approvalStatus: 'Pending' })
+    // Get pending Credit Notes (only those that still exist)
+    const pendingCreditNotes = await CreditNote.find({ 
+      approvalStatus: 'Pending',
+      _id: { $exists: true }
+    })
       .select('creditNoteNumber customerName grandTotal createdAt approvalStatus reminderSent')
       .limit(10)
       .sort({ createdAt: -1 });

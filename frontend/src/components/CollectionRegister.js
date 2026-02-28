@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import { X, CheckCircle, Clock, IndianRupee, Eye } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const CollectionRegister = () => {
@@ -14,6 +14,8 @@ const CollectionRegister = () => {
   const [bankSearchTerm, setBankSearchTerm] = useState('');
   const [userRole, setUserRole] = useState('');
   const [bankAccounts, setBankAccounts] = useState([]);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState(null);
   const [stats, setStats] = useState({
     totalCollections: 0,
     pendingInvoices: 0,
@@ -85,16 +87,13 @@ const CollectionRegister = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${baseUrl}/api/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        if (data.profile && data.profile.bankAccounts) {
-          setBankAccounts(data.profile.bankAccounts);
-        }
+        const userData = await response.json();
+        const accounts = userData.user?.profile?.bankAccounts || [];
+        setBankAccounts(accounts.filter(acc => acc.bankName && acc.accountNumber));
       }
     } catch (error) {
       console.error('Error fetching bank accounts:', error);
@@ -201,8 +200,33 @@ const CollectionRegister = () => {
         const totalSettled = totalReceived + totalCreditNotes;
         const remainingAmount = (invoice.grandTotal || 0) - totalSettled - totalTDS;
         
+        // Calculate invoice's subtotal from items (qty × rate)
+        const invoiceSubtotal = invoice.items?.reduce((sum, item) => 
+          sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0
+        ) || 0;
+        
+        // Calculate remaining subtotal proportionally
+        const remainingSubtotal = invoiceSubtotal > 0 
+          ? (remainingAmount * invoiceSubtotal) / (invoice.grandTotal || 1)
+          : 0;
+        
+        // Calculate remaining rate per item with discount applied
+        const itemsWithRemaining = invoice.items?.map(item => {
+          const itemSubtotal = (item.quantity || 0) * (item.unitPrice || 0);
+          const itemDiscount = (itemSubtotal * (item.discount || 0)) / 100;
+          const itemAfterDiscount = itemSubtotal - itemDiscount;
+          const itemRemainingRate = invoiceSubtotal > 0 
+            ? (remainingSubtotal * itemAfterDiscount) / invoiceSubtotal
+            : 0;
+          return {
+            ...item,
+            remainingRate: itemRemainingRate > 0 ? itemRemainingRate : 0
+          };
+        }) || [];
+        
         return { 
-          ...invoice, 
+          ...invoice,
+          items: itemsWithRemaining,
           remainingAmount: remainingAmount > 0 ? remainingAmount : 0 
         };
       }).filter(invoice => invoice.remainingAmount > 0); // Only show invoices with remaining amount
@@ -228,31 +252,38 @@ const CollectionRegister = () => {
       // Remove invoice if already selected
       updatedInvoices = formData.invoiceNumbers.filter(inv => inv.invoiceNumber !== invoice.invoiceNumber);
     } else {
-      // Add invoice if not selected - use remainingAmount instead of grandTotal
+      // Calculate total remaining rate from items (discount already applied)
+      const totalItemRemainingRate = invoice.items?.reduce((sum, item) => 
+        sum + (item.remainingRate || 0), 0
+      ) || 0;
+      
+      // Add invoice with both original remaining amount and remaining rate
       updatedInvoices = [...formData.invoiceNumbers, {
         invoiceNumber: invoice.invoiceNumber,
-        amount: invoice.remainingAmount || 0,
-        remainingAmount: invoice.remainingAmount || 0
+        amount: invoice.remainingAmount || 0,  // Original remaining amount
+        remainingAmount: invoice.remainingAmount || 0,  // Original remaining amount
+        remainingRate: totalItemRemainingRate  // Remaining rate after discount
       }];
     }
     
-    // Calculate total amount
-    const totalAmount = updatedInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    // Calculate totals
+    const totalRemainingAmount = updatedInvoices.reduce((sum, inv) => sum + (inv.remainingAmount || 0), 0);
+    const totalRemainingRate = updatedInvoices.reduce((sum, inv) => sum + (inv.remainingRate || 0), 0);
     
-    // Recalculate TDS and net amount if TDS section exists
+    // Calculate TDS on remaining rate (after discount)
     let tdsAmount = 0;
     if (formData.tdsSection) {
       const selectedSection = tdsSection.find(s => s.uniqueKey === formData.tdsSection);
       if (selectedSection) {
-        tdsAmount = (totalAmount * selectedSection.rate) / 100;
+        tdsAmount = (totalRemainingRate * selectedSection.rate) / 100;
       }
     }
-    const netAmount = totalAmount - tdsAmount;
+    const netAmount = totalRemainingAmount - tdsAmount;
     
     setFormData({
       ...formData, 
       invoiceNumbers: updatedInvoices,
-      amount: totalAmount.toString(),
+      amount: totalRemainingAmount.toString(),
       tdsAmount: tdsAmount.toString(),
       netAmount: netAmount.toString()
     });
@@ -290,7 +321,10 @@ const CollectionRegister = () => {
       
       const response = await fetch(`${baseUrl}/api/collections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(submitData)
       });
       
@@ -304,7 +338,11 @@ const CollectionRegister = () => {
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);
-        alert('Error saving collection: ' + (errorData.message || 'Unknown error'));
+        if (errorData.isPastDateError) {
+          alert(errorData.message);
+        } else {
+          alert('Error saving collection: ' + (errorData.message || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('Error adding collection:', error);
@@ -375,6 +413,40 @@ const CollectionRegister = () => {
     client.clientCode.toLowerCase().includes(formData.customer.toLowerCase())
   );
 
+  const handleViewDetails = async (collection) => {
+    console.log('Collection data:', collection);
+    // Fetch complete collection details including invoice dates
+    try {
+      const response = await fetch(`${baseUrl}/api/collections`);
+      if (response.ok) {
+        const allCollections = await response.json();
+        const fullCollection = allCollections.find(c => c._id === collection._id) || collection;
+        console.log('Full collection data:', fullCollection);
+        
+        // Fetch invoice details to get invoice date
+        if (fullCollection.invoiceNumber) {
+          const invoiceResponse = await fetch(`${baseUrl}/api/invoices`);
+          if (invoiceResponse.ok) {
+            const invoices = await invoiceResponse.json();
+            const invoiceNumbers = fullCollection.invoiceNumber.split(',').map(num => num.trim());
+            const matchedInvoices = invoices.filter(inv => invoiceNumbers.includes(inv.invoiceNumber));
+            fullCollection.invoiceDates = matchedInvoices.map(inv => ({
+              number: inv.invoiceNumber,
+              date: inv.invoiceDate
+            }));
+          }
+        }
+        
+        setSelectedCollection(fullCollection);
+        setShowDetailsModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching collection details:', error);
+      setSelectedCollection(collection);
+      setShowDetailsModal(true);
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -406,7 +478,7 @@ const CollectionRegister = () => {
           <MetricsCard
             title="Collected This Month"
             value={`₹${stats.monthlyAmount.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="success"
           />
         </div>
@@ -507,14 +579,30 @@ const CollectionRegister = () => {
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <div>
+                                  <div className="w-full">
                                     <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
                                     <div className="text-sm text-gray-500">
-                                      {new Date(invoice.invoiceDate).toLocaleDateString()} | Total: ₹{(invoice.grandTotal || 0).toLocaleString('en-IN')} | Remaining: ₹{(invoice.remainingAmount || 0).toLocaleString('en-IN')}
+                                      {new Date(invoice.invoiceDate).toLocaleDateString()}
                                     </div>
+                                    <div className="text-xs text-gray-600 mt-1">
+                                      Original Rate: ₹{(invoice.grandTotal || 0).toLocaleString('en-IN')} | Remaining Rate: ₹{(invoice.remainingAmount || 0).toLocaleString('en-IN')}
+                                    </div>
+                                    {invoice.items && invoice.items.length > 0 && (
+                                      <div className="text-xs text-blue-600 mt-1">
+                                        {invoice.items.map((item, idx) => {
+                                          const itemSubtotal = (item.quantity || 0) * (item.unitPrice || 0);
+                                          const itemDiscount = (itemSubtotal * (item.discount || 0)) / 100;
+                                          const itemAfterDiscount = itemSubtotal - itemDiscount;
+                                          const invoiceSubtotal = invoice.items.reduce((sum, i) => sum + ((i.quantity || 0) * (i.unitPrice || 0)), 0);
+                                          const remainingSubtotal = invoiceSubtotal > 0 ? (invoice.remainingAmount * invoiceSubtotal) / (invoice.grandTotal || 1) : 0;
+                                          const itemRemainingRate = invoiceSubtotal > 0 ? (remainingSubtotal * itemAfterDiscount) / invoiceSubtotal : 0;
+                                          return `${item.product || 'Item'} (Qty: ${item.quantity || 0}, Rate: ₹${(item.unitPrice || 0).toFixed(2)}, Disc: ${item.discount || 0}%, Rem Rate: ₹${itemRemainingRate.toFixed(2)})`;
+                                        }).join(' | ')}
+                                      </div>
+                                    )}
                                   </div>
                                   {isSelected && (
-                                    <div className="text-blue-600 font-medium">✓</div>
+                                    <div className="text-blue-600 font-medium ml-2">✓</div>
                                   )}
                                 </div>
                               </div>
@@ -550,18 +638,23 @@ const CollectionRegister = () => {
                     value={formData.amount}
                     onChange={(e) => {
                       const newAmount = parseFloat(e.target.value) || 0;
-                      const maxAmount = formData.invoiceNumbers.reduce((sum, inv) => sum + (inv.remainingAmount || 0), 0);
+                      const maxRemainingAmount = formData.invoiceNumbers.reduce((sum, inv) => sum + (inv.remainingAmount || 0), 0);
                       
-                      if (maxAmount > 0 && newAmount > maxAmount) {
-                        alert(`Amount cannot exceed remaining amount of ₹${maxAmount.toFixed(2)}`);
+                      if (maxRemainingAmount > 0 && newAmount > maxRemainingAmount) {
+                        alert(`Amount cannot exceed remaining amount of ₹${maxRemainingAmount.toFixed(2)}`);
                         return;
                       }
+                      
+                      // Calculate TDS on remaining rate (after discount), not on amount
+                      const totalRemainingRate = formData.invoiceNumbers.reduce((sum, inv) => sum + (inv.remainingRate || inv.remainingAmount || 0), 0);
+                      const proportion = maxRemainingAmount > 0 ? newAmount / maxRemainingAmount : 1;
+                      const proportionalRemainingRate = totalRemainingRate * proportion;
                       
                       let tdsAmount = 0;
                       if (formData.tdsSection) {
                         const selectedSection = tdsSection.find(s => s.uniqueKey === formData.tdsSection);
                         if (selectedSection) {
-                          tdsAmount = (newAmount * selectedSection.rate) / 100;
+                          tdsAmount = (proportionalRemainingRate * selectedSection.rate) / 100;
                         }
                       }
                       const netAmount = newAmount - tdsAmount;
@@ -586,7 +679,9 @@ const CollectionRegister = () => {
                     onChange={(e) => {
                       const selectedSection = tdsSection.find(s => s.uniqueKey === e.target.value);
                       const totalAmount = parseFloat(formData.amount) || 0;
-                      const tdsAmount = selectedSection ? (totalAmount * selectedSection.rate) / 100 : 0;
+                      // Calculate TDS on remaining rate (after discount), not on amount
+                      const totalRemainingRate = formData.invoiceNumbers.reduce((sum, inv) => sum + (inv.remainingRate || inv.remainingAmount || 0), 0);
+                      const tdsAmount = selectedSection ? (totalRemainingRate * selectedSection.rate) / 100 : 0;
                       const netAmount = totalAmount - tdsAmount;
                       
                       setFormData({
@@ -685,7 +780,11 @@ const CollectionRegister = () => {
                             className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                           >
                             <div className="font-medium text-gray-900">{bank.bankName}</div>
-                            <div className="text-sm text-gray-500">{bank.accountNumber} | {bank.ifscCode}</div>
+                            <div className="text-sm text-gray-500">
+                              {bank.ifscCode && `${bank.ifscCode} | `}
+                              {bank.accountNumber && `****${bank.accountNumber.slice(-4)}`}
+                              {bank.branchName && ` | ${bank.branchName}`}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -745,30 +844,31 @@ const CollectionRegister = () => {
                 <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Mode</th>
                 <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Reference No.</th>
                 <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Approval</th>
+                <th className="text-left py-4 px-6 font-semibold text-blue-900 text-sm">Actions</th>
               </tr>
             </thead>
             <tbody>
               {collections.map((collection) => (
                 <tr key={collection._id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                  <td className="py-4 px-6 text-gray-900 font-medium">{collection.collectionNumber || '-'}</td>
-                  <td className="py-4 px-6 text-gray-900">{formatDate(collection.collectionDate)}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.customer}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.invoiceNumber}</td>
-                  <td className="py-4 px-6 text-gray-900">₹{collection.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-4 px-6 text-gray-900">
+                  <td className="py-4 px-6 text-gray-900 font-medium whitespace-nowrap">{collection.collectionNumber || '-'}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{formatDate(collection.collectionDate)}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.customer}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.invoiceNumber}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">₹{collection.amount.toLocaleString('en-IN')}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">
                     {collection.tdsAmount && parseFloat(collection.tdsAmount) > 0 ? 
                       `₹${parseFloat(collection.tdsAmount).toLocaleString('en-IN')}` : '-'}
                   </td>
-                  <td className="py-4 px-6 text-gray-900 font-semibold">
+                  <td className="py-4 px-6 text-gray-900 font-semibold whitespace-nowrap">
                     {collection.netAmount && parseFloat(collection.netAmount) > 0 ? 
                       `₹${parseFloat(collection.netAmount).toLocaleString('en-IN')}` : 
                       `₹${collection.amount.toLocaleString('en-IN')}`}
                   </td>
-                  <td className="py-4 px-6 text-gray-900">{collection.paymentMode}</td>
-                  <td className="py-4 px-6 text-gray-900">{collection.referenceNumber || '-'}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.paymentMode}</td>
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{collection.referenceNumber || '-'}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(collection.approvalStatus || 'Pending')}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getApprovalColor(collection.approvalStatus || 'Pending')}`}>
                         {collection.approvalStatus || 'Pending'}
                       </span>
                       {userRole === 'manager' && collection.approvalStatus === 'Pending' && (
@@ -791,15 +891,158 @@ const CollectionRegister = () => {
                       )}
                     </div>
                   </td>
+                  <td className="py-4 px-6">
+                    <button
+                      onClick={() => handleViewDetails(collection)}
+                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+                      title="View Details"
+                    >
+                      <Eye size={16} />
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* View Details Modal */}
+      {showDetailsModal && selectedCollection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Collection Details</h2>
+                <button onClick={() => setShowDetailsModal(false)} className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="overflow-y-auto flex-1 p-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Collection Number</label>
+                    <p className="text-lg font-semibold text-gray-900">{selectedCollection.collectionNumber || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500">Collection Date</label>
+                    <p className="text-lg font-semibold text-gray-900">{formatDate(selectedCollection.collectionDate)}</p>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Customer Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Customer Name</label>
+                      <p className="text-base text-gray-900">{selectedCollection.customer}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Invoice Number(s)</label>
+                      <p className="text-base text-gray-900">{selectedCollection.invoiceNumber}</p>
+                    </div>
+                    {selectedCollection.invoiceDates && selectedCollection.invoiceDates.length > 0 && (
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-500">Invoice Date(s)</label>
+                        <p className="text-base text-gray-900">
+                          {selectedCollection.invoiceDates.map((inv, idx) => 
+                            new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                          ).join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Payment Information</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500">Payment Mode</label>
+                        <p className="text-base text-gray-900">{selectedCollection.paymentMode}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500">Reference Number</label>
+                        <p className="text-base text-gray-900">{selectedCollection.referenceNumber || '-'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Bank Account</label>
+                      <p className="text-base text-gray-900 font-medium">
+                        {selectedCollection.bankAccount || selectedCollection.bankName || 'Not specified'}
+                      </p>
+                      {!selectedCollection.bankAccount && !selectedCollection.bankName && (
+                        <p className="text-xs text-red-500 mt-1">Bank account information not available</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Amount Details</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Amount:</span>
+                      <span className="font-semibold text-gray-900">₹{selectedCollection.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                    {selectedCollection.tdsSection && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">TDS Section:</span>
+                        <span className="font-medium text-gray-900">{selectedCollection.tdsSection}</span>
+                      </div>
+                    )}
+                    {selectedCollection.tdsPercentage && parseFloat(selectedCollection.tdsPercentage) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">TDS Percentage:</span>
+                        <span className="font-medium text-gray-900">{selectedCollection.tdsPercentage}%</span>
+                      </div>
+                    )}
+                    {selectedCollection.tdsAmount && parseFloat(selectedCollection.tdsAmount) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">TDS Amount:</span>
+                        <span className="font-semibold text-red-600">₹{parseFloat(selectedCollection.tdsAmount).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t pt-2 mt-2">
+                      <span className="text-gray-800 font-semibold">Net Amount:</span>
+                      <span className="font-bold text-green-600 text-lg">
+                        ₹{(selectedCollection.netAmount && parseFloat(selectedCollection.netAmount) > 0 ? parseFloat(selectedCollection.netAmount) : selectedCollection.amount).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Status</h3>
+                  <div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getApprovalColor(selectedCollection.approvalStatus || 'Pending')}`}>
+                      {selectedCollection.approvalStatus || 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default CollectionRegister;
+
 
