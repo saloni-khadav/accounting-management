@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Building, Save, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Upload, Building, Save, Eye, EyeOff, Plus, Trash2, Download, FileText } from 'lucide-react';
 import { validateGST } from '../utils/gstUtils';
 
 const Profile = () => {
@@ -9,8 +9,7 @@ const Profile = () => {
     companyLogo: null,
     companyLogoUrl: null,
     gstNumber: '',
-    gstNumbers: [{ gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: true }],
-    gstCertificate: null,
+    gstNumbers: [{ gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: true, gstCertificate: null }],
     tradeName: '',
     address: '',
     panNumber: '',
@@ -19,7 +18,7 @@ const Profile = () => {
     msmeStatus: 'No',
     msmeNumber: '',
     msmeFile: null,
-    bankAccounts: [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '' }]
+    bankAccounts: [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '', bankStatement: null }]
   });
 
   const [showPanFull, setShowPanFull] = useState(false);
@@ -48,7 +47,11 @@ const Profile = () => {
               ...prev,
               gstNumber: profile.gstNumber || '',
               gstNumbers: profile.gstNumbers && profile.gstNumbers.length > 0 
-                ? profile.gstNumbers 
+                ? profile.gstNumbers.map(gst => ({
+                    ...gst,
+                    gstCertificate: gst.gstCertificate ? `${baseUrl}/${gst.gstCertificate}` : null,
+                    gstCertificateName: gst.gstCertificateName
+                  }))
                 : profile.gstNumber 
                   ? [{ gstNumber: profile.gstNumber, address: profile.address || '', tradeName: profile.tradeName || '', panNumber: profile.panNumber || '', isDefault: true }]
                   : [{ gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: true }],
@@ -59,8 +62,17 @@ const Profile = () => {
               mcaNumber: profile.mcaNumber || '',
               msmeStatus: profile.msmeStatus || 'No',
               msmeNumber: profile.msmeNumber || '',
-              companyLogoUrl: profile.companyLogo || null,
-              bankAccounts: profile.bankAccounts && profile.bankAccounts.length > 0 ? profile.bankAccounts : [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '' }]
+              companyLogoUrl: profile.companyLogo ? `${baseUrl}/${profile.companyLogo}` : null,
+              tanFile: profile.tanCertificate ? { name: profile.tanCertificateName || 'TAN Certificate', url: `${baseUrl}/${profile.tanCertificate}` } : null,
+              mcaFile: profile.mcaCertificate ? { name: profile.mcaCertificateName || 'MCA Certificate', url: `${baseUrl}/${profile.mcaCertificate}` } : null,
+              msmeFile: profile.msmeCertificate ? { name: profile.msmeCertificateName || 'MSME Certificate', url: `${baseUrl}/${profile.msmeCertificate}` } : null,
+              bankAccounts: profile.bankAccounts && profile.bankAccounts.length > 0 
+                ? profile.bankAccounts.map(bank => ({
+                    ...bank,
+                    bankStatement: bank.bankStatement ? `${baseUrl}/${bank.bankStatement}` : null,
+                    bankStatementName: bank.bankStatementName
+                  }))
+                : [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '', bankStatement: null }]
             }));
           }
         }
@@ -100,7 +112,7 @@ const Profile = () => {
   const addGSTNumber = () => {
     setProfileData({
       ...profileData,
-      gstNumbers: [...profileData.gstNumbers, { gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: false }]
+      gstNumbers: [...profileData.gstNumbers, { gstNumber: '', address: '', tradeName: '', panNumber: '', isDefault: false, gstCertificate: null }]
     });
   };
 
@@ -136,11 +148,39 @@ const Profile = () => {
   };
 
   const handleFileUpload = async (field, file, gstIndex = null) => {
-    setProfileData(prev => ({ ...prev, [field]: file }));
-    if (field === 'gstCertificate' && file) await processGSTDocument(file, gstIndex || 0);
-    if (field === 'mcaFile' && file) await extractMCANumber(file);
-    if (field === 'msmeFile' && file) await extractMSMENumber(file);
-    if (field === 'tanFile' && file) await extractTANNumber(file);
+    if (field === 'gstCertificate' && gstIndex !== null) {
+      const updatedGSTNumbers = [...profileData.gstNumbers];
+      updatedGSTNumbers[gstIndex] = {
+        ...updatedGSTNumbers[gstIndex],
+        gstCertificate: file,
+        gstNumber: '',
+        address: '',
+        tradeName: '',
+        panNumber: ''
+      };
+      setProfileData(prev => ({ ...prev, gstNumbers: updatedGSTNumbers }));
+      const success = await processGSTDocument(file, gstIndex);
+      if (!success) {
+        updatedGSTNumbers[gstIndex].gstCertificate = null;
+        setProfileData(prev => ({ ...prev, gstNumbers: updatedGSTNumbers }));
+      }
+    } else {
+      if (field === 'mcaFile') {
+        setProfileData(prev => ({ ...prev, mcaFile: file, mcaNumber: '' }));
+        const success = await extractMCANumber(file);
+        if (!success) setProfileData(prev => ({ ...prev, mcaFile: null }));
+      } else if (field === 'msmeFile') {
+        setProfileData(prev => ({ ...prev, msmeFile: file, msmeNumber: '' }));
+        const success = await extractMSMENumber(file);
+        if (!success) setProfileData(prev => ({ ...prev, msmeFile: null }));
+      } else if (field === 'tanFile') {
+        setProfileData(prev => ({ ...prev, tanFile: file, tanNumber: '' }));
+        const success = await extractTANNumber(file);
+        if (!success) setProfileData(prev => ({ ...prev, tanFile: null }));
+      } else {
+        setProfileData(prev => ({ ...prev, [field]: file }));
+      }
+    }
   };
 
   const processGSTDocument = async (file, gstIndex = 0) => {
@@ -161,93 +201,47 @@ const Profile = () => {
         const extractedGST = ocrResult.data.gstNumber;
         const extractedPAN = extractedGST.substring(2, 12);
         
-        // Validate PAN matches existing GST entries
         if (profileData.gstNumbers.some((gst, idx) => idx !== gstIndex && gst.gstNumber && gst.gstNumber.substring(2, 12) !== extractedPAN)) {
           alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
           setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
-          return;
+          return false;
         }
         
         let extractedTradeName = (ocrResult.data.tradeName || '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
         const extractedAddress = ocrResult.data.billingAddress || '';
         
-        console.log('Extracted GST:', extractedGST);
-        console.log('Extracted Trade Name (cleaned):', extractedTradeName);
-        console.log('Extracted Address:', extractedAddress);
-        
-        const token = localStorage.getItem('token');
-        const verifyResponse = await fetch(`${baseUrl}/api/gst/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ gstNumber: extractedGST })
+        setProfileData(prev => {
+          const updatedGSTNumbers = [...prev.gstNumbers];
+          updatedGSTNumbers[gstIndex] = {
+            ...updatedGSTNumbers[gstIndex],
+            gstNumber: extractedGST,
+            address: extractedAddress,
+            tradeName: extractedTradeName,
+            panNumber: extractedPAN,
+            gstCertificateName: undefined
+          };
+          
+          const defaultGST = updatedGSTNumbers.find(g => g.isDefault) || updatedGSTNumbers[0];
+          
+          return { 
+            ...prev, 
+            gstNumber: defaultGST.gstNumber,
+            gstNumbers: updatedGSTNumbers,
+            tradeName: defaultGST.tradeName || prev.tradeName,
+            address: defaultGST.address,
+            panNumber: defaultGST.panNumber || prev.panNumber
+          };
         });
-        const verifyResult = await verifyResponse.json();
-        
-        if (verifyResponse.ok && verifyResult.success) {
-          const { gstNumber, tradeName, panNumber, address } = verifyResult.data;
-          
-          // Validate PAN from API matches existing entries
-          if (profileData.gstNumbers.some((gst, idx) => idx !== gstIndex && gst.panNumber && gst.panNumber !== panNumber)) {
-            alert('Error: This GST belongs to a different company. All GST numbers must belong to the same company (same PAN).');
-            setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
-            return;
-          }
-          
-          const finalTradeName = (tradeName && !tradeName.toLowerCase().includes('demo')) ? tradeName : extractedTradeName;
-          const finalAddress = (address && !address.toLowerCase().includes('demo')) ? address : extractedAddress;
-          
-          setProfileData(prev => {
-            const updatedGSTNumbers = [...prev.gstNumbers];
-            updatedGSTNumbers[gstIndex] = {
-              ...updatedGSTNumbers[gstIndex],
-              gstNumber: gstNumber,
-              address: finalAddress,
-              tradeName: finalTradeName,
-              panNumber: panNumber
-            };
-            
-            const defaultGST = updatedGSTNumbers.find(g => g.isDefault) || updatedGSTNumbers[0];
-            
-            const newData = { 
-              ...prev, 
-              gstNumber: defaultGST.gstNumber,
-              gstNumbers: updatedGSTNumbers,
-              tradeName: defaultGST.tradeName || prev.tradeName,
-              address: defaultGST.address,
-              panNumber: defaultGST.panNumber || prev.panNumber
-            };
-            return newData;
-          });
-          alert('GST certificate processed successfully!');
-        } else {
-          setProfileData(prev => {
-            const updatedGSTNumbers = [...prev.gstNumbers];
-            updatedGSTNumbers[gstIndex] = {
-              ...updatedGSTNumbers[gstIndex],
-              gstNumber: extractedGST,
-              address: extractedAddress,
-              tradeName: extractedTradeName
-            };
-            
-            const defaultGST = updatedGSTNumbers.find(g => g.isDefault) || updatedGSTNumbers[0];
-            
-            const newData = { 
-              ...prev, 
-              gstNumber: defaultGST.gstNumber,
-              gstNumbers: updatedGSTNumbers,
-              tradeName: defaultGST.tradeName || prev.tradeName,
-              address: defaultGST.address
-            };
-            return newData;
-          });
-          alert(`GST: ${extractedGST}\nAddress: ${extractedAddress}`);
-        }
+        alert('GST certificate processed successfully!');
+        return true;
       } else {
         alert('Could not extract GST number from the document.');
+        return false;
       }
     } catch (error) {
       console.error('Error processing GST document:', error);
       alert('Error processing GST document.');
+      return false;
     } finally {
       setUploadStates(prev => ({ ...prev, [`gst_${gstIndex}`]: false }));
     }
@@ -265,11 +259,14 @@ const Profile = () => {
       if (response.ok && result.success && result.data.mcaNumber) {
         setProfileData(prev => ({ ...prev, mcaNumber: result.data.mcaNumber }));
         alert(`MCA number extracted: ${result.data.mcaNumber}`);
+        return true;
       } else {
         alert('MCA number not found in this document. Please upload the correct MCA certificate.');
+        return false;
       }
     } catch (error) {
       alert('Error processing MCA document. Please try again.');
+      return false;
     } finally {
       setUploadStates(prev => ({ ...prev, mca: false }));
     }
@@ -287,11 +284,14 @@ const Profile = () => {
       if (response.ok && result.success && result.data.msmeNumber) {
         setProfileData(prev => ({ ...prev, msmeNumber: result.data.msmeNumber, msmeStatus: 'Yes' }));
         alert(`MSME number extracted: ${result.data.msmeNumber}`);
+        return true;
       } else {
         alert('MSME number not found in this document. Please upload the correct MSME certificate.');
+        return false;
       }
     } catch (error) {
       alert('Error processing MSME document. Please try again.');
+      return false;
     } finally {
       setUploadStates(prev => ({ ...prev, msme: false }));
     }
@@ -309,11 +309,14 @@ const Profile = () => {
       if (response.ok && result.success && result.data.tanNumber) {
         setProfileData(prev => ({ ...prev, tanNumber: result.data.tanNumber }));
         alert(`TAN number extracted: ${result.data.tanNumber}`);
+        return true;
       } else {
         alert('TAN number not found in this document. Please upload the correct TAN certificate.');
+        return false;
       }
     } catch (error) {
       alert('Error processing TAN document. Please try again.');
+      return false;
     } finally {
       setUploadStates(prev => ({ ...prev, tan: false }));
     }
@@ -321,16 +324,23 @@ const Profile = () => {
 
   const extractBankDetails = async (file, index) => {
     setUploadStates(prev => ({ ...prev, [`bank_${index}`]: { loading: true } }));
+    
+    // Store file and clear fields
+    setProfileData(prev => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.map((acc, i) => 
+        i === index ? { ...acc, bankStatement: file, accountNumber: '', ifscCode: '', bankName: '', branchName: '' } : acc
+      )
+    }));
+    
     try {
       const formData = new FormData();
       formData.append('document', file);
       formData.append('documentType', 'bankStatement');
+      formData.append('companyTradeName', profileData.tradeName);
+      
       const response = await fetch(`${baseUrl}/api/ocr/extract`, { method: 'POST', body: formData });
       const result = await response.json();
-      
-      console.log('OCR Response:', result);
-      console.log('Success:', result.success);
-      console.log('Data:', result.data);
       
       if (response.ok && result.success) {
         const updates = {};
@@ -349,9 +359,6 @@ const Profile = () => {
           dataFound = true;
         }
         
-        console.log('Data found:', dataFound);
-        console.log('Updates:', updates);
-        
         if (dataFound) {
           setProfileData(prev => ({
             ...prev,
@@ -361,13 +368,34 @@ const Profile = () => {
           }));
           alert('Bank details extracted successfully!');
         } else {
+          // Remove file if no data found
+          setProfileData(prev => ({
+            ...prev,
+            bankAccounts: prev.bankAccounts.map((acc, i) => 
+              i === index ? { ...acc, bankStatement: null } : acc
+            )
+          }));
           alert('Bank details not found in this document. Please upload the correct bank statement.');
         }
       } else {
+        // Remove file if extraction failed
+        setProfileData(prev => ({
+          ...prev,
+          bankAccounts: prev.bankAccounts.map((acc, i) => 
+            i === index ? { ...acc, bankStatement: null } : acc
+          )
+        }));
         alert(result.message || 'Bank details not found in this document. Please upload the correct bank statement.');
       }
     } catch (error) {
       console.error('Error:', error);
+      // Remove file on error
+      setProfileData(prev => ({
+        ...prev,
+        bankAccounts: prev.bankAccounts.map((acc, i) => 
+          i === index ? { ...acc, bankStatement: null } : acc
+        )
+      }));
       alert('Error processing bank document.');
     } finally {
       setUploadStates(prev => ({ ...prev, [`bank_${index}`]: { loading: false } }));
@@ -414,7 +442,7 @@ const Profile = () => {
   const addBankAccount = () => {
     setProfileData(prev => ({
       ...prev,
-      bankAccounts: [...prev.bankAccounts, { bankName: '', accountNumber: '', ifscCode: '', branchName: '' }]
+      bankAccounts: [...prev.bankAccounts, { bankName: '', accountNumber: '', ifscCode: '', branchName: '', bankStatement: null }]
     }));
   };
 
@@ -457,18 +485,13 @@ const Profile = () => {
       return;
     }
     
-    // Ensure gstNumber is set to default GST
     const defaultGST = profileData.gstNumbers.find(gst => gst.isDefault) || profileData.gstNumbers[0];
     const finalGSTNumber = defaultGST?.gstNumber || '';
-    
-    console.log('💾 Saving profile with GST:', finalGSTNumber);
-    console.log('💾 Default GST object:', defaultGST);
     
     // Validate bank accounts
     for (let i = 0; i < profileData.bankAccounts.length; i++) {
       const account = profileData.bankAccounts[i];
       
-      // Validate account number (9-18 digits, only numbers)
       if (account.accountNumber) {
         const accountDigits = account.accountNumber.replace(/[^0-9]/g, '');
         if (account.accountNumber !== accountDigits || accountDigits.length < 9 || accountDigits.length > 18) {
@@ -477,7 +500,6 @@ const Profile = () => {
         }
       }
       
-      // Validate IFSC code (11 characters)
       if (account.ifscCode && account.ifscCode.length !== 11) {
         alert(`Bank Account ${i + 1}: IFSC Code must be exactly 11 characters. Current: ${account.ifscCode.length} characters`);
         return;
@@ -486,40 +508,76 @@ const Profile = () => {
     
     try {
       const token = localStorage.getItem('token');
-      let logoBase64 = null;
-      if (profileData.companyLogo) {
-        const reader = new FileReader();
-        logoBase64 = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(profileData.companyLogo);
-        });
+      const formData = new FormData();
+      
+      // Add company logo
+      if (profileData.companyLogo instanceof File) {
+        formData.append('companyLogo', profileData.companyLogo);
       }
+      
+      // Add GST certificates
+      profileData.gstNumbers.forEach((gst, index) => {
+        if (gst.gstCertificate instanceof File) {
+          formData.append('gstCertificates', gst.gstCertificate);
+        }
+      });
+      
+      // Add bank statements
+      profileData.bankAccounts.forEach((bank, index) => {
+        if (bank.bankStatement instanceof File) {
+          formData.append('bankStatements', bank.bankStatement);
+        }
+      });
+      
+      // Add other certificates
+      if (profileData.tanFile instanceof File) {
+        formData.append('tanCertificate', profileData.tanFile);
+      }
+      if (profileData.mcaFile instanceof File) {
+        formData.append('mcaCertificate', profileData.mcaFile);
+      }
+      if (profileData.msmeFile instanceof File) {
+        formData.append('msmeCertificate', profileData.msmeFile);
+      }
+      
+      // Add text fields
+      formData.append('gstNumber', finalGSTNumber);
+      formData.append('gstNumbers', JSON.stringify(profileData.gstNumbers.map((gst, index) => ({
+        gstNumber: gst.gstNumber,
+        address: gst.address,
+        tradeName: gst.tradeName,
+        panNumber: gst.panNumber,
+        isDefault: gst.isDefault,
+        gstCertificate: gst.gstCertificate instanceof File ? null : gst.gstCertificate,
+        gstCertificateName: gst.gstCertificate instanceof File ? null : gst.gstCertificateName
+      }))));
+      formData.append('tradeName', profileData.tradeName);
+      formData.append('address', profileData.address);
+      formData.append('panNumber', profileData.panNumber);
+      formData.append('tanNumber', profileData.tanNumber);
+      formData.append('mcaNumber', profileData.mcaNumber);
+      formData.append('msmeStatus', profileData.msmeStatus);
+      formData.append('msmeNumber', profileData.msmeNumber);
+      formData.append('bankAccounts', JSON.stringify(profileData.bankAccounts.map((bank, index) => ({
+        bankName: bank.bankName,
+        accountNumber: bank.accountNumber,
+        ifscCode: bank.ifscCode,
+        branchName: bank.branchName,
+        bankStatement: bank.bankStatement instanceof File ? null : bank.bankStatement,
+        bankStatementName: bank.bankStatement instanceof File ? null : bank.bankStatementName
+      }))));
+      
       const response = await fetch(`${baseUrl}/api/profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          companyLogo: logoBase64,
-          gstNumber: finalGSTNumber,
-          gstNumbers: profileData.gstNumbers,
-          tradeName: profileData.tradeName,
-          address: profileData.address,
-          panNumber: profileData.panNumber,
-          tanNumber: profileData.tanNumber,
-          mcaNumber: profileData.mcaNumber,
-          msmeStatus: profileData.msmeStatus,
-          msmeNumber: profileData.msmeNumber,
-          bankAccounts: profileData.bankAccounts
-        })
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
       });
+      
       const result = await response.json();
       if (response.ok && result.success) {
-        console.log('Profile saved successfully'); // Debug log
-        console.log('Triggering settingsUpdated event'); // Debug log
         alert('Profile saved successfully!');
-        // Trigger header refresh
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
       } else {
-        console.error('Profile save error:', result); // Debug log
         alert('Error saving profile: ' + result.message);
       }
     } catch (error) {
@@ -542,36 +600,10 @@ const Profile = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Company Logo Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
-                <h3 className="text-lg font-semibold text-white">Company Logo</h3>
-              </div>
-              <div className="p-6">
-                <div className="flex items-center space-x-6">
-                  {profileData.companyLogo ? (
-                    <img src={URL.createObjectURL(profileData.companyLogo)} alt="Logo" className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200 shadow-sm" />
-                  ) : profileData.companyLogoUrl ? (
-                    <img src={profileData.companyLogoUrl} alt="Logo" className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200 shadow-sm" />
-                  ) : (
-                    <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-gray-200">
-                      <Building className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
-                  <label className="cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center transition-all duration-200 shadow-sm hover:shadow-md">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Logo
-                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload('companyLogo', e.target.files[0])} className="hidden" />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* GST Information Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-              <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
-                <div className="flex justify-between items-center">
+          {/* GST Information Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+            <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-6 py-4 border-b border-blue-400">
+              <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-white">GST Information *</h3>
                   <button onClick={addGSTNumber} className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-all duration-200">
                     <Plus className="w-4 h-4 mr-2" />
@@ -579,8 +611,9 @@ const Profile = () => {
                   </button>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
-                {profileData.gstNumbers.map((gst, index) => (
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {profileData.gstNumbers.map((gst, index) => (
                   <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 p-4">
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
@@ -613,14 +646,40 @@ const Profile = () => {
                         <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md text-sm ${uploadStates[`gst_${index}`] ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <Upload className="w-4 h-4 mr-2" />
                           {uploadStates[`gst_${index}`] ? 'Processing...' : 'Upload GST Certificate'}
-                          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('gstCertificate', e.target.files[0], index)} className="hidden" disabled={uploadStates[`gst_${index}`]} />
+                          <input 
+                            type="file" 
+                            accept=".pdf,.jpg,.jpeg,.png" 
+                            onChange={(e) => {
+                              if (e.target.files[0]) {
+                                handleFileUpload('gstCertificate', e.target.files[0], index);
+                                e.target.value = '';
+                              }
+                            }} 
+                            className="hidden" 
+                            disabled={uploadStates[`gst_${index}`]} 
+                          />
                         </label>
+                        {gst.gstCertificate && (
+                          <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                            <FileText className="w-4 h-4" />
+                            <span className="flex-1">{gst.gstCertificate instanceof File ? gst.gstCertificate.name : (gst.gstCertificateName || 'GST Certificate')}</span>
+                            <button onClick={() => {
+                              const url = gst.gstCertificate instanceof File ? URL.createObjectURL(gst.gstCertificate) : gst.gstCertificate;
+                              window.open(url);
+                            }} className="text-blue-600 hover:text-blue-800">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <a href={gst.gstCertificate instanceof File ? URL.createObjectURL(gst.gstCertificate) : gst.gstCertificate} download="GST-Certificate.pdf" className="text-green-600 hover:text-green-800">
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
-            </div>
           </div>
 
           {/* Basic Information Section */}
@@ -654,9 +713,34 @@ const Profile = () => {
                   <label className={`cursor-pointer bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-purple-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.tan ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <Upload className="w-4 h-4 mr-2" />
                     {uploadStates.tan ? 'Processing...' : 'Upload TAN Certificate'}
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('tanFile', e.target.files[0])} className="hidden" disabled={uploadStates.tan} />
+                    <input 
+                      type="file" 
+                      accept=".pdf,.jpg,.jpeg,.png" 
+                      onChange={(e) => {
+                        if (e.target.files[0]) {
+                          handleFileUpload('tanFile', e.target.files[0]);
+                          e.target.value = '';
+                        }
+                      }} 
+                      className="hidden" 
+                      disabled={uploadStates.tan} 
+                    />
                   </label>
-                  {profileData.tanFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.tanFile.name}</p>}
+                  {profileData.tanFile && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <FileText className="w-4 h-4" />
+                      <span className="flex-1">{profileData.tanFile.name}</span>
+                      <button onClick={() => {
+                        const url = profileData.tanFile instanceof File ? URL.createObjectURL(profileData.tanFile) : profileData.tanFile.url;
+                        if (url) window.open(url);
+                      }} className="text-blue-600 hover:text-blue-800">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <a href={profileData.tanFile instanceof File ? URL.createObjectURL(profileData.tanFile) : profileData.tanFile.url} download={profileData.tanFile.name} className="text-green-600 hover:text-green-800">
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -681,9 +765,34 @@ const Profile = () => {
                   <label className={`cursor-pointer bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.mca ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <Upload className="w-4 h-4 mr-2" />
                     {uploadStates.mca ? 'Processing...' : 'Upload MCA Certificate'}
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('mcaFile', e.target.files[0])} className="hidden" disabled={uploadStates.mca} />
+                    <input 
+                      type="file" 
+                      accept=".pdf,.jpg,.jpeg,.png" 
+                      onChange={(e) => {
+                        if (e.target.files[0]) {
+                          handleFileUpload('mcaFile', e.target.files[0]);
+                          e.target.value = '';
+                        }
+                      }} 
+                      className="hidden" 
+                      disabled={uploadStates.mca} 
+                    />
                   </label>
-                  {profileData.mcaFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.mcaFile.name}</p>}
+                  {profileData.mcaFile && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <FileText className="w-4 h-4" />
+                      <span className="flex-1">{profileData.mcaFile.name}</span>
+                      <button onClick={() => {
+                        const url = profileData.mcaFile instanceof File ? URL.createObjectURL(profileData.mcaFile) : profileData.mcaFile.url;
+                        if (url) window.open(url);
+                      }} className="text-blue-600 hover:text-blue-800">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <a href={profileData.mcaFile instanceof File ? URL.createObjectURL(profileData.mcaFile) : profileData.mcaFile.url} download={profileData.mcaFile.name} className="text-green-600 hover:text-green-800">
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -720,9 +829,34 @@ const Profile = () => {
                       <label className={`cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md ${uploadStates.msme ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <Upload className="w-4 h-4 mr-2" />
                         {uploadStates.msme ? 'Processing...' : 'Upload Certificate'}
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileUpload('msmeFile', e.target.files[0])} className="hidden" disabled={uploadStates.msme} />
+                        <input 
+                          type="file" 
+                          accept=".pdf,.jpg,.jpeg,.png" 
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleFileUpload('msmeFile', e.target.files[0]);
+                              e.target.value = '';
+                            }
+                          }} 
+                          className="hidden" 
+                          disabled={uploadStates.msme} 
+                        />
                       </label>
-                      {profileData.msmeFile && <p className="text-sm text-green-600 flex items-center"><span className="mr-1">✓</span> File uploaded: {profileData.msmeFile.name}</p>}
+                      {profileData.msmeFile && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <FileText className="w-4 h-4" />
+                          <span className="flex-1">{profileData.msmeFile.name}</span>
+                          <button onClick={() => {
+                            const url = profileData.msmeFile instanceof File ? URL.createObjectURL(profileData.msmeFile) : profileData.msmeFile.url;
+                            if (url) window.open(url);
+                          }} className="text-blue-600 hover:text-blue-800">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <a href={profileData.msmeFile instanceof File ? URL.createObjectURL(profileData.msmeFile) : profileData.msmeFile.url} download={profileData.msmeFile.name} className="text-green-600 hover:text-green-800">
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -766,6 +900,21 @@ const Profile = () => {
                               </label>
                             </div>
                           </div>
+                          {profileData.bankAccounts[index].bankStatement && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                              <FileText className="w-4 h-4" />
+                              <span className="flex-1">{profileData.bankAccounts[index].bankStatement instanceof File ? profileData.bankAccounts[index].bankStatement.name : (profileData.bankAccounts[index].bankStatementName || 'Bank Statement')}</span>
+                              <button onClick={() => {
+                                const url = profileData.bankAccounts[index].bankStatement instanceof File ? URL.createObjectURL(profileData.bankAccounts[index].bankStatement) : profileData.bankAccounts[index].bankStatement;
+                                window.open(url);
+                              }} className="text-blue-600 hover:text-blue-800">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <a href={profileData.bankAccounts[index].bankStatement instanceof File ? URL.createObjectURL(profileData.bankAccounts[index].bankStatement) : profileData.bankAccounts[index].bankStatement} download="Bank-Statement.pdf" className="text-green-600 hover:text-green-800">
+                                <Download className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
                           <button onClick={() => removeBankAccount(index)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors">
                             <Trash2 className="w-5 h-5" />
                           </button>
