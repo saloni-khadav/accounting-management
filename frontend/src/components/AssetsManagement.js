@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { DollarSign, TrendingDown, CheckCircle, Package } from 'lucide-react';
+import { IndianRupee, TrendingDown, CheckCircle, Package } from 'lucide-react';
 
 const AssetsManagement = () => {
   const [assets, setAssets] = useState([]);
@@ -124,51 +124,59 @@ const AssetsManagement = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8 lg:mb-10">
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Asset Value</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{summary.totalValue.toLocaleString('en-IN')}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <IndianRupee className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <DollarSign size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Total Asset Value</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">₹{summary.totalValue.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Accumulated Depreciation</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{summary.totalDepreciation.toLocaleString('en-IN')}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <TrendingDown className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <TrendingDown size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Accumulated Depreciation</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">₹{summary.totalDepreciation.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Net Asset Value</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">₹{summary.netValue.toLocaleString('en-IN')}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <CheckCircle className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <CheckCircle size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Net Asset Value</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">₹{summary.netValue.toLocaleString('en-IN')}</p>
               </div>
             </div>
           </div>
-          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-4 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-white to-blue-50/30 rounded-2xl border border-blue-100 p-5 sm:p-6 hover:shadow-2xl hover:border-blue-300 transition-all duration-300 overflow-hidden group min-h-[130px]">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-300 to-blue-400 rounded-l-2xl"></div>
-            <div className="ml-2 flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 sm:mb-3">Total Assets</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-700">{assets.length}</p>
+            <div className="ml-2">
+              <div className="flex items-start justify-end mb-1">
+                <div className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
+                  <Package className="w-4 h-4" strokeWidth={2} />
+                </div>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-blue-300 to-blue-400 text-white shadow-lg shadow-blue-300/30 group-hover:scale-110 transition-all duration-300">
-                <Package size={20} className="sm:w-6 sm:h-6" strokeWidth={2} />
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Total Assets</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-700">{assets.length}</p>
               </div>
             </div>
           </div>
@@ -262,15 +270,15 @@ const AssetsManagement = () => {
                 <tbody className="divide-y divide-gray-100">
                   {assets.slice(0, 10).map((asset, index) => (
                     <tr key={asset._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">{asset.assetName}</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{asset.assetName}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {asset.category}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-sm text-gray-900 font-medium">{new Date(asset.purchaseDate).toLocaleDateString('en-IN')}</td>
-                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900">₹{asset.purchaseValue.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 text-sm text-gray-900 font-medium whitespace-nowrap">{new Date(asset.purchaseDate).toLocaleDateString('en-IN')}</td>
+                      <td className="py-3.5 px-4 text-sm font-semibold text-gray-900 whitespace-nowrap">₹{asset.purchaseValue.toLocaleString('en-IN')}</td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
                           asset.status === 'Active' ? 'bg-green-100 text-green-800' :
                           asset.status === 'Under Maintenance' ? 'bg-yellow-100 text-yellow-800' :

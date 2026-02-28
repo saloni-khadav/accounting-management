@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, DollarSign, Clock, AlertTriangle, FileText } from 'lucide-react';
+import { Download, IndianRupee, Clock, AlertTriangle, FileText } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const ClientOutstanding = () => {
@@ -169,7 +169,7 @@ const ClientOutstanding = () => {
         <MetricsCard
           title="Total Outstanding"
           value={`₹${totalOutstanding.toLocaleString('en-IN')}`}
-          icon={DollarSign}
+          icon={IndianRupee}
           color="primary"
         />
         <MetricsCard
@@ -226,13 +226,13 @@ const ClientOutstanding = () => {
               ) : (
                 clientData.map((client, index) => (
                   <tr key={index} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                    <td className="py-4 px-6 text-sm font-medium text-gray-900">{client.clientName}</td>
-                    <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceNo}</td>
-                    <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceDate}</td>
-                    <td className="py-4 px-6 text-sm text-gray-700">{client.invoiceAmount}</td>
-                    <td className="py-4 px-6 text-sm text-gray-700">{client.tdsAmount}</td>
-                    <td className="py-4 px-6 text-sm text-green-600 font-medium">{client.totalReceived}</td>
-                    <td className="py-4 px-6 text-sm font-semibold text-gray-900">{client.totalOutstanding}</td>
+                    <td className="py-4 px-6 text-sm font-medium text-gray-900 whitespace-nowrap">{client.clientName}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 whitespace-nowrap">{client.invoiceNo}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 whitespace-nowrap">{client.invoiceDate}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 whitespace-nowrap">{client.invoiceAmount}</td>
+                    <td className="py-4 px-6 text-sm text-gray-700 whitespace-nowrap">{client.tdsAmount}</td>
+                    <td className="py-4 px-6 text-sm text-green-600 font-medium whitespace-nowrap">{client.totalReceived}</td>
+                    <td className="py-4 px-6 text-sm font-semibold text-gray-900 whitespace-nowrap">{client.totalOutstanding}</td>
                   </tr>
                 ))
               )}

@@ -5,6 +5,8 @@ const fs = require('fs');
 const Invoice = require('../models/Invoice');
 const router = express.Router();
 const { notifyInvoiceCreated } = require('../utils/notificationHelper');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -72,7 +74,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new invoice
-router.post('/', upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Invoices'), async (req, res) => {
+  console.log('\n=== INVOICE POST ROUTE HIT ===');
+  console.log('Request received at:', new Date().toISOString());
   try {
     // Validate total attachment size
     if (req.files && req.files.length > 0) {
@@ -128,7 +132,7 @@ router.post('/', upload.array('attachments', 10), async (req, res) => {
 });
 
 // Update invoice
-router.put('/:id', upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Invoices'), async (req, res) => {
   try {
     const invoiceData = { ...req.body };
     

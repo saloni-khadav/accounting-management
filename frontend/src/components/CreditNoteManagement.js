@@ -281,24 +281,24 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 ) : (
                   filteredCreditNotes.map((creditNote) => (
                     <tr key={creditNote._id} className="border-b last:border-b-0 hover:bg-gray-50">
-                      <td className="p-4 text-sm text-gray-700 font-medium">
+                      <td className="p-4 text-sm text-gray-700 font-medium whitespace-nowrap">
                         {creditNote.creditNoteNumber}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {new Date(creditNote.creditNoteDate).toLocaleDateString()}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {creditNote.customerName}
                       </td>
-                      <td className="p-4 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 whitespace-nowrap">
                         {creditNote.originalInvoiceNumber || '-'}
                       </td>
-                      <td className="p-4 text-sm text-gray-700 font-medium">
+                      <td className="p-4 text-sm text-gray-700 font-medium whitespace-nowrap">
                         ₹{creditNote.grandTotal?.toLocaleString() || '0'}
                       </td>
                       <td className="p-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApprovalColor(creditNote.approvalStatus || 'Pending')}`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getApprovalColor(creditNote.approvalStatus || 'Pending')}`}>
                             {creditNote.approvalStatus || 'Pending'}
                           </span>
                           {userRole === 'manager' && creditNote.approvalStatus === 'Pending' && (
@@ -384,10 +384,10 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <h3 className="text-lg font-semibold mb-3">Supplier Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><span className="font-medium">Name:</span> {currentUserProfile?.supplierName || 'N/A'}</div>
-                    <div><span className="font-medium">GSTIN:</span> {currentUserProfile?.supplierGSTIN || 'N/A'}</div>
-                    <div><span className="font-medium">PAN:</span> {currentUserProfile?.supplierPAN || 'N/A'}</div>
-                    <div className="md:col-span-2"><span className="font-medium">Address:</span> {currentUserProfile?.supplierAddress || 'N/A'}</div>
+                    <div><span className="font-medium">Name:</span> {viewingCreditNote.supplierName || 'N/A'}</div>
+                    <div><span className="font-medium">GSTIN:</span> {viewingCreditNote.supplierGSTIN || 'N/A'}</div>
+                    <div><span className="font-medium">PAN:</span> {viewingCreditNote.supplierPAN || 'N/A'}</div>
+                    <div className="md:col-span-2"><span className="font-medium">Address:</span> {viewingCreditNote.supplierAddress || 'N/A'}</div>
                   </div>
                 </div>
                 <div className="mb-6 p-4 bg-blue-50 rounded-lg">
@@ -416,7 +416,7 @@ const CreditNoteManagement = ({ setActivePage }) => {
                     <div className="overflow-x-auto">
                       <table className="w-full border text-sm">
                         <thead className="bg-gray-50"><tr><th className="px-3 py-2 border text-left">Product/Item</th><th className="px-3 py-2 border text-left">HSN</th><th className="px-3 py-2 border text-right">Qty</th><th className="px-3 py-2 border text-right">Rate</th><th className="px-3 py-2 border text-right">Taxable</th><th className="px-3 py-2 border text-right">CGST</th><th className="px-3 py-2 border text-right">SGST</th><th className="px-3 py-2 border text-right">IGST</th><th className="px-3 py-2 border text-right">Total</th></tr></thead>
-                        <tbody>{viewingCreditNote.items.map((item, i) => (<tr key={i}><td className="px-3 py-2 border">{item.product || item.description || 'N/A'}</td><td className="px-3 py-2 border">{item.hsnCode || 'N/A'}</td><td className="px-3 py-2 border text-right">{item.quantity}</td><td className="px-3 py-2 border text-right">₹{(item.unitPrice||0).toFixed(2)}</td><td className="px-3 py-2 border text-right">₹{(item.taxableValue||0).toFixed(2)}</td><td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount||0).toFixed(2)})</td><td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount||0).toFixed(2)}</td></tr>))}</tbody>
+                        <tbody>{viewingCreditNote.items.map((item, i) => (<tr key={i}><td className="px-3 py-2 border">{item.product || item.description || 'N/A'}</td><td className="px-3 py-2 border">{item.hsnCode || 'N/A'}</td><td className="px-3 py-2 border text-right">{item.quantity}</td><td className="px-3 py-2 border text-right">₹{(item.unitPrice||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td className="px-3 py-2 border text-right">₹{(item.taxableValue||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td><td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td><td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td><td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount||0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>))}</tbody>
                       </table>
                     </div>
                   </div>
@@ -452,6 +452,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
                   setCreditNotes(creditNotes.map(cn => 
                     cn._id === editingCreditNote._id ? updatedCreditNote : cn
                   ));
+                } else {
+                  const errorData = await response.json();
+                  if (errorData.isPastDateError) {
+                    alert(errorData.message);
+                  } else {
+                    alert('Error updating credit note');
+                  }
+                  throw new Error(errorData.message);
                 }
               } else {
                 const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-notes', {
@@ -465,6 +473,14 @@ const CreditNoteManagement = ({ setActivePage }) => {
                 if (response.ok) {
                   const newCreditNote = await response.json();
                   setCreditNotes([newCreditNote, ...creditNotes]);
+                } else {
+                  const errorData = await response.json();
+                  if (errorData.isPastDateError) {
+                    alert(errorData.message);
+                  } else {
+                    alert('Error creating credit note');
+                  }
+                  throw new Error(errorData.message);
                 }
               }
               setIsFormOpen(false);

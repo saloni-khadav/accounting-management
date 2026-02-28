@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BarChart3, DollarSign, AlertTriangle, Clock, FileText, Users } from 'lucide-react';
+import { BarChart3, IndianRupee, AlertTriangle, Clock, FileText, Users } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
 const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
@@ -196,7 +196,7 @@ const AccountReceivableDashboard = () => {
           <MetricsCard
             title="Total Receivable"
             value={`₹${stats.totalReceivable.toLocaleString('en-IN')}`}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="primary"
           />
         </div>

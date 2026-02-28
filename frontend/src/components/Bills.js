@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, Download, Eye, X, Plus, AlertTriangle, Clock, CreditCard, CheckCircle, DollarSign } from 'lucide-react';
+import { Search, Edit, Trash2, Download, Eye, X, Plus, AlertTriangle, Clock, CreditCard, CheckCircle, IndianRupee } from 'lucide-react';
 import VendorBill from './VendorBill';
 import MetricsCard from './ui/MetricsCard';
 
@@ -40,8 +40,9 @@ const Bills = () => {
 
   const fetchUserRole = async () => {
     try {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await response.json();
@@ -54,12 +55,13 @@ const Bills = () => {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      const response = await fetch(`${baseUrl}/api/bills`);
       if (response.ok) {
         const data = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+        const paymentsResponse = await fetch(`${baseUrl}/api/payments`);
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();
@@ -107,7 +109,8 @@ const Bills = () => {
   const handleDeleteBill = async (billId) => {
     if (window.confirm('Are you sure you want to delete this bill?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}`, {
+        const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+        const response = await fetch(`${baseUrl}/api/bills/${billId}`, {
           method: 'DELETE',
         });
         
@@ -132,8 +135,9 @@ const Bills = () => {
 
   const handleStatusChange = async (billId, newStatus) => {
     try {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}/status`, {
+      const response = await fetch(`${baseUrl}/api/bills/${billId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -153,8 +157,9 @@ const Bills = () => {
 
   const handleApprovalAction = async (billId, action) => {
     try {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills/${billId}/approval`, {
+      const response = await fetch(`${baseUrl}/api/bills/${billId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -352,7 +357,7 @@ const Bills = () => {
           <MetricsCard
             title="Partially Paid"
             value={partiallyPaidCount}
-            icon={DollarSign}
+            icon={IndianRupee}
             color="warning"
           />
         </div>
@@ -425,19 +430,19 @@ const Bills = () => {
               const originalBill = bills.find(b => b.billNumber === bill.id);
               return (
                 <tr key={bill.id} className={`border-b border-gray-100 hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <span className="text-blue-600 font-medium">{bill.id}</span>
                   </td>
-                  <td className="py-4 px-6 text-gray-900">{bill.vendor}</td>
-                  <td className="py-4 px-6 text-gray-600">{bill.billDate}</td>
-                  <td className="py-4 px-6 text-gray-600">{bill.dueDate}</td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 text-gray-900 whitespace-nowrap">{bill.vendor}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{bill.billDate}</td>
+                  <td className="py-4 px-6 text-gray-600 whitespace-nowrap">{bill.dueDate}</td>
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <span className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap ${getStatusColor(bill.status)}`}>
                       {bill.status}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right font-semibold text-gray-900">{bill.amount}</td>
-                  <td className="py-4 px-6 text-center">
+                  <td className="py-4 px-6 text-right font-semibold text-gray-900 whitespace-nowrap">{bill.amount}</td>
+                  <td className="py-4 px-6 text-center whitespace-nowrap">
                     {userRole === 'manager' && originalBill.approvalStatus === 'pending' ? (
                       <div className="flex items-center justify-center gap-2">
                         <button
@@ -466,7 +471,7 @@ const Bills = () => {
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleViewBill(originalBill)}
@@ -739,4 +744,5 @@ const Bills = () => {
 };
 
 export default Bills;
+
 

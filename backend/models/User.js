@@ -42,9 +42,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'manager'],
+    enum: ['user', 'manager', 'admin', 'accountant'],
     default: 'user'
   },
+  permissions: [{
+    type: String
+  }],
   gstDetails: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'GST'

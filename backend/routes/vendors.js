@@ -3,6 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Vendor = require('../models/Vendor');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 const router = express.Router();
 
 // Create uploads directory if it doesn't exist
@@ -67,7 +69,7 @@ router.post('/', upload.fields([
   { name: 'gstCertificate', maxCount: 1 },
   { name: 'bankStatement', maxCount: 1 },
   { name: 'otherDocuments', maxCount: 10 }
-]), async (req, res) => {
+]), auth, checkPeriodPermission('Vendor Master'), async (req, res) => {
   try {
     const vendorData = { ...req.body };
     
@@ -124,7 +126,7 @@ router.put('/:id', upload.fields([
   { name: 'gstCertificate', maxCount: 1 },
   { name: 'bankStatement', maxCount: 1 },
   { name: 'otherDocuments', maxCount: 10 }
-]), async (req, res) => {
+]), auth, checkPeriodPermission('Vendor Master'), async (req, res) => {
   try {
     const vendorData = { ...req.body };
     

@@ -97,7 +97,7 @@ const invoiceSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    maxlength: 16
+    maxlength: 50
   },
   invoiceDate: {
     type: Date,

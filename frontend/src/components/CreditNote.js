@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown } from 'lucide-react';
+import { Save, Download, Plus, Trash2, FileText, Bell, CheckCircle, RotateCcw, ChevronDown, X } from 'lucide-react';
 import { generateCreditNoteNumber } from '../utils/numberGenerator';
 import { exportToExcel } from '../utils/excelExport';
 import { generateCreditNotePDF } from '../utils/pdfGenerator';
@@ -80,6 +80,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   const [invoices, setInvoices] = useState([]);
   const [showInvoiceDropdown, setShowInvoiceDropdown] = useState(false);
   const [maxRemainingAmount, setMaxRemainingAmount] = useState(0);
+  const skipCalculation = useRef(false);
 
   // Format number with Indian comma style
   const formatIndianNumber = (num) => {
@@ -87,10 +88,51 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   useEffect(() => {
+    const fetchCreditNoteNumber = async () => {
+      const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+      try {
+        const token = localStorage.getItem('token');
+        const [settingsRes, creditNotesRes] = await Promise.all([
+          fetch(`${baseUrl}/api/settings`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${baseUrl}/api/credit-notes`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        
+        if (settingsRes.ok && creditNotesRes.ok) {
+          const settings = await settingsRes.json();
+          const creditNotes = await creditNotesRes.json();
+          
+          const prefix = settings.creditNotePrefix || 'CN';
+          const startNumber = String(settings.creditNoteStartNumber || '1');
+          
+          // Extract numbers from existing credit notes
+          const existingNumbers = creditNotes
+            .map(cn => cn.creditNoteNumber)
+            .filter(num => num && num.startsWith(prefix))
+            .map(num => {
+              // Remove prefix and extract only the numeric part at the end
+              const withoutPrefix = num.substring(prefix.length);
+              const numericPart = withoutPrefix.match(/\d+$/);
+              return numericPart ? parseInt(numericPart[0]) : 0;
+            })
+            .filter(num => num > 0);
+          
+          const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : parseInt(startNumber);
+          const paddedNumber = nextNumber.toString().padStart(startNumber.length, '0');
+          const finalNumber = `${prefix}${paddedNumber}`;
+          
+          return finalNumber;
+        }
+      } catch (error) {
+        console.error('Error fetching credit note number:', error);
+      }
+      return generateCreditNoteNumber();
+    };
+
     if (editingCreditNote) {
       setCreditNoteData({
         ...editingCreditNote,
         creditNoteDate: editingCreditNote.creditNoteDate ? new Date(editingCreditNote.creditNoteDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        originalInvoiceDate: editingCreditNote.originalInvoiceDate ? new Date(editingCreditNote.originalInvoiceDate).toISOString().split('T')[0] : '',
         items: editingCreditNote.items || [{
           product: '',
           description: '',
@@ -109,8 +151,9 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         }]
       });
     } else {
-      setCreditNoteData({
-        creditNoteNumber: generateCreditNoteNumber(),
+      fetchCreditNoteNumber().then(creditNoteNumber => {
+        setCreditNoteData({
+          creditNoteNumber,
         creditNoteDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
         originalInvoiceNumber: '',
@@ -150,13 +193,18 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
         grandTotal: 0,
         notes: '',
         termsConditions: 'This is a credit note issued as per GST compliance requirements.'
+        });
       });
     }
   }, [editingCreditNote]);
 
   useEffect(() => {
+    if (skipCalculation.current) {
+      skipCalculation.current = false;
+      return;
+    }
     calculateTotals();
-  }, [creditNoteData.items]);
+  }, [creditNoteData.items.length, JSON.stringify(creditNoteData.items.map(i => ({ qty: i.quantity, unitPrice: i.unitPrice, disc: i.discount, cgst: i.cgstRate, sgst: i.sgstRate, igst: i.igstRate })))]);
 
   // Fetch user profile data - runs for both new and edit
   useEffect(() => {
@@ -241,9 +289,11 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   const calculateTotals = () => {
+    console.log('calculateTotals called, current items:', creditNoteData.items);
     if (!creditNoteData.items || creditNoteData.items.length === 0) return;
     
     const updatedItems = creditNoteData.items.map(calculateItemTotals);
+    console.log('Updated items after calculation:', updatedItems);
     
     const subtotal = Math.max(0, updatedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0));
     const totalDiscount = Math.max(0, updatedItems.reduce((sum, item) => {
@@ -258,18 +308,21 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     const totalTax = Math.max(0, totalCGST + totalSGST + totalIGST);
     const grandTotal = Math.max(0, totalTaxableValue + totalTax);
 
-    setCreditNoteData(prev => ({
-      ...prev,
-      items: updatedItems,
-      subtotal,
-      totalDiscount,
-      totalTaxableValue,
-      totalCGST,
-      totalSGST,
-      totalIGST,
-      totalTax,
-      grandTotal
-    }));
+    setCreditNoteData(prev => {
+      console.log('Setting new creditNoteData with totals:', { subtotal, totalDiscount, totalTaxableValue, totalCGST, totalSGST, totalIGST, totalTax, grandTotal });
+      return {
+        ...prev,
+        items: updatedItems,
+        subtotal,
+        totalDiscount,
+        totalTaxableValue,
+        totalCGST,
+        totalSGST,
+        totalIGST,
+        totalTax,
+        grandTotal
+      };
+    });
   };
 
   const handleClientSelect = (client) => {
@@ -328,13 +381,10 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             sum + (parseFloat(collection.netAmount) || parseFloat(collection.amount) || 0), 0
           );
           
-          // Calculate total credit notes
+          // Get credit notes for this invoice
           const invoiceCreditNotes = creditNotes.filter(cn => 
             cn.originalInvoiceNumber === invoice.invoiceNumber && 
             cn.approvalStatus === 'Approved'
-          );
-          const totalCreditNotes = invoiceCreditNotes.reduce((sum, cn) => 
-            sum + (cn.grandTotal || 0), 0
           );
           
           // Calculate TDS from collections
@@ -343,11 +393,34 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
           );
           
           // Calculate remaining amount (subtract TDS)
-          const totalSettled = totalReceived + totalCreditNotes;
+          const totalSettled = totalReceived + invoiceCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
           const remainingAmount = (invoice.grandTotal || 0) - totalSettled - totalTDS;
           
+          // Calculate invoice's subtotal from items (qty × rate)
+          const invoiceSubtotal = invoice.items?.reduce((sum, item) => 
+            sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0
+          ) || 0;
+          
+          // Calculate remaining subtotal proportionally
+          const remainingSubtotal = invoiceSubtotal > 0 
+            ? (remainingAmount * invoiceSubtotal) / (invoice.grandTotal || 1)
+            : 0;
+          
+          // Calculate remaining rate per item
+          const itemsWithRemaining = invoice.items?.map(item => {
+            const itemSubtotal = (item.quantity || 0) * (item.unitPrice || 0);
+            const itemRemainingRate = invoiceSubtotal > 0 
+              ? (remainingSubtotal * itemSubtotal) / invoiceSubtotal
+              : 0;
+            return {
+              ...item,
+              remainingRate: itemRemainingRate > 0 ? itemRemainingRate : 0
+            };
+          }) || [];
+          
           return { 
-            ...invoice, 
+            ...invoice,
+            items: itemsWithRemaining,
             remainingAmount: remainingAmount > 0 ? remainingAmount : 0 
           };
         }).filter(invoice => invoice.remainingAmount > 0); // Only show invoices with remaining amount
@@ -361,38 +434,53 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
   };
 
   const handleInvoiceSelect = (invoice) => {
+    console.log('Selected invoice:', invoice);
     const remainingAmount = invoice.remainingAmount || 0;
     setMaxRemainingAmount(remainingAmount);
 
-    // Calculate taxable value from remaining amount (remove GST)
-    const firstItem = invoice.items && invoice.items.length > 0 ? invoice.items[0] : null;
-    const totalGSTRate = firstItem ? (firstItem.cgstRate || 0) + (firstItem.sgstRate || 0) + (firstItem.igstRate || 0) : 0;
-    const taxableValue = totalGSTRate > 0 ? remainingAmount / (1 + totalGSTRate / 100) : remainingAmount;
+    console.log('Invoice items:', invoice.items);
 
-    // Map items from invoice with calculated taxable value as unit price
-    const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => ({
-      product: item.product || item.description || '',
-      description: item.description || item.product || '',
-      hsnCode: item.hsnCode || '',
-      quantity: 1,
-      unitPrice: taxableValue,
-      maxUnitPrice: taxableValue,
-      discount: 0,
-      taxableValue: 0,
-      cgstRate: item.cgstRate || 0,
-      sgstRate: item.sgstRate || 0,
-      igstRate: item.igstRate || 0,
-      cgstAmount: 0,
-      sgstAmount: 0,
-      igstAmount: 0,
-      totalAmount: 0
-    })) : [{
+    // Map items from invoice with remaining rates
+    const mappedItems = invoice.items && invoice.items.length > 0 ? invoice.items.map(item => {
+      const originalQuantity = item.quantity || 1;
+      const remainingRate = item.remainingRate || 0;
+      const unitPrice = remainingRate / originalQuantity;
+      const discount = item.discount || 0;
+      const cgstRate = item.cgstRate || 0;
+      const sgstRate = item.sgstRate || 0;
+      const igstRate = item.igstRate || 0;
+      
+      const grossAmount = originalQuantity * unitPrice;
+      const discountAmount = (grossAmount * discount) / 100;
+      const itemTaxableValue = grossAmount - discountAmount;
+      const cgstAmount = Math.max(0, (itemTaxableValue * cgstRate) / 100);
+      const sgstAmount = Math.max(0, (itemTaxableValue * sgstRate) / 100);
+      const igstAmount = Math.max(0, (itemTaxableValue * igstRate) / 100);
+      const totalAmount = Math.max(0, itemTaxableValue + cgstAmount + sgstAmount + igstAmount);
+      
+      return {
+        product: item.product || item.description || '',
+        description: item.description || item.product || '',
+        hsnCode: item.hsnCode || '',
+        quantity: originalQuantity,
+        unitPrice: unitPrice,
+        maxUnitPrice: unitPrice,
+        discount: discount,
+        taxableValue: itemTaxableValue,
+        cgstRate: cgstRate,
+        sgstRate: sgstRate,
+        igstRate: igstRate,
+        cgstAmount: cgstAmount,
+        sgstAmount: sgstAmount,
+        igstAmount: igstAmount,
+        totalAmount: totalAmount
+      };
+    }) : [{
       product: '',
       description: '',
       hsnCode: '',
       quantity: 1,
       unitPrice: 0,
-      maxUnitPrice: 0,
       discount: 0,
       taxableValue: 0,
       cgstRate: 9,
@@ -404,11 +492,35 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       totalAmount: 0
     }];
 
+    console.log('Mapped items:', mappedItems);
+
+    skipCalculation.current = true;
+    
+    const subtotal = mappedItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+    const totalDiscount = mappedItems.reduce((sum, item) => {
+      const grossAmount = Number(item.quantity) * Number(item.unitPrice);
+      return sum + (grossAmount * Number(item.discount)) / 100;
+    }, 0);
+    const totalTaxableValue = mappedItems.reduce((sum, item) => sum + Number(item.taxableValue), 0);
+    const totalCGST = mappedItems.reduce((sum, item) => sum + Number(item.cgstAmount), 0);
+    const totalSGST = mappedItems.reduce((sum, item) => sum + Number(item.sgstAmount), 0);
+    const totalIGST = mappedItems.reduce((sum, item) => sum + Number(item.igstAmount), 0);
+    const totalTax = totalCGST + totalSGST + totalIGST;
+    const grandTotal = totalTaxableValue + totalTax;
+
     setCreditNoteData(prev => ({
       ...prev,
       originalInvoiceNumber: invoice.invoiceNumber,
       originalInvoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : '',
-      items: mappedItems
+      items: mappedItems,
+      subtotal,
+      totalDiscount,
+      totalTaxableValue,
+      totalCGST,
+      totalSGST,
+      totalIGST,
+      totalTax,
+      grandTotal
     }));
     setShowInvoiceDropdown(false);
   };
@@ -438,7 +550,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
       const maxUnitPrice = item.maxUnitPrice || 0;
       
       if (maxUnitPrice > 0 && newValue > maxUnitPrice) {
-        alert(`Rate cannot exceed original invoice rate of ₹${maxUnitPrice.toFixed(2)}`);
+        alert(`Rate cannot exceed remaining rate of ₹${maxUnitPrice.toFixed(2)}`);
         return;
       }
     }
@@ -508,6 +620,27 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
     
     if (!creditNoteData.originalInvoiceNumber || !creditNoteData.originalInvoiceNumber.trim()) {
       alert('Original invoice number is required');
+      return;
+    }
+    
+    // Validate invoice exists
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    try {
+      const response = await fetch(`${baseUrl}/api/invoices`);
+      if (response.ok) {
+        const allInvoices = await response.json();
+        const invoiceExists = allInvoices.some(inv => 
+          inv.invoiceNumber === creditNoteData.originalInvoiceNumber
+        );
+        
+        if (!invoiceExists) {
+          alert(`Invoice number "${creditNoteData.originalInvoiceNumber}" does not exist. Please select a valid invoice from the dropdown.`);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error validating invoice:', error);
+      alert('Error validating invoice. Please try again.');
       return;
     }
     
@@ -652,7 +785,7 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
               onClick={handleClose}
               className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
             >
-              ×
+              <X size={24} />
             </button>
           </div>
         </div>
@@ -746,24 +879,33 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
             
             {showInvoiceDropdown && invoices.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {invoices.map((invoice) => (
-                  <div
-                    key={invoice._id}
-                    onClick={() => handleInvoiceSelect(invoice)}
-                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
-                    <div className="text-sm text-gray-500">
-                      Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
+                {invoices.map((invoice) => {
+                  return (
+                    <div
+                      key={invoice._id}
+                      onClick={() => handleInvoiceSelect(invoice)}
+                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{invoice.invoiceNumber}</div>
+                      <div className="text-sm text-gray-500">
+                        Date: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Total: ₹{(invoice.grandTotal || 0).toFixed(2)} | Remaining: ₹{(invoice.remainingAmount || invoice.grandTotal || 0).toFixed(2)}
+                      </div>
+                      {invoice.items && invoice.items.length > 0 && (
+                        <div className="text-xs text-green-600 mt-1">
+                          {invoice.items.map((item, idx) => 
+                            `${item.product || 'Item'} @ ₹${(item.unitPrice || 0).toFixed(2)} (Rem Rate: ₹${(item.remainingRate || 0).toFixed(2)})`
+                          ).join(', ')}
+                        </div>
+                      )}
+                      <div className="text-xs text-blue-600">
+                        Status: {invoice.status}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400">
-                      Total: ₹{(invoice.grandTotal || 0).toFixed(2)} | Remaining: ₹{(invoice.remainingAmount || invoice.grandTotal || 0).toFixed(2)}
-                    </div>
-                    <div className="text-xs text-blue-600">
-                      Status: {invoice.status}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -907,67 +1049,69 @@ const CreditNote = ({ isOpen, onClose, onSave, editingCreditNote }) => {
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'quantity', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
-                      value={item.unitPrice}
-                      onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                      type="text"
+                      value={item.unitPrice && item.unitPrice > 0 ? parseFloat(item.unitPrice).toLocaleString('en-IN') : item.unitPrice}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/,/g, '');
+                        handleItemChange(index, 'unitPrice', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max={item.maxUnitPrice || undefined}
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.discount}
-                      onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'discount', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      step="0.01"
                     />
                   </td>
-                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                  <td className="px-3 py-2 text-sm">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.cgstRate}
-                      onChange={(e) => handleItemChange(index, 'cgstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'cgstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.sgstRate}
-                      onChange={(e) => handleItemChange(index, 'sgstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'sgstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2">
                     <input
-                      type="number"
+                      type="text"
                       value={item.igstRate}
-                      onChange={(e) => handleItemChange(index, 'igstRate', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        handleItemChange(index, 'igstRate', value);
+                      }}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      min="0"
-                      max="28"
-                      step="0.01"
                     />
                   </td>
                   <td className="px-3 py-2 text-sm font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>

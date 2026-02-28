@@ -1,14 +1,13 @@
 const mongoose = require('mongoose');
 
 const settingsSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  companyName: {
+    type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true
   },
   // General Settings
-  companyName: String,
   financialYear: { type: String, default: '2024-25' },
   currency: { type: String, default: 'INR' },
   dateFormat: { type: String, default: 'DD/MM/YYYY' },
@@ -16,13 +15,13 @@ const settingsSchema = new mongoose.Schema({
   
   // Invoice Settings
   invoicePrefix: { type: String, default: 'INV' },
-  invoiceStartNumber: { type: Number, default: 1 },
+  invoiceStartNumber: { type: String, default: '1' },
   autoGenerateInvoice: { type: Boolean, default: true },
   invoiceTemplate: { type: String, default: 'Standard' },
   
   // Credit Note Settings
   creditNotePrefix: { type: String, default: 'CN' },
-  creditNoteStartNumber: { type: Number, default: 1 },
+  creditNoteStartNumber: { type: String, default: '1' },
   autoGenerateCreditNote: { type: Boolean, default: true },
   creditNoteTemplate: { type: String, default: 'Standard' },
   

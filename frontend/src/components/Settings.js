@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Bell, Shield, Database, FileText, Calculator, Users, Mail, Globe, CreditCard, Clock } from 'lucide-react';
+import PeriodManagement from './PeriodManagement';
 
 const Settings = () => {
   const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
-  
+  const [userRole, setUserRole] = useState('');
   const [settings, setSettings] = useState({
     // General Settings
     companyName: '',
@@ -47,6 +48,7 @@ const Settings = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
     fetchUserData();
@@ -63,6 +65,7 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         const userData = data.user;
+        setUserRole(userData.role || 'user');
         setSettings(prev => ({
           ...prev,
           companyName: userData.companyName || userData.profile?.tradeName || ''
@@ -102,8 +105,6 @@ const Settings = () => {
     try {
       const token = localStorage.getItem('token');
       
-      console.log('Saving settings with company name:', settings.companyName); // Debug log
-      
       // Update Settings
       const settingsResponse = await fetch(`${baseUrl}/api/settings`, {
         method: 'PUT',
@@ -124,19 +125,13 @@ const Settings = () => {
         body: JSON.stringify({ companyName: settings.companyName })
       });
       
-      console.log('Settings response:', settingsResponse.ok); // Debug log
-      console.log('User update response:', userResponse.ok); // Debug log
-      
       if (settingsResponse.ok && userResponse.ok) {
         alert('Settings saved successfully!');
-        console.log('Triggering settingsUpdated event'); // Debug log
         // Trigger header refresh
         window.dispatchEvent(new CustomEvent('settingsUpdated'));
+        // Refresh settings from server
+        await fetchSettings();
       } else {
-        const settingsError = await settingsResponse.text();
-        const userError = await userResponse.text();
-        console.error('Settings error:', settingsError);
-        console.error('User error:', userError);
         alert('Failed to save settings');
       }
     } catch (error) {
@@ -157,21 +152,30 @@ const Settings = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="p-6">
-        <div className="flex items-center mb-6">
-          <SettingsIcon className="w-8 h-8 text-blue-600 mr-3" />
-          <h1 className="text-3xl font-bold text-gray-800">System Settings</h1>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow mb-6">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6 rounded-xl">
+          <h1 className="text-2xl font-bold flex items-center">
+            <SettingsIcon className="mr-3" size={28} />
+            System Settings
+          </h1>
+          <p className="text-blue-100 mt-1">Configure your system preferences and settings</p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Settings Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* General Settings */}
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Globe className="w-5 h-5 text-blue-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">General Settings</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <Globe className="w-5 h-5 mr-2" />
+              General Settings
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div>
@@ -225,14 +229,18 @@ const Settings = () => {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Invoice Settings */}
-        <div className="bg-blue-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <FileText className="w-5 h-5 text-blue-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Invoice Settings</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Invoice Settings
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -249,10 +257,10 @@ const Settings = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
                 <input
-                  type="number"
+                  type="text"
                   value={settings.invoiceStartNumber}
                   onChange={(e) => handleInputChange('invoiceStartNumber', e.target.value)}
-                  min="1"
+                  placeholder="001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -284,14 +292,18 @@ const Settings = () => {
               </label>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Credit Note Settings */}
-        <div className="bg-green-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <CreditCard className="w-5 h-5 text-green-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Credit Note Settings</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <CreditCard className="w-5 h-5 mr-2" />
+              Credit Note Settings
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -308,10 +320,10 @@ const Settings = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
                 <input
-                  type="number"
+                  type="text"
                   value={settings.creditNoteStartNumber}
                   onChange={(e) => handleInputChange('creditNoteStartNumber', e.target.value)}
-                  min="1"
+                  placeholder="001"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
@@ -343,14 +355,18 @@ const Settings = () => {
               </label>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Notification Settings */}
-        <div className="bg-yellow-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Bell className="w-5 h-5 text-yellow-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <Bell className="w-5 h-5 mr-2" />
+              Notifications
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -405,14 +421,18 @@ const Settings = () => {
               </label>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Security Settings */}
-        <div className="bg-red-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Shield className="w-5 h-5 text-red-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Security</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <Shield className="w-5 h-5 mr-2" />
+              Security
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -456,14 +476,18 @@ const Settings = () => {
               </select>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Backup Settings */}
-        <div className="bg-purple-50 p-6 rounded-lg">
-          <div className="flex items-center mb-4">
-            <Database className="w-5 h-5 text-purple-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-800">Backup & Data</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <Database className="w-5 h-5 mr-2" />
+              Backup & Data
+            </h2>
           </div>
+          <div className="p-6">
           
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -509,19 +533,19 @@ const Settings = () => {
               </>
             )}
           </div>
+          </div>
         </div>
-        </div>
+      </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end mt-8">
-          <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 flex items-center text-lg"
-          >
-            <Save className="w-5 h-5 mr-2" />
-            Save All Settings
-          </button>
-        </div>
+      {/* Save Button */}
+      <div className="flex justify-end mt-6">
+        <button
+          onClick={handleSave}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center text-base font-medium"
+        >
+          <Save className="w-5 h-5 mr-2" />
+          Save All Settings
+        </button>
       </div>
     </div>
   );

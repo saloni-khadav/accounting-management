@@ -57,40 +57,8 @@ const VendorMaster = () => {
     exportToExcel([exportData], 'vendor_' + vendor.vendorCode);
   };
 
-  const handleAddVendor = async (vendorData) => {
-    try {
-      const url = editingVendor 
-        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
-      const method = editingVendor ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(vendorData),
-      });
-      
-      if (response.ok) {
-        const updatedVendor = await response.json();
-        if (editingVendor) {
-          setVendors(vendors.map(vendor => 
-            vendor._id === editingVendor._id ? updatedVendor : vendor
-          ));
-          alert('Vendor updated successfully!');
-        } else {
-          setVendors([updatedVendor, ...vendors]);
-          alert('Vendor added successfully!');
-        }
-        setEditingVendor(null);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error saving vendor');
-      }
-    } catch (error) {
-      alert('Network error. Please check if backend is running.');
-    }
+  const handleAddVendor = async () => {
+    await fetchVendors();
   };
 
   const handleEditVendor = (vendor) => {
@@ -154,11 +122,13 @@ const VendorMaster = () => {
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8 lg:mb-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 flex items-center">
-            <Users className="mr-3" />
-            Vendor Master
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">Manage vendor information</p>
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 flex items-center">
+              <Users className="mr-3" />
+              Vendor Master
+            </h1>
+            <p className="text-white text-sm sm:text-base">Manage vendor information</p>
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -234,18 +204,18 @@ const VendorMaster = () => {
                 ) : (
                   filteredVendors.map((vendor) => (
                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{vendor.vendorName || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.vendorCode || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.contactPerson || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{vendor.email || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{vendor.vendorName || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.vendorCode || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.contactPerson || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{vendor.email || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           vendor.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {vendor.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <div className="flex gap-2">
                           <button 
                             onClick={() => handleEditVendor(vendor)}
