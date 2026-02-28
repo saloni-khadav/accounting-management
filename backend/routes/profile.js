@@ -55,7 +55,7 @@ router.post('/', auth, upload.fields([
     }
     
     // Attach file paths to gstNumbers - only update entries that have new files
-    if (req.files && req.files.gstCertificates) {
+    if (req.files && req.files.gstCertificates && parsedGstNumbers) {
       let fileIndex = 0;
       parsedGstNumbers.forEach((gst, index) => {
         // Only assign file if this GST entry doesn't already have a certificate
@@ -74,7 +74,7 @@ router.post('/', auth, upload.fields([
     }
     
     // Attach bank statement files
-    if (req.files && req.files.bankStatements) {
+    if (req.files && req.files.bankStatements && parsedBankAccounts) {
       let fileIndex = 0;
       parsedBankAccounts.forEach((bank, index) => {
         if (!bank.bankStatement && fileIndex < req.files.bankStatements.length) {
