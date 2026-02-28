@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const Settings = require('../models/Settings');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
-// Get user settings
+// Get company settings
 router.get('/', auth, async (req, res) => {
   try {
-    let settings = await Settings.findOne({ userId: req.user.id });
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let settings = await Settings.findOne({ companyName: user.companyName });
     
     if (!settings) {
-      settings = new Settings({ userId: req.user.id });
+      settings = new Settings({ companyName: user.companyName });
       await settings.save();
     }
     
@@ -19,13 +23,16 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Update settings
+// Update company settings
 router.put('/', auth, async (req, res) => {
   try {
-    let settings = await Settings.findOne({ userId: req.user.id });
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let settings = await Settings.findOne({ companyName: user.companyName });
     
     if (!settings) {
-      settings = new Settings({ userId: req.user.id, ...req.body });
+      settings = new Settings({ companyName: user.companyName, ...req.body });
     } else {
       Object.assign(settings, req.body);
     }

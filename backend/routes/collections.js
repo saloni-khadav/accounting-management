@@ -4,6 +4,8 @@ const Collection = require('../models/Collection');
 const { notifyPaymentReceived } = require('../utils/notificationHelper');
 const Invoice = require('../models/Invoice');
 const CreditNote = require('../models/CreditNote');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Helper function to update invoice status
 const updateInvoiceStatus = async (invoiceNumber) => {
@@ -64,7 +66,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create collection
-router.post('/', async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Collections'), async (req, res) => {
   try {
     const collection = new Collection(req.body);
     const savedCollection = await collection.save();
@@ -159,7 +161,7 @@ router.patch('/:id/approval', async (req, res) => {
 });
 
 // Update collection
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Collections'), async (req, res) => {
   try {
     const oldCollection = await Collection.findById(req.params.id);
     if (!oldCollection) {

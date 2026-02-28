@@ -47,6 +47,7 @@ import ImportExport from './components/ImportExport';
 import TaxInvoice from './components/TaxInvoice';
 import InvoiceManagement from './components/InvoiceManagement';
 import Approvals from './components/Approvals';
+import PeriodManagement from './components/PeriodManagement';
 import ChatBot from './components/ChatBot';
 
 function App() {
@@ -86,6 +87,8 @@ function App() {
   const handleLogin = () => {
     setIsAuthenticated(true);
     setCurrentView('dashboard');
+    setActivePage('dashboard');
+    localStorage.setItem('activePage', 'dashboard');
   };
 
   const handleLogout = () => {
@@ -189,6 +192,8 @@ function App() {
         return <ImportExport />;
       case 'Approvals':
         return <Approvals />;
+      case 'Period Management':
+        return <PeriodManagement />;
       default:
         return <Dashboard />;
     }

@@ -8,6 +8,7 @@ const Bill = require('../models/Bill');
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 const { notifyPaymentCreated, notifyPaymentApproved } = require('../utils/notificationHelper');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/payments');
@@ -89,7 +90,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create payment
-router.post('/', upload.array('attachments', 10), async (req, res) => {
+router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('Payments'), async (req, res) => {
   try {
     const paymentData = { ...req.body };
     
@@ -165,7 +166,7 @@ router.patch('/:id/approval', async (req, res) => {
 });
 
 // Update payment
-router.put('/:id', upload.array('attachments', 10), async (req, res) => {
+router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission('Payments'), async (req, res) => {
   try {
     const existingPayment = await Payment.findById(req.params.id);
     if (!existingPayment) {

@@ -4,6 +4,7 @@ const CreditNote = require('../models/CreditNote');
 const Invoice = require('../models/Invoice');
 const Collection = require('../models/Collection');
 const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Helper function to update invoice status
 const updateInvoiceStatus = async (invoiceNumber) => {
@@ -66,7 +67,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Create new credit note
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Credit Notes'), async (req, res) => {
   try {
     // Generate credit note number if not provided
     let creditNoteNumber = req.body.creditNoteNumber;
@@ -115,7 +116,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update credit note
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Credit Notes'), async (req, res) => {
   try {
     const oldCreditNote = await CreditNote.findOne({ _id: req.params.id, userId: req.user.id });
     
@@ -181,10 +182,7 @@ router.delete('/:id', auth, async (req, res) => {
 // Get single credit note
 router.get('/:id', auth, async (req, res) => {
   try {
-    const creditNote = await CreditNote.findOne({
-      _id: req.params.id,
-      userId: req.user.id
-    });
+    const creditNote = await CreditNote.findById(req.params.id);
     
     if (!creditNote) {
       return res.status(404).json({ message: 'Credit note not found' });
@@ -193,6 +191,9 @@ router.get('/:id', auth, async (req, res) => {
     res.json(creditNote);
   } catch (error) {
     console.error('Error fetching credit note:', error);
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'Credit note not found' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, X, Upload, Paperclip, Download, Eye } from 'lucide-react';
+import { Save, Plus, Trash2, X, Upload, Paperclip, Download, Eye, FileText, User, ShoppingCart } from 'lucide-react';
 
 const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   const [creditDebitNotes, setCreditDebitNotes] = useState([]);
@@ -657,7 +657,11 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         onClose();
       } else {
         const errorData = await response.json();
-        alert('Error: ' + (errorData.message || 'Error saving note'));
+        if (errorData.isPastDateError) {
+          alert('Past date entry not allowed. Contact manager for permission.');
+        } else {
+          alert('Error: ' + (errorData.message || 'Error saving note'));
+        }
       }
     } catch (error) {
       console.error('Error saving note:', error);
@@ -669,24 +673,28 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-5 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold flex items-center">
+            <FileText className="mr-3" size={24} />
             {editingNote ? `Edit ${noteData.type}` : `Create ${noteData.type}`}
           </h1>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors"
           >
             <X size={24} />
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           <div>
             {/* Vendor Details */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Vendor Details</h2>
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <User className="mr-2" size={20} />
+                Vendor Details
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name *</label>
@@ -698,7 +706,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                       onFocus={() => setShowVendorDropdown(true)}
                       onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
                       placeholder="Search or select vendor"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       autoComplete="off"
                     />
                     {showVendorDropdown && filteredVendors.length > 0 && (
@@ -730,7 +738,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                     value={noteData.vendorGSTIN}
                     onChange={(e) => handleInputChange('vendorGSTIN', e.target.value)}
                     maxLength="15"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -739,20 +747,25 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                     value={noteData.vendorAddress}
                     onChange={(e) => handleInputChange('vendorAddress', e.target.value)}
                     rows="2"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
             </div>
 
             {/* Note Type and Details */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <FileText className="mr-2" size={20} />
+                Note Information
+              </h2>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Note Type *</label>
                 <select
                   value={noteData.type}
                   onChange={(e) => handleInputChange('type', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Credit Note">Credit Note</option>
                   <option value="Debit Note">Debit Note</option>
@@ -765,7 +778,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   value={noteData.noteNumber}
                   onChange={(e) => handleInputChange('noteNumber', e.target.value)}
                   placeholder="Enter note number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -775,7 +788,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   value={noteData.noteDate}
                   onChange={(e) => handleInputChange('noteDate', e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -788,7 +801,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                     onFocus={() => setShowInvoiceDropdown(true)}
                     onBlur={() => setTimeout(() => setShowInvoiceDropdown(false), 200)}
                     placeholder="Select or enter invoice number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoComplete="off"
                   />
                   {showInvoiceDropdown && vendorInvoices.length > 0 && (
@@ -871,17 +884,19 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   value={noteData.invoiceDate}
                   onChange={(e) => handleInputChange('invoiceDate', e.target.value)}
                   placeholder="dd-mm-yyyy"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
-
-
+            </div>
 
             {/* Items Table */}
-            <div className="mb-6">
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Item Details</h2>
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <ShoppingCart className="mr-2" size={20} />
+                  Item Details
+                </h2>
                 <button
                   onClick={addItem}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
@@ -1013,7 +1028,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                   value={noteData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   rows="4"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Additional notes..."
                 />
               </div>
@@ -1192,18 +1207,18 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 justify-end p-6 border-t bg-gray-50">
+        <div className="bg-white border-t-2 border-gray-200 px-6 py-4 rounded-b-xl flex justify-end gap-3">
           <button 
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
           >
             Cancel
           </button>
           <button 
             onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-2"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save size={18} />
             Save {noteData.type}
           </button>
         </div>
@@ -1213,3 +1228,4 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 };
 
 export default CreditDebitNoteForm;
+

@@ -3,6 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Client = require('../models/Client');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 const router = express.Router();
 
 // Create uploads directory if it doesn't exist
@@ -61,13 +63,19 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new client
-router.post('/', upload.fields([
+router.post('/', (req, res, next) => {
+  console.log('=== CLIENT POST ROUTE HIT ===');
+  console.log('Headers:', req.headers);
+  next();
+}, upload.fields([
   { name: 'panCard', maxCount: 1 },
   { name: 'aadharCard', maxCount: 1 },
   { name: 'gstCertificate', maxCount: 1 },
   { name: 'bankStatement', maxCount: 1 },
   { name: 'otherDocuments', maxCount: 10 }
-]), async (req, res) => {
+]), auth, checkPeriodPermission('Client Master'), async (req, res) => {
+  console.log('=== CREATE CLIENT ROUTE ENTERED ===');
+  console.log('req.body.contractStartDate:', req.body.contractStartDate);
   try {
     // Validate total size of otherDocuments
     if (req.files && req.files.otherDocuments) {
@@ -142,7 +150,7 @@ router.put('/:id', upload.fields([
   { name: 'gstCertificate', maxCount: 1 },
   { name: 'bankStatement', maxCount: 1 },
   { name: 'otherDocuments', maxCount: 10 }
-]), async (req, res) => {
+]), auth, checkPeriodPermission('Client Master'), async (req, res) => {
   try {
     // Validate total size of otherDocuments (new + existing)
     if (req.files && req.files.otherDocuments) {

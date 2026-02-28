@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const PurchaseOrder = require('../models/PurchaseOrder');
 const Bill = require('../models/Bill');
+const auth = require('../middleware/auth');
+const checkPeriodPermission = require('../middleware/checkPeriodPermission');
 
 // Get Purchase Orders by vendor name
 router.get('/vendor/:vendorName', async (req, res) => {
@@ -111,7 +113,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create new purchase order
-router.post('/', async (req, res) => {
+router.post('/', auth, checkPeriodPermission('Purchase Orders'), async (req, res) => {
   try {
     const purchaseOrder = new PurchaseOrder(req.body);
     const savedPO = await purchaseOrder.save();
@@ -135,7 +137,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update purchase order
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, checkPeriodPermission('Purchase Orders'), async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByIdAndUpdate(
       req.params.id,

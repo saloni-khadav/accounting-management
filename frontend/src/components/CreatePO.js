@@ -387,9 +387,11 @@ const CreatePO = () => {
     try {
       const poData = {
         poNumber,
+        piNumber: poNumber,
         supplier: selectedClient,
         supplierName: supplierSearch,
         poDate,
+        piDate: poDate,
         deliveryDate,
         gstNumber: supplierData.gstNumber,
         deliveryAddress: supplierData.deliveryAddress,
@@ -407,16 +409,23 @@ const CreatePO = () => {
         createdAt: editingPO ? editingPO.createdAt : new Date().toISOString()
       };
 
+      console.log('Sending PI data:', poData);
+      console.log('PI Date:', poDate);
+
       const isEditing = editingPO && editingPO._id;
       const url = isEditing 
         ? `https://nextbook-backend.nextsphere.co.in/api/pos/${editingPO._id}`
         : 'https://nextbook-backend.nextsphere.co.in/api/pos';
       const method = isEditing ? 'PUT' : 'POST';
 
+      console.log('API URL:', url);
+      console.log('Method:', method);
+
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(poData)
       });
@@ -431,7 +440,11 @@ const CreatePO = () => {
         setPoNumber(nextNumber);
       } else {
         const errorData = await response.json();
-        alert('Error creating Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+        if (errorData.isPastDateError) {
+          alert(errorData.message);
+        } else {
+          alert('Error creating Proforma Invoice: ' + (errorData.message || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -543,7 +556,7 @@ const CreatePO = () => {
             <h1 className="text-2xl font-bold">Proforma Invoice Management</h1>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 flex items-center font-medium transition-colors"
+              className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg flex items-center font-medium transition-colors"
             >
               <Plus className="w-5 h-5 mr-2" />
               Create Proforma Invoice
@@ -841,12 +854,12 @@ const CreatePO = () => {
                           <td className="px-4 py-3">{item.name}</td>
                           <td className="px-4 py-3">{item.hsn}</td>
                           <td className="px-4 py-3 text-right">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className="px-4 py-3 text-right">{item.discount}%</td>
                           <td className="px-4 py-3 text-right">{item.cgstRate || 0}%</td>
                           <td className="px-4 py-3 text-right">{item.sgstRate || 0}%</td>
                           <td className="px-4 py-3 text-right">{item.igstRate || 0}%</td>
-                          <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       );
                     })}
@@ -885,18 +898,21 @@ const CreatePO = () => {
   // Form Modal View
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">{editingPO ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}</h1>
+      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white px-6 py-5 rounded-t-xl flex justify-between items-center">
+          <h1 className="text-2xl font-bold flex items-center">
+            <FileText className="mr-3" size={24} />
+            {editingPO ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}
+          </h1>
           <button
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors"
           >
             ×
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
 
       {/* Supplier, PO Number, Dates */}
       <div className="grid grid-cols-5 gap-6 mb-6">
@@ -1064,93 +1080,86 @@ const CreatePO = () => {
                     </td>
                     <td className="px-3 py-2 w-24">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.quantity}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].quantity = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          newItems[idx].quantity = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-20"
                         placeholder="Qty"
-                        min="0"
                       />
                     </td>
                     <td className="px-3 py-2 w-28">
                       <input 
-                        type="number" 
-                        value={item.rate}
+                        type="text" 
+                        value={item.rate ? item.rate.toLocaleString('en-IN') : ''}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].rate = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/,/g, '');
+                          newItems[idx].rate = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-w-24"
                         placeholder="Rate"
-                        min="0"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.discount}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].discount = parseInt(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          newItems[idx].discount = parseInt(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="0"
-                        min="0"
-                        max="100"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.cgstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].cgstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].cgstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="9"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.sgstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].sgstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].sgstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="9"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input 
-                        type="number" 
+                        type="text" 
                         value={item.igstRate}
                         onChange={(e) => {
                           const newItems = [...items];
-                          newItems[idx].igstRate = parseFloat(e.target.value) || 0;
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          newItems[idx].igstRate = parseFloat(value) || 0;
                           setItems(newItems);
                         }}
                         className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                         placeholder="0"
-                        min="0"
-                        max="28"
-                        step="0.01"
                       />
                     </td>
                     <td className="px-3 py-2 text-sm font-medium">
@@ -1220,16 +1229,16 @@ const CreatePO = () => {
       </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 p-6 border-t bg-gray-50">
+        <div className="bg-white border-t-2 border-gray-200 px-6 py-4 rounded-b-xl flex justify-end gap-3">
           <button 
             onClick={handleClose}
-            className="px-8 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
           >
             Cancel
           </button>
           <button 
             onClick={handleCreatePO}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium shadow-md hover:shadow-lg transition-all"
           >
             {editingPO ? 'Update' : 'Create'}
           </button>
@@ -1241,4 +1250,5 @@ const CreatePO = () => {
 };
 
 export default CreatePO;
+
 

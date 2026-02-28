@@ -283,6 +283,45 @@ const Approvals = () => {
       else if (type === 'Purchase Order') endpoint = `${baseUrl}/api/purchase-orders/${id}`;
       else if (type === 'Proforma Invoice') endpoint = `${baseUrl}/api/pos/${id}`;
       else if (type === 'Tax Invoice') endpoint = `${baseUrl}/api/invoices/${id}`;
+      else if (type === 'Collection') {
+        // Fetch collection details with invoice dates
+        const collectionResponse = await fetch(`${baseUrl}/api/collections`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (collectionResponse.ok) {
+          const allCollections = await collectionResponse.json();
+          const collection = allCollections.find(c => c._id === id);
+          
+          if (collection) {
+            // Fetch invoice details to get invoice dates
+            if (collection.invoiceNumber) {
+              const invoiceResponse = await fetch(`${baseUrl}/api/invoices`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (invoiceResponse.ok) {
+                const invoices = await invoiceResponse.json();
+                const invoiceNumbers = collection.invoiceNumber.split(',').map(num => num.trim());
+                const matchedInvoices = invoices.filter(inv => invoiceNumbers.includes(inv.invoiceNumber));
+                collection.invoiceDates = matchedInvoices.map(inv => ({
+                  number: inv.invoiceNumber,
+                  date: inv.invoiceDate
+                }));
+              }
+            }
+            setViewDetailsItem({ ...collection, type: 'Collection' });
+            return;
+          }
+        }
+        alert('Unable to load Collection details.');
+        return;
+      }
       else if (type === 'Debit Note' || type === 'Credit/Debit Note') endpoint = `${baseUrl}/api/credit-debit-notes/${id}`;
       else if (type === 'Credit Note') {
         // Try credit-debit-notes first (vendor credit note), fallback to credit-notes (client credit note)
@@ -332,13 +371,47 @@ const Approvals = () => {
       } else {
         console.error(`Failed to fetch ${type} details:`, response.status);
         if (response.status === 404) {
-          alert(`This ${type} has been deleted from the system but the approval record still exists. Please contact your administrator to clean up stale approval records.`);
+          const confirmDelete = window.confirm(
+            `This ${type} has been deleted from the system but the approval record still exists.\n\n` +
+            `Would you like to remove this stale approval record?\n\n` +
+            `Click OK to reject and remove, or Cancel to keep it.`
+          );
+          
+          if (confirmDelete) {
+            // Automatically reject the approval to clean it up
+            try {
+              const rejectResponse = await fetch(`${baseUrl}/api/manager/action`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                  itemId: id, 
+                  action: 'reject', 
+                  type: type,
+                  rejectionReason: 'Record deleted - cleaning up stale approval'
+                })
+              });
+              
+              if (rejectResponse.ok) {
+                alert('Stale approval record has been removed.');
+                fetchPendingApprovals(); // Refresh the list
+              } else {
+                alert('Unable to remove the approval record. Please contact your administrator.');
+              }
+            } catch (err) {
+              console.error('Error removing stale approval:', err);
+              alert('Error removing the approval record. Please contact your administrator.');
+            }
+          }
         } else {
           alert(`Unable to load ${type} details. Error: ${response.status}`);
         }
       }
     } catch (error) {
       console.error('Error fetching details:', error);
+      alert('Network error while fetching details. Please try again.');
     }
   };
 
@@ -531,26 +604,30 @@ const Approvals = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Manager Approvals</h1>
-            <p className="text-gray-600">Review and approve pending requests</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 rounded-lg px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3">Manager Approvals</h1>
+                <p className="text-white text-sm sm:text-base">Review and approve pending requests</p>
+              </div>
+              <button
+                onClick={() => {
+                  fetchPendingApprovals();
+                }}
+                className="px-4 py-2.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 shadow-md hover:shadow-lg transition-all duration-200 font-medium"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              fetchPendingApprovals();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Refresh
-          </button>
         </div>
-      </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
+      <div className="mb-6 sm:mb-8 lg:mb-10">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
@@ -558,15 +635,15 @@ const Approvals = () => {
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
-          <p className="text-sm text-gray-600 mt-1">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-400">
+          <h2 className="text-base sm:text-lg font-semibold text-white">Pending Approvals</h2>
+          <p className="text-sm text-white/90 mt-1">
             {[...pendingApprovals, ...pendingPayments].filter(item => item.status === 'pending').length} items awaiting your approval
           </p>
         </div>
@@ -670,6 +747,7 @@ const Approvals = () => {
             <p className="text-gray-600">All requests have been processed.</p>
           </div>
         )}
+      </div>
       </div>
 
       {/* Rejection Modal */}
@@ -785,13 +863,13 @@ const Approvals = () => {
                                 <td className="px-3 py-2 border">{item.description || '-'}</td>
                                 <td className="px-3 py-2 border">{item.hsnCode || '-'}</td>
                                 <td className="px-3 py-2 border text-right">{item.quantity || 0}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.discount || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right">{item.igstRate || 0}% (₹{(item.igstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.discount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 border text-right">{item.cgstRate || 0}% (₹{(item.cgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right">{item.sgstRate || 0}% (₹{(item.sgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right">{item.igstRate || 0}% (₹{(item.igstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -806,35 +884,35 @@ const Approvals = () => {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-sm text-gray-600">Subtotal</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.subtotal || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Total Discount</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalDiscount || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Taxable Value</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">CGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalCGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">SGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalSGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">IGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalIGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Total Tax</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTax || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Grand Total</p>
-                          <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.grandTotal || 0).toLocaleString()}</p>
+                          <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                     </div>
@@ -942,12 +1020,12 @@ const Approvals = () => {
                                   <td className="px-4 py-3">{item.name}</td>
                                   <td className="px-4 py-3">{item.hsn}</td>
                                   <td className="px-4 py-3 text-right">{item.quantity}</td>
-                                  <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString()}</td>
+                                  <td className="px-4 py-3 text-right">₹{item.rate?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   <td className="px-4 py-3 text-right">{item.discount}%</td>
                                   <td className="px-4 py-3 text-right">{item.cgstRate || 0}%</td>
                                   <td className="px-4 py-3 text-right">{item.sgstRate || 0}%</td>
                                   <td className="px-4 py-3 text-right">{item.igstRate || 0}%</td>
-                                  <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toFixed(2)}</td>
+                                  <td className="px-4 py-3 text-right font-semibold">₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                               );
                             })}
@@ -962,19 +1040,19 @@ const Approvals = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <p className="text-sm text-gray-600">Sub Total</p>
-                        <p className="text-lg font-semibold">₹{viewDetailsItem.subTotal?.toLocaleString()}</p>
+                        <p className="text-lg font-semibold">₹{viewDetailsItem.subTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Discount</p>
-                        <p className="text-lg font-semibold">₹{viewDetailsItem.totalDiscount?.toLocaleString()}</p>
+                        <p className="text-lg font-semibold">₹{viewDetailsItem.totalDiscount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Total Tax</p>
-                        <p className="text-lg font-semibold">₹{viewDetailsItem.totalTax?.toLocaleString()}</p>
+                        <p className="text-lg font-semibold">₹{viewDetailsItem.totalTax?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Total Amount</p>
-                        <p className="text-xl font-bold text-blue-600">₹{viewDetailsItem.totalAmount?.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-blue-600">₹{viewDetailsItem.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   </div>
@@ -1371,12 +1449,12 @@ const Approvals = () => {
                                 <td className="px-3 py-2 border">{item.description}</td>
                                 <td className="px-3 py-2 border">{item.hsnCode}</td>
                                 <td className="px-3 py-2 border text-right">{item.quantity}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount || 0).toFixed(2)})</td>
-                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 border text-right">₹{(item.taxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-3 py-2 border text-right">{item.cgstRate}% (₹{(item.cgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right">{item.sgstRate}% (₹{(item.sgstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right">{item.igstRate}% (₹{(item.igstAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</td>
+                                <td className="px-3 py-2 border text-right font-medium">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1391,35 +1469,35 @@ const Approvals = () => {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-sm text-gray-600">Subtotal</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.subtotal || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Discount</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalDiscount || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Taxable Value</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">CGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalCGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">SGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalSGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">IGST</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalIGST || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Total Tax</p>
-                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTax || 0).toLocaleString()}</p>
+                          <p className="text-lg font-semibold">₹{(viewDetailsItem.totalTax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Grand Total</p>
-                          <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.grandTotal || 0).toLocaleString()}</p>
+                          <p className="text-xl font-bold text-blue-600">₹{(viewDetailsItem.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                     </div>
@@ -1431,6 +1509,113 @@ const Approvals = () => {
                       <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{viewDetailsItem.notes}</p>
                     </div>
                   )}
+                </>
+              )}
+
+              {/* Collection View */}
+              {viewDetailsItem.type === 'Collection' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Collection Number</label>
+                      <p className="text-lg font-semibold text-blue-600">{viewDetailsItem.collectionNumber || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Collection Date</label>
+                      <p className="text-lg">{new Date(viewDetailsItem.collectionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-3">Customer Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Customer Name</label>
+                        <p className="text-base">{viewDetailsItem.customer}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Invoice Number(s)</label>
+                        <p className="text-base">{viewDetailsItem.invoiceNumber}</p>
+                      </div>
+                      {viewDetailsItem.invoiceDates && viewDetailsItem.invoiceDates.length > 0 && (
+                        <div className="col-span-2">
+                          <label className="text-sm font-medium text-gray-600">Invoice Date(s)</label>
+                          <p className="text-base">
+                            {viewDetailsItem.invoiceDates.map((inv, idx) => 
+                              new Date(inv.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                            ).join(', ')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-3">Payment Information</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Payment Mode</label>
+                          <p className="text-base">{viewDetailsItem.paymentMode}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Reference Number</label>
+                          <p className="text-base">{viewDetailsItem.referenceNumber || '-'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Bank Account</label>
+                        <p className="text-base font-medium">
+                          {viewDetailsItem.bankAccount || viewDetailsItem.bankName || 'Not specified'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold mb-3">Amount Details</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Amount:</span>
+                        <span className="font-semibold">₹{viewDetailsItem.amount?.toLocaleString('en-IN')}</span>
+                      </div>
+                      {viewDetailsItem.tdsSection && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">TDS Section:</span>
+                          <span className="font-medium">{viewDetailsItem.tdsSection}</span>
+                        </div>
+                      )}
+                      {viewDetailsItem.tdsPercentage && parseFloat(viewDetailsItem.tdsPercentage) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">TDS Percentage:</span>
+                          <span className="font-medium">{viewDetailsItem.tdsPercentage}%</span>
+                        </div>
+                      )}
+                      {viewDetailsItem.tdsAmount && parseFloat(viewDetailsItem.tdsAmount) > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">TDS Amount:</span>
+                          <span className="font-semibold text-red-600">₹{parseFloat(viewDetailsItem.tdsAmount).toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t pt-2 mt-2">
+                        <span className="font-semibold">Net Amount:</span>
+                        <span className="font-bold text-green-600 text-lg">
+                          ₹{(viewDetailsItem.netAmount && parseFloat(viewDetailsItem.netAmount) > 0 ? parseFloat(viewDetailsItem.netAmount) : viewDetailsItem.amount)?.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Approval Status</h3>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      viewDetailsItem.approvalStatus === 'Approved' ? 'bg-green-100 text-green-800' :
+                      viewDetailsItem.approvalStatus === 'Rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {viewDetailsItem.approvalStatus || 'Pending'}
+                    </span>
+                  </div>
                 </>
               )}
 
@@ -1478,12 +1663,12 @@ const Approvals = () => {
                                 <td className="px-3 py-2">{item.description || '-'}</td>
                                 <td className="px-3 py-2">{item.hsnCode || '-'}</td>
                                 <td className="px-3 py-2">{item.quantity || 0}</td>
-                                <td className="px-3 py-2">₹{(item.unitPrice || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2">₹{(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className="px-3 py-2">{item.discount || 0}%</td>
                                 <td className="px-3 py-2">{item.cgstRate || 0}%</td>
                                 <td className="px-3 py-2">{item.sgstRate || 0}%</td>
                                 <td className="px-3 py-2">{item.igstRate || 0}%</td>
-                                <td className="px-3 py-2 text-right">₹{(item.totalAmount || 0).toFixed(2)}</td>
+                                <td className="px-3 py-2 text-right">₹{(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1495,23 +1680,23 @@ const Approvals = () => {
                   <div className="bg-gray-50 p-4 rounded-lg mb-6">
                     <h3 className="font-semibold mb-2">Summary</h3>
                     <div className="space-y-2">
-                      <div className="flex justify-between"><span>Subtotal:</span><span>₹{(viewDetailsItem.subtotal || 0).toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>Total Discount:</span><span>₹{(viewDetailsItem.totalDiscount || 0).toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(viewDetailsItem.totalTaxableValue || 0).toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>CGST:</span><span>₹{(viewDetailsItem.totalCGST || 0).toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>SGST:</span><span>₹{(viewDetailsItem.totalSGST || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Subtotal:</span><span>₹{(viewDetailsItem.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="flex justify-between"><span>Total Discount:</span><span>₹{(viewDetailsItem.totalDiscount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(viewDetailsItem.totalTaxableValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="flex justify-between"><span>CGST:</span><span>₹{(viewDetailsItem.totalCGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                      <div className="flex justify-between"><span>SGST:</span><span>₹{(viewDetailsItem.totalSGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       {(viewDetailsItem.totalIGST || 0) > 0 && (
-                        <div className="flex justify-between"><span>IGST:</span><span>₹{(viewDetailsItem.totalIGST || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>IGST:</span><span>₹{(viewDetailsItem.totalIGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       )}
                       {(viewDetailsItem.totalCESS || 0) > 0 && (
-                        <div className="flex justify-between"><span>CESS:</span><span>₹{(viewDetailsItem.totalCESS || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>CESS:</span><span>₹{(viewDetailsItem.totalCESS || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       )}
                       {viewDetailsItem.tdsAmount > 0 && (
-                        <div className="flex justify-between text-red-600"><span>TDS ({viewDetailsItem.tdsPercentage}%):</span><span>-₹{(viewDetailsItem.tdsAmount || 0).toFixed(2)}</span></div>
+                        <div className="flex justify-between text-red-600"><span>TDS ({viewDetailsItem.tdsPercentage}%):</span><span>-₹{(viewDetailsItem.tdsAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       )}
-                      <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Grand Total:</span><span>₹{(viewDetailsItem.grandTotal || 0).toFixed(2)}</span></div>
+                      <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Grand Total:</span><span>₹{(viewDetailsItem.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       {viewDetailsItem.tdsAmount > 0 && (
-                        <div className="flex justify-between font-bold text-lg text-green-600 border-t pt-2"><span>Net Amount:</span><span>₹{((viewDetailsItem.grandTotal || 0) - (viewDetailsItem.tdsAmount || 0)).toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold text-lg text-green-600 border-t pt-2"><span>Net Amount:</span><span>₹{((viewDetailsItem.grandTotal || 0) - (viewDetailsItem.tdsAmount || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                       )}
                     </div>
                   </div>

@@ -7,7 +7,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   console.log('🔵 VendorBill component loaded');
   
   // API URL - uses local from env, falls back to production
-  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
   
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -1008,18 +1008,20 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
-          <h1 className="text-2xl font-bold text-gray-800">{editingBill ? 'Edit Vendor Bill' : 'Vendor Bill'}</h1>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-          >
-            ×
-          </button>
+      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">{editingBill ? 'Edit Vendor Bill' : 'Create Vendor Bill'}</h2>
+            <button
+              onClick={handleClose}
+              className="text-white hover:text-gray-200 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
         
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
 
           {/* Supplier Details */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -1721,19 +1723,19 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-end p-6 border-t bg-gray-50">
+          <div className="bg-white border-t-2 border-gray-200 px-6 py-4 flex justify-end gap-3">
             <button 
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center"
+              className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
             >
               Cancel
             </button>
             
             <button 
               onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4" />
               Save Bill
             </button>
           </div>
@@ -1744,4 +1746,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 };
 
 export default VendorBill;
+
+
+
+
 

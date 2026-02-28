@@ -7,6 +7,17 @@ const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
+// Default permissions based on role
+const getDefaultPermissions = (role) => {
+  const permissions = {
+    'admin': ['*'],
+    'manager': ['view_notifications', 'manage_notifications', 'view_dashboard', 'view_reports', 'manage_approvals'],
+    'accountant': ['view_notifications', 'manage_bills', 'manage_invoices', 'manage_payments', 'view_dashboard'],
+    'user': ['view_notifications', 'view_dashboard']
+  };
+  return permissions[role] || permissions['user'];
+};
+
 // Signup - Step 1: Collect user info and send password setup email
 router.post('/signup', async (req, res) => {
   try {
@@ -30,6 +41,7 @@ router.post('/signup', async (req, res) => {
       companySize,
       annualTurnover,
       role: role || 'user',
+      permissions: getDefaultPermissions(role || 'user'),
       isActive: false,
       passwordSetupToken,
       passwordSetupExpire
@@ -176,7 +188,8 @@ router.post('/login', async (req, res) => {
         fullName: user.fullName,
         workEmail: user.workEmail,
         companyName: user.companyName,
-        role: user.role
+        role: user.role,
+        permissions: user.permissions || getDefaultPermissions(user.role)
       }
     });
   } catch (error) {
@@ -193,6 +206,10 @@ router.get('/me', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
+    // Fetch company-based profile
+    const Profile = require('../models/Profile');
+    const companyProfile = await Profile.findOne({ companyName: user.companyName });
+    
     res.json({
       user: {
         id: user._id,
@@ -200,72 +217,12 @@ router.get('/me', auth, async (req, res) => {
         workEmail: user.workEmail,
         companyName: user.companyName,
         role: user.role,
-        profile: user.profile || {}
+        permissions: user.permissions || getDefaultPermissions(user.role),
+        profile: companyProfile || {}
       }
     });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Save profile data
-router.post('/profile', auth, async (req, res) => {
-  try {
-    const { companyLogo, gstNumber, gstNumbers, tradeName, address, panNumber, tanNumber, mcaNumber, msmeStatus, msmeNumber, bankAccounts } = req.body;
-    
-    const currentUser = await User.findById(req.user._id);
-    
-    if (!currentUser.profile) {
-      currentUser.profile = {};
-    }
-    
-    if (companyLogo) currentUser.profile.companyLogo = companyLogo;
-    if (gstNumber) currentUser.profile.gstNumber = gstNumber;
-    if (gstNumbers) currentUser.profile.gstNumbers = gstNumbers;
-    if (tradeName) currentUser.profile.tradeName = tradeName;
-    if (address) currentUser.profile.address = address;
-    if (panNumber) currentUser.profile.panNumber = panNumber;
-    if (tanNumber) currentUser.profile.tanNumber = tanNumber;
-    if (mcaNumber) currentUser.profile.mcaNumber = mcaNumber;
-    if (msmeStatus) currentUser.profile.msmeStatus = msmeStatus;
-    if (msmeNumber) currentUser.profile.msmeNumber = msmeNumber;
-    if (bankAccounts) currentUser.profile.bankAccounts = bankAccounts;
-    
-    currentUser.markModified('profile');
-    await currentUser.save();
-
-    res.json({
-      message: 'Profile saved successfully',
-      success: true,
-      profile: currentUser.profile
-    });
-  } catch (error) {
-    console.error('Profile save error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Delete bank account
-router.delete('/profile/bank/:index', auth, async (req, res) => {
-  try {
-    const { index } = req.params;
-    const currentUser = await User.findById(req.user._id);
-    
-    if (!currentUser.profile || !currentUser.profile.bankAccounts) {
-      return res.status(404).json({ message: 'No bank accounts found' });
-    }
-    
-    currentUser.profile.bankAccounts.splice(parseInt(index), 1);
-    currentUser.markModified('profile');
-    await currentUser.save();
-
-    res.json({
-      message: 'Bank account deleted successfully',
-      success: true
-    });
-  } catch (error) {
-    console.error('Bank delete error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
