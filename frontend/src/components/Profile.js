@@ -49,7 +49,7 @@ const Profile = () => {
               gstNumbers: profile.gstNumbers && profile.gstNumbers.length > 0 
                 ? profile.gstNumbers.map(gst => ({
                     ...gst,
-                    gstCertificate: gst.gstCertificate ? `${baseUrl}/${gst.gstCertificate}` : null,
+                    gstCertificate: gst.gstCertificate ? `${baseUrl}${gst.gstCertificate}` : null,
                     gstCertificateName: gst.gstCertificateName
                   }))
                 : profile.gstNumber 
@@ -63,13 +63,13 @@ const Profile = () => {
               msmeStatus: profile.msmeStatus || 'No',
               msmeNumber: profile.msmeNumber || '',
               companyLogoUrl: profile.companyLogo ? `${baseUrl}/${profile.companyLogo}` : null,
-              tanFile: profile.tanCertificate ? { name: profile.tanCertificateName || 'TAN Certificate', url: `${baseUrl}/${profile.tanCertificate}` } : null,
-              mcaFile: profile.mcaCertificate ? { name: profile.mcaCertificateName || 'MCA Certificate', url: `${baseUrl}/${profile.mcaCertificate}` } : null,
-              msmeFile: profile.msmeCertificate ? { name: profile.msmeCertificateName || 'MSME Certificate', url: `${baseUrl}/${profile.msmeCertificate}` } : null,
+              tanFile: profile.tanCertificate ? { name: profile.tanCertificateName || 'TAN Certificate', url: `${baseUrl}${profile.tanCertificate}` } : null,
+              mcaFile: profile.mcaCertificate ? { name: profile.mcaCertificateName || 'MCA Certificate', url: `${baseUrl}${profile.mcaCertificate}` } : null,
+              msmeFile: profile.msmeCertificate ? { name: profile.msmeCertificateName || 'MSME Certificate', url: `${baseUrl}${profile.msmeCertificate}` } : null,
               bankAccounts: profile.bankAccounts && profile.bankAccounts.length > 0 
                 ? profile.bankAccounts.map(bank => ({
                     ...bank,
-                    bankStatement: bank.bankStatement ? `${baseUrl}/${bank.bankStatement}` : null,
+                    bankStatement: bank.bankStatement ? `${baseUrl}${bank.bankStatement}` : null,
                     bankStatementName: bank.bankStatementName
                   }))
                 : [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '', bankStatement: null }]
