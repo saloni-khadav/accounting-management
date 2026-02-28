@@ -14,24 +14,34 @@ const profileSchema = new mongoose.Schema({
     address: String,
     tradeName: String,
     panNumber: String,
-    isDefault: { type: Boolean, default: false }
+    isDefault: { type: Boolean, default: false },
+    gstCertificate: String,
+    gstCertificateName: String
   }],
   tradeName: String,
   address: String,
   panNumber: String,
   tanNumber: String,
+  tanCertificate: String,
+  tanCertificateName: String,
   mcaNumber: String,
+  mcaCertificate: String,
+  mcaCertificateName: String,
   msmeStatus: {
     type: String,
     default: 'No',
     enum: ['Yes', 'No']
   },
   msmeNumber: String,
+  msmeCertificate: String,
+  msmeCertificateName: String,
   bankAccounts: [{
     bankName: String,
     accountNumber: String,
     ifscCode: String,
-    branchName: String
+    branchName: String,
+    bankStatement: String,
+    bankStatementName: String
   }]
 }, {
   timestamps: true
