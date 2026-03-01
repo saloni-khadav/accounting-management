@@ -542,13 +542,23 @@ const Profile = () => {
       
       // Add text fields
       formData.append('gstNumber', finalGSTNumber);
+      // Helper function to extract relative path from full URL
+      const getRelativePath = (url) => {
+        if (!url || url instanceof File) return null;
+        if (url.startsWith('/uploads/')) return url;
+        if (url.includes('/uploads/')) {
+          return url.substring(url.indexOf('/uploads/'));
+        }
+        return url;
+      };
+
       formData.append('gstNumbers', JSON.stringify(profileData.gstNumbers.map((gst, index) => ({
         gstNumber: gst.gstNumber,
         address: gst.address,
         tradeName: gst.tradeName,
         panNumber: gst.panNumber,
         isDefault: gst.isDefault,
-        gstCertificate: gst.gstCertificate instanceof File ? null : gst.gstCertificate,
+        gstCertificate: getRelativePath(gst.gstCertificate),
         gstCertificateName: gst.gstCertificate instanceof File ? null : gst.gstCertificateName
       }))));
       formData.append('tradeName', profileData.tradeName);
@@ -563,7 +573,7 @@ const Profile = () => {
         accountNumber: bank.accountNumber,
         ifscCode: bank.ifscCode,
         branchName: bank.branchName,
-        bankStatement: bank.bankStatement instanceof File ? null : bank.bankStatement,
+        bankStatement: getRelativePath(bank.bankStatement),
         bankStatementName: bank.bankStatement instanceof File ? null : bank.bankStatementName
       }))));
       

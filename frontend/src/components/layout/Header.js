@@ -360,11 +360,9 @@ const Header = ({ setActivePage, onLogout }) => {
 
           {/* Profile Dropdown */}
           <div className="relative">
-            <button 
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
-            >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
+            <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100">
+              {/* Profile Icon - Click to upload logo */}
+              <label className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent cursor-pointer hover:opacity-80 transition-opacity">
                 {companyLogo ? (
                   <img 
                     src={companyLogo} 
@@ -374,45 +372,47 @@ const Header = ({ setActivePage, onLogout }) => {
                 ) : (
                   <User size={16} className="text-gray-600" />
                 )}
-              </div>
-              <span className="font-medium text-gray-700">{companyName}</span>
-              <ChevronDown size={16} className="text-gray-500" />
-            </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const formData = new FormData();
+                        formData.append('companyLogo', file);
+                        const response = await fetch(`${baseUrl}/api/profile`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` },
+                          body: formData
+                        });
+                        if (response.ok) {
+                          const result = await response.json();
+                          setCompanyLogo(`${baseUrl}/${result.profile.companyLogo}`);
+                          window.dispatchEvent(new CustomEvent('settingsUpdated'));
+                        }
+                      } catch (error) {
+                        console.error('Error uploading logo:', error);
+                      }
+                    }
+                  }} 
+                  className="hidden" 
+                />
+              </label>
+              
+              {/* Company Name - Click to open dropdown */}
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center space-x-2"
+              >
+                <span className="font-medium text-gray-700">{companyName}</span>
+                <ChevronDown size={16} className="text-gray-500" />
+              </button>
+            </div>
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <label className="flex items-center w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer">
-                  <Upload size={16} className="mr-2" />
-                  Upload Logo
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        try {
-                          const token = localStorage.getItem('token');
-                          const formData = new FormData();
-                          formData.append('companyLogo', file);
-                          const response = await fetch(`${baseUrl}/api/profile`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}` },
-                            body: formData
-                          });
-                          if (response.ok) {
-                            const result = await response.json();
-                            setCompanyLogo(`${baseUrl}/${result.profile.companyLogo}`);
-                            window.dispatchEvent(new CustomEvent('settingsUpdated'));
-                            setShowDropdown(false);
-                          }
-                        } catch (error) {
-                          console.error('Error uploading logo:', error);
-                        }
-                      }
-                    }} 
-                    className="hidden" 
-                  />
-                </label>
                 <button 
                   onClick={handleProfileClick}
                   className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
