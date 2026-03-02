@@ -100,8 +100,9 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   }, [editingVendor]);
 
   const generateVendorCode = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch(`${baseUrl}/api/vendors`);
       if (response.ok) {
         const vendors = await response.json();
         
@@ -459,6 +460,7 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
   };
 
   const handleSubmit = async (e) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
     
     // Validate GST numbers
@@ -522,8 +524,8 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       formDataToSend.append('gstNumber', defaultGST?.gstNumber || formData.gstNumbers[0]?.gstNumber || '');
       
       const url = editingVendor 
-        ? `https://nextbook-backend.nextsphere.co.in/api/vendors/${editingVendor._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/vendors';
+        ? `${baseUrl}/api/vendors/${editingVendor._id}`
+        : `${baseUrl}/api/vendors`;
       const method = editingVendor ? 'PUT' : 'POST';
       
       const token = localStorage.getItem('token');

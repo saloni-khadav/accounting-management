@@ -892,11 +892,33 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
         }
       });
       
-      // Add only new attachment files (not existing ones)
+      // Separate existing attachments from new files
+      const existingAttachments = [];
+      const newFiles = [];
+      
       attachments.forEach((attachment) => {
         if (attachment.file) {
-          formData.append('attachments', attachment.file);
+          // New file with File object
+          newFiles.push(attachment);
+        } else {
+          // Existing attachment (already saved in DB)
+          existingAttachments.push({
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl,
+            fileSize: attachment.fileSize,
+            uploadedAt: attachment.uploadedAt
+          });
         }
+      });
+      
+      // Add existing attachments as JSON
+      if (existingAttachments.length > 0) {
+        formData.append('existingAttachments', JSON.stringify(existingAttachments));
+      }
+      
+      // Add new attachment files
+      newFiles.forEach((attachment) => {
+        formData.append('attachments', attachment.file);
       });
 
       const token = localStorage.getItem('token');

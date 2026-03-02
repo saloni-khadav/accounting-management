@@ -7,7 +7,7 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
   console.log('🔵 VendorBill component loaded');
   
   // API URL - uses local from env, falls back to production
-  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
   
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const dropdownRef = useRef(null);
