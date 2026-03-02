@@ -49,7 +49,7 @@ const Profile = () => {
               gstNumbers: profile.gstNumbers && profile.gstNumbers.length > 0 
                 ? profile.gstNumbers.map(gst => ({
                     ...gst,
-                    gstCertificate: gst.gstCertificate ? `${baseUrl}/${gst.gstCertificate}` : null,
+                    gstCertificate: gst.gstCertificate ? `${baseUrl}${gst.gstCertificate}` : null,
                     gstCertificateName: gst.gstCertificateName
                   }))
                 : profile.gstNumber 
@@ -63,13 +63,13 @@ const Profile = () => {
               msmeStatus: profile.msmeStatus || 'No',
               msmeNumber: profile.msmeNumber || '',
               companyLogoUrl: profile.companyLogo ? `${baseUrl}/${profile.companyLogo}` : null,
-              tanFile: profile.tanCertificate ? { name: profile.tanCertificateName || 'TAN Certificate', url: `${baseUrl}/${profile.tanCertificate}` } : null,
-              mcaFile: profile.mcaCertificate ? { name: profile.mcaCertificateName || 'MCA Certificate', url: `${baseUrl}/${profile.mcaCertificate}` } : null,
-              msmeFile: profile.msmeCertificate ? { name: profile.msmeCertificateName || 'MSME Certificate', url: `${baseUrl}/${profile.msmeCertificate}` } : null,
+              tanFile: profile.tanCertificate ? { name: profile.tanCertificateName || 'TAN Certificate', url: `${baseUrl}${profile.tanCertificate}` } : null,
+              mcaFile: profile.mcaCertificate ? { name: profile.mcaCertificateName || 'MCA Certificate', url: `${baseUrl}${profile.mcaCertificate}` } : null,
+              msmeFile: profile.msmeCertificate ? { name: profile.msmeCertificateName || 'MSME Certificate', url: `${baseUrl}${profile.msmeCertificate}` } : null,
               bankAccounts: profile.bankAccounts && profile.bankAccounts.length > 0 
                 ? profile.bankAccounts.map(bank => ({
                     ...bank,
-                    bankStatement: bank.bankStatement ? `${baseUrl}/${bank.bankStatement}` : null,
+                    bankStatement: bank.bankStatement ? `${baseUrl}${bank.bankStatement}` : null,
                     bankStatementName: bank.bankStatementName
                   }))
                 : [{ bankName: '', accountNumber: '', ifscCode: '', branchName: '', bankStatement: null }]
@@ -542,13 +542,23 @@ const Profile = () => {
       
       // Add text fields
       formData.append('gstNumber', finalGSTNumber);
+      // Helper function to extract relative path from full URL
+      const getRelativePath = (url) => {
+        if (!url || url instanceof File) return null;
+        if (url.startsWith('/uploads/')) return url;
+        if (url.includes('/uploads/')) {
+          return url.substring(url.indexOf('/uploads/'));
+        }
+        return url;
+      };
+
       formData.append('gstNumbers', JSON.stringify(profileData.gstNumbers.map((gst, index) => ({
         gstNumber: gst.gstNumber,
         address: gst.address,
         tradeName: gst.tradeName,
         panNumber: gst.panNumber,
         isDefault: gst.isDefault,
-        gstCertificate: gst.gstCertificate instanceof File ? null : gst.gstCertificate,
+        gstCertificate: getRelativePath(gst.gstCertificate),
         gstCertificateName: gst.gstCertificate instanceof File ? null : gst.gstCertificateName
       }))));
       formData.append('tradeName', profileData.tradeName);
@@ -563,7 +573,7 @@ const Profile = () => {
         accountNumber: bank.accountNumber,
         ifscCode: bank.ifscCode,
         branchName: bank.branchName,
-        bankStatement: bank.bankStatement instanceof File ? null : bank.bankStatement,
+        bankStatement: getRelativePath(bank.bankStatement),
         bankStatementName: bank.bankStatement instanceof File ? null : bank.bankStatementName
       }))));
       
