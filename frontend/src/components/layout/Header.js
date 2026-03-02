@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, User, ChevronDown, X } from 'lucide-react';
+import { Search, Bell, User, ChevronDown, X, Upload } from 'lucide-react';
 
 const Header = ({ setActivePage, onLogout }) => {
   const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
@@ -67,16 +67,25 @@ const Header = ({ setActivePage, onLogout }) => {
 
         if (response.ok) {
           const result = await response.json();
-          console.log('Header - User data:', result); // Debug log
+          console.log('Header - Full response:', JSON.stringify(result, null, 2));
           if (result.user) {
-            // Use only companyName (not tradeName)
             const displayName = result.user.companyName || result.user.fullName || '';
-            console.log('Header - Display name:', displayName); // Debug log
             setCompanyName(displayName);
             
             if (result.user.profile && result.user.profile.companyLogo) {
-              console.log('Header - Logo URL:', result.user.profile.companyLogo); // Debug log
-              setCompanyLogo(result.user.profile.companyLogo);
+              console.log('Header - Setting logo from profile');
+              // setCompanyLogo(`${baseUrl}/${result.user.profile.companyLogo}`);
+              if (result.user.profile?.companyLogo) {
+  const logoPath = result.user.profile.companyLogo;
+
+  const finalUrl = logoPath.startsWith('http')
+    ? logoPath
+    : `${baseUrl}${logoPath}`;
+
+  setCompanyLogo(finalUrl);
+}
+            } else {
+              console.log('Header - No logo in profile');
             }
           }
         }
@@ -351,11 +360,9 @@ const Header = ({ setActivePage, onLogout }) => {
 
           {/* Profile Dropdown */}
           <div className="relative">
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
-            >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
+            <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100">
+              {/* Profile Icon - Click to upload logo */}
+              <label className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent cursor-pointer hover:opacity-80 transition-opacity">
                 {companyLogo ? (
                   <img 
                     src={companyLogo} 
@@ -365,10 +372,44 @@ const Header = ({ setActivePage, onLogout }) => {
                 ) : (
                   <User size={16} className="text-gray-600" />
                 )}
-              </div>
-              <span className="font-medium text-gray-700">{companyName}</span>
-              <ChevronDown size={16} className="text-gray-500" />
-            </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const formData = new FormData();
+                        formData.append('companyLogo', file);
+                        const response = await fetch(`${baseUrl}/api/profile`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` },
+                          body: formData
+                        });
+                        if (response.ok) {
+                          const result = await response.json();
+                          setCompanyLogo(`${baseUrl}/${result.profile.companyLogo}`);
+                          window.dispatchEvent(new CustomEvent('settingsUpdated'));
+                        }
+                      } catch (error) {
+                        console.error('Error uploading logo:', error);
+                      }
+                    }
+                  }} 
+                  className="hidden" 
+                />
+              </label>
+              
+              {/* Company Name - Click to open dropdown */}
+              <button 
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center space-x-2"
+              >
+                <span className="font-medium text-gray-700">{companyName}</span>
+                <ChevronDown size={16} className="text-gray-500" />
+              </button>
+            </div>
 
             {showDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">

@@ -52,12 +52,37 @@ router.get('/', async (req, res) => {
 // Get client by ID
 router.get('/:id', async (req, res) => {
   try {
+    console.log('Fetching client by ID:', req.params.id);
     const client = await Client.findById(req.params.id);
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });
     }
+    
+    console.log('Client found, calculating file sizes...');
+    // Calculate file sizes for otherDocuments
+    if (client.documents && client.documents.otherDocuments) {
+      const documentsWithSize = client.documents.otherDocuments.map(filename => {
+        const filePath = path.join(uploadsDir, filename);
+        let size = 0;
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          size = stats.size;
+        }
+        return { filename, size };
+      });
+      
+      console.log('Documents with size:', documentsWithSize);
+      // Add size info to response
+      const clientData = client.toObject();
+      clientData.documents.otherDocumentsWithSize = documentsWithSize;
+      console.log('Sending response with otherDocumentsWithSize');
+      return res.json(clientData);
+    }
+    
+    console.log('No otherDocuments found, sending normal response');
     res.json(client);
   } catch (error) {
+    console.error('Error in GET /:id:', error);
     res.status(500).json({ message: error.message });
   }
 });

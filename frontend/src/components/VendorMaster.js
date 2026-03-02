@@ -18,9 +18,10 @@ const VendorMaster = () => {
   }, []);
 
   const fetchVendors = async () => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors');
+      const response = await fetch(`${baseUrl}/api/vendors`);
       const data = await response.json();
       setVendors(data);
     } catch (error) {

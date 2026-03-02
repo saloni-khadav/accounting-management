@@ -161,10 +161,24 @@ router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission(
     });
     
     // Handle file attachments
+    let finalAttachments = [];
+    
+    // Parse existingAttachments if provided (files user wants to keep)
+    if (req.body.existingAttachments) {
+      try {
+        const existingAttachments = typeof req.body.existingAttachments === 'string' 
+          ? JSON.parse(req.body.existingAttachments) 
+          : req.body.existingAttachments;
+        finalAttachments = existingAttachments;
+      } catch (e) {
+        console.error('Error parsing existingAttachments:', e);
+      }
+    }
+    
+    // Add new uploaded files
     if (req.files && req.files.length > 0) {
-      // Get existing invoice to check current attachment size
-      const existingInvoice = await Invoice.findById(req.params.id);
-      const existingSize = (existingInvoice.attachments || []).reduce((sum, att) => sum + (att.fileSize || 0), 0);
+      // Calculate total size including existing attachments
+      const existingSize = finalAttachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
       const newFilesSize = req.files.reduce((sum, file) => sum + file.size, 0);
       const totalSize = existingSize + newFilesSize;
       const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
@@ -188,8 +202,12 @@ router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission(
         uploadedAt: new Date()
       }));
       
-      // Merge with existing attachments
-      invoiceData.attachments = [...(existingInvoice.attachments || []), ...newAttachments];
+      finalAttachments = [...finalAttachments, ...newAttachments];
+    }
+    
+    // Set final attachments array
+    if (finalAttachments.length > 0) {
+      invoiceData.attachments = finalAttachments;
     }
     
     const invoice = await Invoice.findByIdAndUpdate(

@@ -50,6 +50,14 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         console.log('Loading client for editing:', editingClient);
         console.log('Client gstNumbers:', editingClient.gstNumbers);
         console.log('Client documents:', editingClient.documents);
+        console.log('otherDocumentsWithSize:', editingClient.documents?.otherDocumentsWithSize);
+        
+        // Calculate total size from saved files
+        let savedFilesSize = 0;
+        if (editingClient.documents?.otherDocumentsWithSize) {
+          savedFilesSize = editingClient.documents.otherDocumentsWithSize.reduce((sum, doc) => sum + doc.size, 0);
+          console.log('Calculated savedFilesSize:', savedFilesSize, 'bytes =', (savedFilesSize / (1024 * 1024)).toFixed(2), 'MB');
+        }
         
         setFormData({
           clientCode: editingClient.clientCode || '',
@@ -98,7 +106,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             aadharCard: editingClient.documents?.aadharCard || null,
             gstCertificate: editingClient.documents?.gstCertificate || null,
             bankStatement: editingClient.documents?.bankStatement || null,
-            otherDocuments: editingClient.documents?.otherDocuments || []
+            otherDocuments: editingClient.documents?.otherDocuments || [],
+            savedFilesSize: savedFilesSize
           }
         });
         
@@ -114,7 +123,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   }, [editingClient]);
 
   const generateClientCode = async () => {
-    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       // First try to get existing clients to calculate next code
       const response = await fetch(`${baseUrl}/api/clients`);
@@ -251,7 +260,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleOCRUpload = async (file, documentType, gstIndex = null) => {
-    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     const stateKey = documentType === 'gstCertificate' ? `gst_${gstIndex}` : 
                      documentType === 'panCard' ? 'pan' : 
                      documentType === 'bankStatement' ? 'bank' : 'aadhar';
@@ -484,7 +493,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const downloadDocument = (file, index) => {
-    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
@@ -500,12 +509,12 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const viewDocument = (file) => {
-    const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       window.open(url, '_blank');
     } else if (typeof file === 'string') {
-      window.open(`${baseUrl}/api/clients/download/${file}`, '_blank');
+      window.open(`${baseUrl}/api/clients/view/${file}`, '_blank');
     }
   };
 
@@ -521,7 +530,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
   };
 
   const handleSubmit = async (e) => {
-    const baseUrl = 'https://nextbook-backend.nextsphere.co.in'; // Hard-coded for testing
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     e.preventDefault();
     
     // Validate GST numbers
@@ -1225,7 +1234,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                       Other Documents
                     </label>
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
+                      {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0) + (formData.documents.savedFilesSize || 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
                     </span>
                   </div>
                   <input

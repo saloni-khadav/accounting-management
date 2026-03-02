@@ -15,7 +15,7 @@ const ClientMaster = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const baseUrl = 'https://nextbook-backend.nextsphere.co.in';
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
 
   useEffect(() => {
     fetchClients();

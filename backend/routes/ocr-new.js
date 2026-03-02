@@ -159,30 +159,20 @@ const extractData = (text, documentType) => {
   const gstMatches = text.match(patterns.gst) || [];
   const mcaMatches = text.match(patterns.mca) || [];
   
-  // Extract account number with context - avoid customer numbers
-  const accountMatches = text.match(patterns.accountNumber) || [];
   let accountNumber = '';
-  
+  const accountMatches = text.match(patterns.accountNumber) || [];
   if (accountMatches.length > 0) {
-    // Extract just the number part from the match
     const match = accountMatches[0].match(/(\d{9,18})/);
     accountNumber = match ? match[1] : '';
   }
   
-  // If no match with keywords, try standalone number patterns (fallback)
   if (!accountNumber && documentType === 'bankStatement') {
-    // Look for standalone account numbers (9-18 digits)
     const standalonePattern = /\b(\d{9,18})\b/g;
     const allNumbers = text.match(standalonePattern) || [];
-    
-    // Filter out common false positives
     for (const num of allNumbers) {
       const numStr = num.trim();
-      // Skip if it looks like phone number (10 digits starting with 6-9)
       if (numStr.length === 10 && /^[6-9]/.test(numStr)) continue;
-      // Skip if it looks like amount (has decimal context)
       if (text.includes(`${numStr}.00`) || text.includes(`${numStr}.`)) continue;
-      // Use first valid number
       if (numStr.length >= 9 && numStr.length <= 18) {
         accountNumber = numStr;
         break;
@@ -192,66 +182,78 @@ const extractData = (text, documentType) => {
   
   const ifscMatches = text.match(patterns.ifsc) || [];
   const bankMatches = text.match(patterns.bankName) || [];
-  
-  // Only extract Aadhar for Aadhar documents, not bank statements
   const aadharMatches = documentType === 'aadharCard' ? (text.match(patterns.aadhar) || []) : [];
+
+  let companyName = '';
+  if (documentType === 'bankStatement') {
+    const companyPatterns = [
+      /([A-Z][A-Z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))(?:\s*\n|\s*$)/i,
+      /(?:Account Holder|Name|Customer Name|A\/C Holder)\s*:?\s*([A-Z][A-Za-z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))\s*(?:\n|$)/i,
+      /([A-Z][A-Za-z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))\s*(?:Account|Statement|Bank)/i
+    ];
+    
+    for (const pattern of companyPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        companyName = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        console.log('Company name extracted with pattern:', companyName);
+        break;
+      }
+    }
+  }
 
   // Extract address for GST certificate
   let billingAddress = '';
   let tradeName = '';
   if (documentType === 'gstCertificate' && gstMatches.length > 0) {
-    // Try multiple patterns to extract trade name
-    const patterns = [
-      // Pattern 1: After Registration Number, before any label
-      /Registration Number[^\n]*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
-      // Pattern 2: Company name before "1. Legal Name" (numbered format)
-      /([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))\s*\n(?:[^\n]*\n)?(?:[^\n]*\n)?[\s\d.]*Legal Name/i,
-      // Pattern 3: After "Tax" or "eTax" keyword
-      /\be?Tax\s*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
-      // Pattern 4: After "Business" keyword (Address of Principal Place of Business)
-      /Business\s*\n\s*([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
-      // Pattern 5: Any company name appearing twice (common in GST certificates)
-      /\n([A-Z][A-Z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))\s*\n[^\n]*\n\1/i
+    const tradeNamePatterns = [
+      /(?:1\.|2\.)\s*(?:Legal Name|Trade Name)(?:[^\n]{0,20})?\n?\s*([A-Z][A-Za-z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))\s*(?:\n|$)/i,
+      /(?:Legal Name|Trade Name)\s*:?\s*([A-Z][A-Za-z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))\s*(?:\n|$)/i
     ];
     
-    for (const pattern of patterns) {
+    for (const pattern of tradeNamePatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
-        const extracted = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
-        // Validate it's not a false positive
-        if (!extracted.includes('Additional') && !extracted.includes('Constitution') && !extracted.includes('Certificate')) {
-          tradeName = extracted;
-          console.log('Trade name extracted with pattern:', pattern);
+        let extractedName = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        
+        extractedName = extractedName.replace(/^\d+\s*/, '').replace(/\s*\d+$/, '');
+        extractedName = extractedName.replace(/^[,\s]+|[,\s]+$/g, '');
+        
+        const words = extractedName.split(' ');
+        const halfLength = Math.floor(words.length / 2);
+        const firstHalf = words.slice(0, halfLength).join(' ');
+        const secondHalf = words.slice(halfLength).join(' ');
+        if (firstHalf === secondHalf && firstHalf.length > 0) {
+          extractedName = firstHalf;
+        }
+        
+        if (extractedName.length > 10 && 
+            !extractedName.match(/^PRIVATE LIMITED$/i) &&
+            !extractedName.match(/^Legal Name$/i) &&
+            !extractedName.match(/^Trade Name$/i) &&
+            !extractedName.match(/if any/i) &&
+            !extractedName.match(/Constitution/i)) {
+          tradeName = extractedName;
+          console.log('Trade name extracted:', tradeName);
           break;
         }
       }
     }
     
-    // If not found, try standard patterns
     if (!tradeName) {
-      const tradeNamePatterns = [
-        /Legal Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP))/i,
-        /Trade Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i,
-        /Business Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i,
-        /Taxpayer Name[^:]*:\s*([A-Z][A-Za-z\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP|PARTNERSHIP|PROPRIETORSHIP)?)/i
-      ];
-      
-      for (const pattern of tradeNamePatterns) {
-        const match = text.match(pattern);
-        if (match && match[1]) {
-          const extractedName = match[1].trim();
-          // Filter out common false positives
-          if (extractedName.length > 3 && 
-              !extractedName.match(/^\d+$/) && 
-              !extractedName.match(/^Plot/) &&
-              !extractedName.match(/^Building/) &&
-              !extractedName.toLowerCase().includes('certificate') &&
-              !extractedName.toLowerCase().includes('registration')) {
-            tradeName = extractedName;
-            console.log('Trade name extracted with pattern:', pattern);
-            console.log('Trade name value:', tradeName);
-            break;
-          }
+      const match = text.match(/Registration Number[^\n]*\n\s*([A-Z][A-Z0-9\s&.,-]+(?:PRIVATE LIMITED|PVT LTD|LIMITED|LTD|LLP))\s*(?:\n|$)/i);
+      if (match && match[1]) {
+        let extracted = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+        extracted = extracted.replace(/^\d+\s*/, '').replace(/\s*\d+$/, '');
+        const words = extracted.split(' ');
+        const halfLength = Math.floor(words.length / 2);
+        const firstHalf = words.slice(0, halfLength).join(' ');
+        const secondHalf = words.slice(halfLength).join(' ');
+        if (firstHalf === secondHalf && firstHalf.length > 0) {
+          extracted = firstHalf;
+        }
+        if (extracted.length > 10) {
+          tradeName = extracted;
         }
       }
     }
@@ -304,6 +306,7 @@ const extractData = (text, documentType) => {
     accountNumber: accountNumber,
     ifscCode: ifscMatches[0] || '',
     bankName: bankMatches[0] || '',
+    companyName: companyName,
     aadharNumber: aadharMatches[0] ? aadharMatches[0].replace(/\s/g, '') : '',
     extractedText: text
   };
@@ -320,64 +323,68 @@ router.post('/extract', upload.single('document'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const { documentType } = req.body;
+    const { documentType, companyTradeName } = req.body;
 
-    // Perform OCR using Google Vision
     console.log('Starting OCR processing...');
     const result = await performOCR(req.file.buffer, req.file.mimetype, req.file.originalname);
     console.log('OCR completed');
-    console.log('Vision API response keys:', Object.keys(result));
+    console.log('Result keys:', Object.keys(result));
     console.log('Has fullTextAnnotation:', !!result.fullTextAnnotation);
     console.log('Has textAnnotations:', !!result.textAnnotations);
-    console.log('Error in result:', result.error);
     
     const rawText = result.fullTextAnnotation ? result.fullTextAnnotation.text : 
                    (result.textAnnotations && result.textAnnotations.length > 0 ? result.textAnnotations[0].description : '');
-    console.log('textAnnotations length:', result.textAnnotations ? result.textAnnotations.length : 0);
-    if (result.textAnnotations && result.textAnnotations.length > 0) {
-      console.log('First textAnnotation:', result.textAnnotations[0]);
-    }
-    console.log('Extracted text length:', rawText.length);
+    
+    console.log('Raw text length:', rawText.length);
     if (rawText.length > 0) {
-      console.log('Raw text preview:', rawText.substring(0, 500));
+      console.log('Raw text preview (first 500 chars):', rawText.substring(0, 500));
     }
 
     if (!rawText || result.error) {
-      console.log('OCR failed, no text extracted');
+      console.log('No text extracted or error occurred');
       return res.json({ 
         success: false,
         message: 'No text found in document'
       });
     }
 
-    // Extract structured data
     const extractedData = extractData(rawText, documentType);
     
-    console.log('Extracted data from extractData function:', extractedData);
-    console.log('Document type:', documentType);
-    console.log('PAN number found:', extractedData.panNumber);
-    console.log('GST number found:', extractedData.gstNumber);
-    console.log('Billing address found:', extractedData.billingAddress);
-    console.log('Billing address length:', extractedData.billingAddress?.length);
+    console.log('Extracted data:', extractedData);
+    console.log('Company trade name from request:', companyTradeName);
+    console.log('Extracted company name:', extractedData.companyName);
     
-    // Force extract UDYAM number for MSME certificates
-    if (documentType === 'msmeCertificate') {
-      console.log('Processing MSME certificate...');
-      const udyamMatch = rawText.match(/UDYAM-[A-Z]{2}-\d{2}-\d{7}/i);
-      if (udyamMatch) {
-        extractedData.msmeNumber = udyamMatch[0];
-        console.log('UDYAM number extracted:', udyamMatch[0]);
-      } else {
-        console.log('No UDYAM match found in text');
+    if (documentType === 'bankStatement' && companyTradeName) {
+      const extractedCompanyName = extractedData.companyName || '';
+      const normalizedExpected = companyTradeName.toUpperCase().replace(/\s+/g, ' ').trim();
+      const normalizedExtracted = extractedCompanyName.toUpperCase().replace(/\s+/g, ' ').trim();
+      
+      console.log('Validation check:');
+      console.log('Expected (normalized):', normalizedExpected);
+      console.log('Extracted (normalized):', normalizedExtracted);
+      console.log('Does extracted include expected?', normalizedExtracted.includes(normalizedExpected));
+      
+      if (extractedCompanyName && !normalizedExtracted.includes(normalizedExpected)) {
+        console.log('Validation failed - company name mismatch');
+        return res.json({
+          success: false,
+          message: `Bank statement belongs to a different company. Expected: ${companyTradeName}, Found: ${extractedCompanyName}. Please upload the correct bank statement.`
+        });
+      }
+      
+      if (!extractedCompanyName) {
+        console.log('Warning: Could not extract company name from bank statement');
       }
     }
     
-    // Force extract TAN number for TAN certificates with multiple patterns
+    if (documentType === 'msmeCertificate') {
+      const udyamMatch = rawText.match(/UDYAM-[A-Z]{2}-\d{2}-\d{7}/i);
+      if (udyamMatch) {
+        extractedData.msmeNumber = udyamMatch[0];
+      }
+    }
+    
     if (documentType === 'tanCertificate') {
-      console.log('Processing TAN certificate...');
-      console.log('Raw text sample:', rawText.substring(0, 500));
-      
-      // Try multiple TAN patterns
       const tanPatterns = [
         /TAN\s*:?\s*([A-Z]{4}[0-9]{5}[A-Z])/gi,
         /Tax\s+Deduction\s+(?:and\s+)?Collection\s+Account\s+Number\s*:?\s*([A-Z]{4}[0-9]{5}[A-Z])/gi,
@@ -388,25 +395,15 @@ router.post('/extract', upload.single('document'), async (req, res) => {
       for (const pattern of tanPatterns) {
         const matches = rawText.match(pattern);
         if (matches) {
-          console.log('TAN pattern matched:', pattern, matches);
-          // Extract just the TAN number from the match
           const tanMatch = matches[0].match(/[A-Z]{4}[0-9]{5}[A-Z]/);
           if (tanMatch) {
             extractedData.tanNumber = tanMatch[0];
-            console.log('TAN number extracted:', tanMatch[0]);
             break;
           }
         }
       }
-      
-      if (!extractedData.tanNumber) {
-        console.log('No TAN match found with any pattern');
-      }
     }
     
-    console.log('Extracted data:', extractedData);
-    
-    // Check if relevant data was found based on document type
     let hasRelevantData = false;
     if (documentType === 'panCard' && extractedData.panNumber) hasRelevantData = true;
     if (documentType === 'tanCertificate' && extractedData.tanNumber) hasRelevantData = true;
@@ -416,14 +413,7 @@ router.post('/extract', upload.single('document'), async (req, res) => {
     if (documentType === 'bankStatement' && (extractedData.accountNumber || extractedData.ifscCode || extractedData.bankName)) hasRelevantData = true;
     if (documentType === 'aadharCard' && extractedData.aadharNumber) hasRelevantData = true;
 
-    console.log('Has relevant data:', hasRelevantData);
-    console.log('Checking conditions:');
-    console.log('- panCard check:', documentType === 'panCard', extractedData.panNumber);
-    console.log('- gstCertificate check:', documentType === 'gstCertificate', extractedData.gstNumber);
-
     if (!hasRelevantData) {
-      console.log('No relevant data found, returning error');
-      console.log('Raw text sample:', rawText.substring(0, 200));
       return res.json({
         success: false,
         data: extractedData,
