@@ -54,9 +54,15 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
         
         // Calculate total size from saved files
         let savedFilesSize = 0;
+        let savedFilesList = [];
         if (editingClient.documents?.otherDocumentsWithSize) {
           savedFilesSize = editingClient.documents.otherDocumentsWithSize.reduce((sum, doc) => sum + doc.size, 0);
+          savedFilesList = editingClient.documents.otherDocumentsWithSize.map(doc => doc.filename);
           console.log('Calculated savedFilesSize:', savedFilesSize, 'bytes =', (savedFilesSize / (1024 * 1024)).toFixed(2), 'MB');
+          console.log('Saved files list:', savedFilesList);
+        } else if (editingClient.documents?.otherDocuments) {
+          // Fallback if otherDocumentsWithSize not available
+          savedFilesList = editingClient.documents.otherDocuments;
         }
         
         setFormData({
@@ -106,7 +112,7 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
             aadharCard: editingClient.documents?.aadharCard || null,
             gstCertificate: editingClient.documents?.gstCertificate || null,
             bankStatement: editingClient.documents?.bankStatement || null,
-            otherDocuments: editingClient.documents?.otherDocuments || [],
+            otherDocuments: savedFilesList,
             savedFilesSize: savedFilesSize
           }
         });
@@ -451,21 +457,25 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
     const files = Array.from(e.target.files);
     const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
     
-    // Calculate existing documents size
-    const existingSize = formData.documents.otherDocuments.reduce((sum, doc) => {
+    // Calculate existing new files size (File objects)
+    const newFilesInFormSize = formData.documents.otherDocuments.reduce((sum, doc) => {
       if (doc instanceof File) {
         return sum + doc.size;
       }
       return sum;
     }, 0);
     
-    // Calculate new files size
+    // Add saved files size from server
+    const savedFilesSize = formData.documents.savedFilesSize || 0;
+    
+    // Calculate new files size being uploaded now
     const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
     
-    // Check total size
-    const totalSize = existingSize + newFilesSize;
+    // Total = saved files + new files in form + files being uploaded now
+    const totalSize = savedFilesSize + newFilesInFormSize + newFilesSize;
     
     if (totalSize > MAX_TOTAL_SIZE) {
+      const existingSize = savedFilesSize + newFilesInFormSize;
       const remainingSize = MAX_TOTAL_SIZE - existingSize;
       alert(`Total document size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
       e.target.value = ''; // Reset file input
@@ -504,7 +514,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      window.open(`${baseUrl}/api/clients/download/${file}`, '_blank');
+      const filename = file.split('/').pop();
+      window.open(`${baseUrl}/api/clients/download/${filename}`, '_blank');
     }
   };
 
@@ -514,7 +525,8 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
       const url = URL.createObjectURL(file);
       window.open(url, '_blank');
     } else if (typeof file === 'string') {
-      window.open(`${baseUrl}/api/clients/view/${file}`, '_blank');
+      const fileUrl = file.startsWith('/uploads/') ? file : `/uploads/clients/${file}`;
+      window.open(`${baseUrl}${fileUrl}`, '_blank');
     }
   };
 
@@ -578,12 +590,17 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
           if (formData.documents.bankStatement) {
             formDataToSend.append('bankStatement', formData.documents.bankStatement);
           }
-          // Add other documents as files
+          // Add only NEW other documents as files (File objects)
           formData.documents.otherDocuments.forEach((file) => {
             if (file instanceof File) {
               formDataToSend.append('otherDocuments', file);
             }
           });
+          // For edit mode, send existing filenames separately
+          if (editingClient) {
+            const existingFiles = formData.documents.otherDocuments.filter(file => typeof file === 'string');
+            formDataToSend.append('existingOtherDocuments', JSON.stringify(existingFiles));
+          }
         } else if (key === 'gstNumbers') {
           formDataToSend.append('gstNumbers', JSON.stringify(formData.gstNumbers));
         } else {
@@ -1234,7 +1251,12 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                       Other Documents
                     </label>
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {((formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0) + (formData.documents.savedFilesSize || 0)) / (1024 * 1024)).toFixed(2)}MB / 10MB
+                      {(() => {
+                        const newFilesSize = formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0);
+                        const savedSize = formData.documents.savedFilesSize || 0;
+                        const totalSize = newFilesSize + savedSize;
+                        return `${(totalSize / (1024 * 1024)).toFixed(2)}MB / 10MB`;
+                      })()}
                     </span>
                   </div>
                   <input

@@ -32,10 +32,8 @@ const InvoiceManagement = ({ setActivePage }) => {
   const handleViewAttachment = async (fileUrl, fileName) => {
     const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      // Extract filename from fileUrl
-      const filename = fileUrl.split('/').pop();
-      const viewUrl = `${baseUrl}/api/invoices/view/${filename}`;
-      window.open(viewUrl, '_blank');
+      // Use direct static path
+      window.open(`${baseUrl}${fileUrl}`, '_blank');
     } catch (error) {
       console.error('Error viewing file:', error);
       alert('Error viewing file');

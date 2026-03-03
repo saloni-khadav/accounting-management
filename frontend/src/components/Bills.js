@@ -723,6 +723,52 @@ const Bills = () => {
                 </div>
               )}
 
+              {/* Attachments */}
+              {viewingBill.attachments && viewingBill.attachments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-4">Attachments</h3>
+                  <div className="space-y-2">
+                    {viewingBill.attachments.map((attachment, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{attachment.fileName}</p>
+                            <p className="text-xs text-gray-500">{(attachment.fileSize / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+                              const fileUrl = attachment.fileUrl.startsWith('/uploads/') ? attachment.fileUrl : `/uploads/bills/${attachment.fileUrl}`;
+                              window.open(`${baseUrl}${fileUrl}`, '_blank');
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="View"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+                              const filename = attachment.fileUrl.split('/').pop();
+                              window.open(`${baseUrl}/api/bills/download/${filename}`, '_blank');
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Close Button */}
               <div className="flex justify-end">
                 <button 

@@ -5,6 +5,7 @@ import { generateCreditDebitNotePDF } from '../utils/pdfGenerator';
 import MetricsCard from './ui/MetricsCard';
 
 const CreditDebitNotes = () => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
   const [creditDebitNotes, setCreditDebitNotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +22,7 @@ const CreditDebitNotes = () => {
   const fetchCreditDebitNotes = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', {
+      const response = await fetch(`${baseUrl}/api/credit-debit-notes`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -56,7 +57,7 @@ const CreditDebitNotes = () => {
   const handleDeleteNote = async (noteId) => {
     if (window.confirm('Are you sure you want to delete this note?')) {
       try {
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${noteId}`, {
+        const response = await fetch(`${baseUrl}/api/credit-debit-notes/${noteId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -388,6 +389,57 @@ const CreditDebitNotes = () => {
                 </div>
               )}
               
+              {/* Attachments */}
+              {viewingNote.attachments && viewingNote.attachments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-4">Attachments</h3>
+                  <div className="space-y-2">
+                    {viewingNote.attachments.map((attachment, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <div className="flex items-center">
+                          <FileText className="w-4 h-4 text-gray-500 mr-2" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{attachment.fileName}</p>
+                            <p className="text-xs text-gray-500">{(attachment.fileSize / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const fileUrl = attachment.fileUrl.startsWith('/uploads/') ? attachment.fileUrl : `/uploads/credit-debit-notes/${attachment.fileUrl}`;
+                              window.open(`${baseUrl}${fileUrl}`, '_blank');
+                            }}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const fileUrl = attachment.fileUrl.startsWith('/uploads/') ? attachment.fileUrl : `/uploads/credit-debit-notes/${attachment.fileUrl}`;
+                              const response = await fetch(`${baseUrl}${fileUrl}`);
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = attachment.fileName;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 p-1"
+                            title="Download"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               {/* Action Buttons */}
               <div className="flex justify-end gap-4 mt-6">
                 <button 
@@ -420,8 +472,8 @@ const CreditDebitNotes = () => {
           try {
             const method = editingNote ? 'PUT' : 'POST';
             const url = editingNote 
-              ? `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${editingNote._id}`
-              : 'https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes';
+              ? `${baseUrl}/api/credit-debit-notes/${editingNote._id}`
+              : `${baseUrl}/api/credit-debit-notes`;
             
             // Format the data properly
             const formattedNote = {
