@@ -1,0 +1,41 @@
+NGINX Configuration Fix for React Router
+==========================================
+
+The 404 error occurs because nginx doesn't know how to handle the /vendor-bill-submit route.
+React Router handles this on the client side, so nginx needs to serve index.html for all routes.
+
+SSH into your server and edit the nginx config:
+
+sudo nano /etc/nginx/sites-available/nextbook.nextsphere.co.in
+
+Add or update the location block to include try_files:
+
+server {
+    listen 80;
+    server_name nextbook.nextsphere.co.in;
+    
+    root /path/to/your/frontend/build;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api {
+        proxy_pass http://localhost:5001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+After editing, test and reload nginx:
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+The key line is: try_files $uri $uri/ /index.html;
+This tells nginx to serve index.html for any route that doesn't match a file,
+allowing React Router to handle the routing.

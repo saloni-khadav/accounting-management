@@ -49,6 +49,7 @@ import InvoiceManagement from './components/InvoiceManagement';
 import Approvals from './components/Approvals';
 import PeriodManagement from './components/PeriodManagement';
 import ChatBot from './components/ChatBot';
+import VendorBillSubmit from './components/VendorBillSubmit';
 
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // landing, login, signup, set-password, dashboard
@@ -58,6 +59,13 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    // Check for vendor bill submission
+    const currentPath = window.location.pathname;
+    if (currentPath.startsWith('/vendor-bill-submit')) {
+      setCurrentView('vendor-bill-submit');
+      return;
+    }
+
     // Check for existing authentication
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
@@ -74,8 +82,7 @@ function App() {
     }
 
     // Check for set-password token in URL path
-    const path = window.location.pathname;
-    const setPasswordMatch = path.match(/\/set-password\/(.+)/);
+    const setPasswordMatch = currentPath.match(/\/set-password\/(.+)/);
     
     if (setPasswordMatch) {
       const token = setPasswordMatch[1];
@@ -245,6 +252,10 @@ function App() {
         <ChatBot />
       </>
     );
+  }
+
+  if (currentView === 'vendor-bill-submit') {
+    return <VendorBillSubmit />;
   }
 
   // Dashboard view

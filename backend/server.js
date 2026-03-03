@@ -87,6 +87,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/period-permissions', periodPermissionRoutes);
 app.use('/api/permissions', permissionRoutes);
+app.use('/api/vendor-bill', require('./routes/vendorBill'));
 
 // test route 
 app.get('/api/test', (req, res) => {
