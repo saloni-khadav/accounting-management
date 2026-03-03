@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, Plus, Trash2, X, Upload, Paperclip, Download, Eye, FileText, User, ShoppingCart } from 'lucide-react';
 
 const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
   const [creditDebitNotes, setCreditDebitNotes] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
@@ -24,7 +25,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
   // Generate automatic note number
   const generateNoteNumber = async (type) => {
     try {
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/next-note-number/${encodeURIComponent(type)}`, {
+      const response = await fetch(`${baseUrl}/api/credit-debit-notes/next-note-number/${encodeURIComponent(type)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -49,7 +50,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     // Fetch existing notes for number generation
     const fetchNotes = async () => {
       try {
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', {
+        const response = await fetch(`${baseUrl}/api/credit-debit-notes`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -66,7 +67,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     // Fetch vendors
     const fetchVendors = async () => {
       try {
-        const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors', {
+        const response = await fetch(`${baseUrl}/api/vendors`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -207,9 +208,8 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         const existingAttachments = editingNote.attachments.map(attachment => ({
           fileName: attachment.fileName,
           fileSize: attachment.fileSize,
-          fileUrl: `https://nextbook-backend.nextsphere.co.in${attachment.fileUrl}`,
-          uploadedAt: attachment.uploadedAt,
-          isExisting: true // Flag to identify existing files
+          fileUrl: attachment.fileUrl,
+          uploadedAt: attachment.uploadedAt
         }));
         setAttachments(existingAttachments);
       } else {
@@ -268,13 +268,31 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
     
-    // Check individual file sizes
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    // Calculate existing attachments size
+    const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
     
-    if (oversizedFiles.length > 0) {
-      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+    // Calculate new files size
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Check total size
+    const totalSize = existingSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total attachment size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Validate file types
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      alert('Only PDF, JPG, JPEG, and PNG files are allowed.');
+      e.target.value = ''; // Reset file input
       return;
     }
     
@@ -292,39 +310,29 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const downloadAttachment = async (attachment) => {
-    if (attachment.isExisting) {
-      // For existing files, download from server
-      try {
-        const filename = attachment.fileUrl.split('/').pop();
-        const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/download/${filename}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = attachment.fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        }
-      } catch (error) {
-        console.error('Error downloading file:', error);
-        alert('Error downloading file');
-      }
-    } else {
-      // For new files, use blob URL
+  const viewAttachment = (attachment) => {
+    if (attachment.file) {
+      // New file - use local URL
+      window.open(attachment.fileUrl, '_blank');
+    } else if (attachment.fileUrl) {
+      // Existing file from backend - use direct path
+      window.open(`${baseUrl}${attachment.fileUrl}`, '_blank');
+    }
+  };
+
+  const downloadAttachment = (attachment) => {
+    if (attachment.file) {
+      // New file - use local URL
       const link = document.createElement('a');
       link.href = attachment.fileUrl;
       link.download = attachment.fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    } else if (attachment.fileUrl) {
+      // Existing file from backend - use download route
+      const filename = attachment.fileUrl.split('/').pop();
+      window.open(`${baseUrl}/api/credit-debit-notes/download/${filename}`, '_blank');
     }
   };
 
@@ -458,7 +466,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
   const fetchVendorInvoices = async (vendorName) => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills', {
+      const response = await fetch(`${baseUrl}/api/bills`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -467,7 +475,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         const bills = await response.json();
         
         // Get payments to calculate paid amounts
-        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+        const paymentsResponse = await fetch(`${baseUrl}/api/payments`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -587,10 +595,18 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
       alert('At least one attachment is required');
       return;
     }
+
+    // Check total attachment size (max 10MB total)
+    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+    const maxTotalSize = 10 * 1024 * 1024; // 10MB
+    if (totalSize > maxTotalSize) {
+      alert(`Total attachments: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+      return;
+    }
     
     try {
       const token = localStorage.getItem('token');
-      const userResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const userResponse = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await userResponse.json();
@@ -617,22 +633,38 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
         }
       });
       
-      // Add attachment files (only new files)
+      // Separate existing attachments from new files
+      const existingAttachments = [];
+      const newFiles = [];
+      
       attachments.forEach((attachment) => {
-        if (attachment.file && !attachment.isExisting) {
-          formData.append('attachments', attachment.file);
+        if (attachment.file) {
+          // New file with File object
+          newFiles.push(attachment);
+        } else {
+          // Existing attachment (already saved in DB)
+          existingAttachments.push({
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl,
+            fileSize: attachment.fileSize,
+            uploadedAt: attachment.uploadedAt
+          });
         }
       });
       
-      // Add existing attachment IDs to preserve them
-      const existingAttachments = attachments.filter(att => att.isExisting);
+      // Add existing attachments as JSON
       if (existingAttachments.length > 0) {
         formData.append('existingAttachments', JSON.stringify(existingAttachments));
       }
       
+      // Add new attachment files
+      newFiles.forEach((attachment) => {
+        formData.append('attachments', attachment.file);
+      });
+      
       const url = editingNote 
-        ? `https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/${editingNote._id}`
-        : 'https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes';
+        ? `${baseUrl}/api/credit-debit-notes/${editingNote._id}`
+        : `${baseUrl}/api/credit-debit-notes`;
       const method = editingNote ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -1134,15 +1166,23 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
 
             {/* Attachments */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Attachments <span className="text-red-500">*</span>
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Attachments <span className="text-red-500">*</span>
+                </label>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {(() => {
+                    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+                    return `${(totalSize / (1024 * 1024)).toFixed(2)}MB / 10MB`;
+                  })()}
+                </span>
+              </div>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                 <div className="flex items-center justify-center">
                   <label className="flex flex-col items-center cursor-pointer">
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-600">Click to upload files</span>
-                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB)</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, JPG, PNG (Max 10MB total)</span>
                     <input
                       type="file"
                       multiple
@@ -1167,14 +1207,7 @@ const CreditDebitNoteForm = ({ isOpen, onClose, onSave, editingNote }) => {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              if (attachment.isExisting) {
-                                window.open(`https://nextbook-backend.nextsphere.co.in${attachment.fileUrl}`, '_blank');
-                              } else {
-                                const url = URL.createObjectURL(attachment.file);
-                                window.open(url, '_blank');
-                              }
-                            }}
+                            onClick={() => viewAttachment(attachment)}
                             className="text-green-600 hover:text-green-800 p-1"
                             title="View"
                           >

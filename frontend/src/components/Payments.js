@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, ChevronLeft, X, Upload, Paperclip, Download, CreditCard, Clock, CheckCircle, IndianRupee, Eye, Save, User, FileText, Banknote } from 'lucide-react';
 import MetricsCard from './ui/MetricsCard';
 
+const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+
 const Payments = () => {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [payments, setPayments] = useState([]);
@@ -55,7 +57,7 @@ const Payments = () => {
   const fetchBankAccounts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -72,7 +74,7 @@ const Payments = () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Token:', token); // Debug log
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/auth/me', {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userData = await response.json();
@@ -85,7 +87,7 @@ const Payments = () => {
 
   const fetchVendors = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/vendors', {
+      const response = await fetch(`${baseUrl}/api/vendors`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -102,7 +104,7 @@ const Payments = () => {
   const fetchBillsByVendor = async (vendorName) => {
     try {
       console.log('Fetching bills for vendor:', vendorName);
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/bills?vendorName=${encodeURIComponent(vendorName)}`, {
+      const response = await fetch(`${baseUrl}/api/bills?vendorName=${encodeURIComponent(vendorName)}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -111,7 +113,7 @@ const Payments = () => {
         const data = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+        const paymentsResponse = await fetch(`${baseUrl}/api/payments`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -122,7 +124,7 @@ const Payments = () => {
         }
         
         // Fetch credit/debit notes to calculate adjustments
-        const creditDebitResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes/reconciliation', {
+        const creditDebitResponse = await fetch(`${baseUrl}/api/credit-debit-notes/reconciliation`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -177,7 +179,7 @@ const Payments = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+      const response = await fetch(`${baseUrl}/api/payments`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (response.ok) {
@@ -192,7 +194,7 @@ const Payments = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments/stats/summary', {
+      const response = await fetch(`${baseUrl}/api/payments/stats/summary`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -298,13 +300,31 @@ const Payments = () => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
     
-    // Check individual file sizes
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    const oversizedFiles = files.filter(file => file.size > maxFileSize);
+    // Calculate existing attachments size
+    const existingSize = formData.attachments.reduce((sum, file) => sum + (file.size || 0), 0);
     
-    if (oversizedFiles.length > 0) {
-      alert(`Following files exceed 10MB limit:\n${oversizedFiles.map(f => `${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}\n\nPlease select files smaller than 10MB.`);
+    // Calculate new files size
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Check total size
+    const totalSize = existingSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total attachment size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Validate file types
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      alert('Only PDF, JPG, JPEG, and PNG files are allowed.');
+      e.target.value = ''; // Reset file input
       return;
     }
     
@@ -312,6 +332,7 @@ const Payments = () => {
       ...prev,
       attachments: [...prev.attachments, ...files]
     }));
+    e.target.value = ''; // Reset file input for next upload
   };
 
   const viewFile = (file) => {
@@ -404,7 +425,7 @@ const Payments = () => {
         formDataToSend.append('attachments', file);
       });
       
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', {
+      const response = await fetch(`${baseUrl}/api/payments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -453,7 +474,7 @@ const Payments = () => {
   const handlePaymentApproval = async (paymentId, action) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://nextbook-backend.nextsphere.co.in/api/payments/${paymentId}/approval`, {
+      const response = await fetch(`${baseUrl}/api/payments/${paymentId}/approval`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1051,9 +1072,17 @@ const Payments = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attachments <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Attachments <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {(() => {
+                        const totalSize = formData.attachments.reduce((sum, file) => sum + (file.size || 0), 0);
+                        return `${(totalSize / (1024 * 1024)).toFixed(2)}MB / 10MB`;
+                      })()}
+                    </span>
+                  </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-center w-full">
                       <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
@@ -1062,13 +1091,13 @@ const Payments = () => {
                           <p className="mb-2 text-sm text-gray-500">
                             <span className="font-semibold">Click to upload</span> or drag and drop
                           </p>
-                          <p className="text-xs text-gray-500">PDF, PNG, JPG, DOC (MAX. 10MB)</p>
+                          <p className="text-xs text-gray-500">PDF, JPG, PNG (Max 10MB total)</p>
                         </div>
                         <input
                           type="file"
                           multiple
                           onChange={handleFileUpload}
-                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                          accept=".pdf,.jpg,.jpeg,.png"
                           className="hidden"
                         />
                       </label>

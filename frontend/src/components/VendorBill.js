@@ -777,23 +777,21 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
-    console.log('📎 Files selected:', files.length, files.map(f => f.name));
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
     
-    // Calculate total size including existing attachments
+    // Calculate existing attachments size
     const existingSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
-    const newFilesSize = files.reduce((sum, f) => sum + f.size, 0);
-    const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
-    const maxTotalSize = 10 * 1024 * 1024; // 10MB
     
-    console.log('📎 File upload:', {
-      existing: (existingSize / 1024 / 1024).toFixed(2) + 'MB',
-      new: (newFilesSize / 1024 / 1024).toFixed(2) + 'MB',
-      total: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
-      limit: '10MB'
-    });
+    // Calculate new files size
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
     
-    if (totalSize > maxTotalSize) {
-      alert(`Total attachments too large!\n\nCurrent: ${(existingSize / 1024 / 1024).toFixed(2)}MB\nAdding: ${(newFilesSize / 1024 / 1024).toFixed(2)}MB\nTotal: ${(totalSize / 1024 / 1024).toFixed(2)}MB\nMaximum: 10MB\n\nPlease remove some files.`);
+    // Check total size
+    const totalSize = existingSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total attachment size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
       return;
     }
     
@@ -804,8 +802,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
       fileUrl: URL.createObjectURL(file),
       uploadedAt: new Date()
     }));
-    console.log('📎 New attachments created:', newAttachments.length);
     setAttachments(prev => [...prev, ...newAttachments]);
+    e.target.value = ''; // Reset file input for next upload
   };
 
   const removeAttachment = (index) => {
@@ -1643,9 +1641,17 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
 
           {/* Attachments */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachments <span className="text-red-500">*</span>
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Attachments <span className="text-red-500">*</span>
+              </label>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                {(() => {
+                  const totalSize = attachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+                  return `${(totalSize / (1024 * 1024)).toFixed(2)}MB / 10MB`;
+                })()}
+              </span>
+            </div>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
               <div className="flex items-center justify-center">
                 <label className="flex flex-col items-center cursor-pointer">
@@ -1680,7 +1686,8 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                               const url = URL.createObjectURL(attachment.file);
                               window.open(url, '_blank');
                             } else {
-                              window.open(`${baseUrl}/api/bills/download/${attachment.fileUrl}`, '_blank');
+                              const fileUrl = attachment.fileUrl.startsWith('/uploads/') ? attachment.fileUrl : `/uploads/bills/${attachment.fileUrl}`;
+                              window.open(`${baseUrl}${fileUrl}`, '_blank');
                             }
                           }}
                           className="text-green-600 hover:text-green-800 p-1"
@@ -1689,7 +1696,19 @@ const VendorBill = ({ isOpen, onClose, onSave, editingBill }) => {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => downloadAttachment(attachment)}
+                          onClick={() => {
+                            if (attachment.file) {
+                              const link = document.createElement('a');
+                              link.href = URL.createObjectURL(attachment.file);
+                              link.download = attachment.fileName;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            } else {
+                              const filename = attachment.fileUrl.split('/').pop();
+                              window.open(`${baseUrl}/api/bills/download/${filename}`, '_blank');
+                            }
+                          }}
                           className="text-blue-600 hover:text-blue-800 p-1"
                           title="Download"
                         >

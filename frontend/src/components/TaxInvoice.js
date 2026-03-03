@@ -793,7 +793,7 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       link.click();
       document.body.removeChild(link);
     } else if (attachment.fileUrl) {
-      // Existing file from backend
+      // Existing file from backend - use download route
       const filename = attachment.fileUrl.split('/').pop();
       window.open(`${baseUrl}/api/invoices/download/${filename}`, '_blank');
     }
@@ -805,9 +805,8 @@ const TaxInvoice = ({ isOpen, onClose, onSave, editingInvoice }) => {
       // New file - use local URL
       window.open(attachment.fileUrl, '_blank');
     } else if (attachment.fileUrl) {
-      // Existing file from backend
-      const filename = attachment.fileUrl.split('/').pop();
-      window.open(`${baseUrl}/api/invoices/view/${filename}`, '_blank');
+      // Existing file from backend - use direct path
+      window.open(`${baseUrl}${attachment.fileUrl}`, '_blank');
     }
   };
 

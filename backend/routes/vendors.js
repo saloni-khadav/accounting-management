@@ -56,6 +56,26 @@ router.get('/:id', async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
+    
+    // Calculate file sizes for otherDocuments
+    if (vendor.documents && vendor.documents.otherDocuments) {
+      const documentsWithSize = vendor.documents.otherDocuments.map(filename => {
+        // Remove /uploads/vendors/ prefix if present
+        const cleanFilename = filename.replace('/uploads/vendors/', '');
+        const filePath = path.join(uploadsDir, cleanFilename);
+        let size = 0;
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          size = stats.size;
+        }
+        return { filename, size };
+      });
+      
+      const vendorData = vendor.toObject();
+      vendorData.documents.otherDocumentsWithSize = documentsWithSize;
+      return res.json(vendorData);
+    }
+    
     res.json(vendor);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -103,7 +123,7 @@ router.post('/', upload.fields([
       
       // Handle multiple other documents
       if (req.files.otherDocuments) {
-        vendorData.documents.otherDocuments = req.files.otherDocuments.map(file => file.filename);
+        vendorData.documents.otherDocuments = req.files.otherDocuments.map(file => `/uploads/vendors/${file.filename}`);
       }
     }
     
@@ -160,10 +180,13 @@ router.put('/:id', upload.fields([
       
       // Handle multiple other documents - append to existing
       if (req.files.otherDocuments) {
-        const existingVendor = await Vendor.findById(req.params.id);
-        const existingDocs = existingVendor?.documents?.otherDocuments || [];
-        const newDocs = req.files.otherDocuments.map(file => file.filename);
+        const newDocs = req.files.otherDocuments.map(file => `/uploads/vendors/${file.filename}`);
+        // Get existing documents from request body (sent separately)
+        const existingDocs = req.body.existingOtherDocuments ? JSON.parse(req.body.existingOtherDocuments) : [];
         vendorData.documents.otherDocuments = [...existingDocs, ...newDocs];
+      } else if (req.body.existingOtherDocuments) {
+        // No new files, just preserve existing ones
+        vendorData.documents.otherDocuments = JSON.parse(req.body.existingOtherDocuments);
       }
     }
     
@@ -212,11 +235,28 @@ router.get('/search/:term', async (req, res) => {
 });
 
 // Download document
-router.get('/download/:filename', (req, res) => {
+router.get('/download/:filename(*)', (req, res) => {
   try {
-    const filePath = path.join(uploadsDir, req.params.filename);
+    const filename = req.params.filename.split('/').pop();
+    const filePath = path.join(uploadsDir, filename);
     if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.download(filePath);
+    } else {
+      res.status(404).json({ message: 'File not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// View document
+router.get('/view/:filename(*)', (req, res) => {
+  try {
+    const filename = req.params.filename.split('/').pop();
+    const filePath = path.join(uploadsDir, filename);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
     } else {
       res.status(404).json({ message: 'File not found' });
     }

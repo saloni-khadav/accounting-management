@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'credit-debit-note-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -28,13 +28,13 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /pdf|jpg|jpeg|png|doc|docx/;
+    const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
+    if (mimetype && extname) {
+      return cb(null, true);
     } else {
-      cb(new Error('Only PDF, JPG, PNG, DOC, DOCX files are allowed'));
+      cb(new Error('Only .png, .jpg, .jpeg and .pdf files are allowed!'));
     }
   }
 });
@@ -101,6 +101,24 @@ router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('C
   console.log('📥 TDS amount:', req.body.tdsAmount);
   
   try {
+    // Validate total attachment size
+    if (req.files && req.files.length > 0) {
+      const totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (totalSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `Total attachment size (${(totalSize / (1024 * 1024)).toFixed(2)}MB) exceeds 10MB limit` 
+        });
+      }
+    }
+    
     const noteData = {
       ...req.body,
       userId: req.user.id
@@ -145,12 +163,12 @@ router.post('/', auth, upload.array('attachments', 10), checkPeriodPermission('C
       }
     });
     
-    // Handle file uploads
+    // Handle file attachments
     if (req.files && req.files.length > 0) {
       noteData.attachments = req.files.map(file => ({
         fileName: file.originalname,
-        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
         fileSize: file.size,
+        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
         uploadedAt: new Date()
       }));
     }
@@ -241,38 +259,55 @@ router.put('/:id', auth, upload.array('attachments', 10), checkPeriodPermission(
       }
     });
     
-    // Handle file uploads and existing attachments
+    // Handle file attachments
     let finalAttachments = [];
     
-    // Parse existing attachments if provided
-    if (updateData.existingAttachments) {
+    // Parse existingAttachments if provided (files user wants to keep)
+    if (req.body.existingAttachments) {
       try {
-        const existingAttachments = JSON.parse(updateData.existingAttachments);
-        finalAttachments = existingAttachments.map(att => ({
-          fileName: att.fileName,
-          fileUrl: att.fileUrl.replace('https://nextbook-backend.nextsphere.co.in', ''), // Remove base URL
-          fileSize: att.fileSize,
-          uploadedAt: att.uploadedAt
-        }));
+        const existingAttachments = typeof req.body.existingAttachments === 'string' 
+          ? JSON.parse(req.body.existingAttachments) 
+          : req.body.existingAttachments;
+        finalAttachments = existingAttachments;
       } catch (e) {
-        console.error('Error parsing existing attachments:', e);
+        console.error('Error parsing existingAttachments:', e);
       }
-      delete updateData.existingAttachments;
     }
     
-    // Add new file uploads
+    // Add new uploaded files
     if (req.files && req.files.length > 0) {
+      // Calculate total size including existing attachments
+      const existingSize = finalAttachments.reduce((sum, att) => sum + (att.fileSize || 0), 0);
+      const newFilesSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      const totalSize = existingSize + newFilesSize;
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
+      
+      if (totalSize > MAX_TOTAL_SIZE) {
+        // Delete uploaded files
+        req.files.forEach(file => {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        });
+        return res.status(400).json({ 
+          message: `Total attachment size would be ${(totalSize / (1024 * 1024)).toFixed(2)}MB. Maximum 10MB allowed. Current: ${(existingSize / (1024 * 1024)).toFixed(2)}MB` 
+        });
+      }
+      
       const newAttachments = req.files.map(file => ({
         fileName: file.originalname,
-        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
         fileSize: file.size,
+        fileUrl: `/uploads/credit-debit-notes/${file.filename}`,
         uploadedAt: new Date()
       }));
       
       finalAttachments = [...finalAttachments, ...newAttachments];
     }
     
-    updateData.attachments = finalAttachments;
+    // Set final attachments array
+    if (finalAttachments.length > 0) {
+      updateData.attachments = finalAttachments;
+    }
     
     const note = await CreditDebitNote.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
