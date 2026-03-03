@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, Plus, X, Trash2, ChevronDown, Filter, Edit, Trash, Eye, Download, ShoppingCart, Clock, CheckCircle, FileText, Save } from 'lucide-react';
 import { determineGSTType, applyGSTRates } from '../utils/gstTaxUtils';
-import { generatePurchaseOrderPDF } from '../utils/pdfGenerator';
+import { generatePurchaseOrderPDF } from '../utils/poPdfGenerator';
 import MetricsCard from './ui/MetricsCard';
 
 const PurchaseOrders = () => {
@@ -71,18 +71,19 @@ const PurchaseOrders = () => {
   const generatePONumber = async () => {
     const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
-      const response = await fetch(`${baseUrl}/api/purchase-orders/next-po-number`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${baseUrl}/api/purchase-orders/next-po-number`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
+        console.log('PO Number received from backend:', data.poNumber);
+        console.log('Type:', typeof data.poNumber);
         setFormData(prev => ({ ...prev, poNumber: data.poNumber }));
       }
     } catch (error) {
       console.error('Error generating PO number:', error);
-      // Fallback to manual generation
-      const currentYear = new Date().getFullYear();
-      const nextYear = currentYear + 1;
-      const yearCode = `${currentYear.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
-      setFormData(prev => ({ ...prev, poNumber: `PO-${yearCode}-001` }));
+      setFormData(prev => ({ ...prev, poNumber: 'PO-001' }));
     }
   };
 
@@ -387,9 +388,42 @@ const PurchaseOrders = () => {
     setShowViewModal(true);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (viewingOrder) {
-      generatePurchaseOrderPDF(viewingOrder);
+      // Download PDF
+      await generatePurchaseOrderPDF(viewingOrder);
+      
+      // Also send email
+      await handleSendEmail();
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!viewingOrder) return;
+    
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const url = `${baseUrl}/api/purchase-orders/${viewingOrder._id}/send-email`;
+    
+    try {
+      const pdfBase64 = await generatePurchaseOrderPDF(viewingOrder, true);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ pdfData: pdfBase64 })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Email with PDF sent to ${result.email}`);
+      } else {
+        alert('Error sending email');
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
     }
   };
 

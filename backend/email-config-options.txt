@@ -1,0 +1,27 @@
+# Alternative Email Configurations for Business@nextsphere.co.in
+
+# Option 1: If it's a Google Workspace email
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=Business@nextsphere.co.in
+EMAIL_PASS=<16-digit-app-password>
+
+# Option 2: If it's a cPanel/custom email server
+EMAIL_HOST=mail.nextsphere.co.in
+EMAIL_PORT=587
+EMAIL_USER=Business@nextsphere.co.in
+EMAIL_PASS=Agritek@123
+
+# Option 3: If using SSL (port 465)
+EMAIL_HOST=mail.nextsphere.co.in
+EMAIL_PORT=465
+EMAIL_USER=Business@nextsphere.co.in
+EMAIL_PASS=Agritek@123
+
+# Option 4: Alternative SMTP host
+EMAIL_HOST=smtp.nextsphere.co.in
+EMAIL_PORT=587
+EMAIL_USER=Business@nextsphere.co.in
+EMAIL_PASS=Agritek@123
+
+# To test which one works, try each configuration and restart backend

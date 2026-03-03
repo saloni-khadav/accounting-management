@@ -39,7 +39,11 @@ const CreatePO = () => {
 
   const getNextPONumber = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos/next-number');
+      // Fetch next PO number from backend (which uses settings)
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/pos/next-number', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         return data.poNumber;
@@ -47,19 +51,11 @@ const CreatePO = () => {
     } catch (error) {
       console.error('Error fetching PO number:', error);
     }
-    // Dynamic fallback based on current year
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    const yearCode = `${currentYear.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
-    return `PI-${yearCode}-001`;
+    // Fallback
+    return 'PO-001';
   };
 
-  const [poNumber, setPoNumber] = useState(() => {
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    const yearCode = `${currentYear.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
-    return `PI-${yearCode}-001`;
-  });
+  const [poNumber, setPoNumber] = useState('PO-001');
 
   // Fetch next PO number on component mount
   useEffect(() => {

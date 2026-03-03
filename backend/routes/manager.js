@@ -4,12 +4,15 @@ const User = require('../models/User');
 const Invoice = require('../models/Invoice');
 const PO = require('../models/PO');
 const PurchaseOrder = require('../models/PurchaseOrder');
+const Vendor = require('../models/Vendor');
 const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const Client = require('../models/Client');
 const CreditDebitNote = require('../models/CreditDebitNote');
 const CreditNote = require('../models/CreditNote');
 const Collection = require('../models/Collection');
+const sendEmail = require('../utils/sendEmail');
+const { generatePurchaseOrderPDF } = require('../utils/poPdfGenerator');
 
 const router = express.Router();
 
@@ -319,6 +322,100 @@ router.post('/action', auth, requireManager, async (req, res) => {
         approvalStatus: action === 'approve' ? 'approved' : 'rejected',
         rejectionReason: action === 'reject' && rejectionReason ? rejectionReason : undefined
       }, { new: true });
+      
+      // Send email to vendor if approved
+      if (action === 'approve' && updateResult) {
+        try {
+          const vendor = await Vendor.findOne({ vendorName: updateResult.supplier });
+          
+          if (vendor && vendor.email) {
+            let pdfBase64;
+            
+            try {
+              console.log('🔍 Fetching company profile...');
+              const user = await User.findOne({ companyName: updateResult.companyName || 'Default' });
+              const companyProfile = user?.profile || {};
+              console.log('✅ Company profile fetched:', companyProfile.tradeName);
+              
+              console.log('📄 Generating PDF...');
+              pdfBase64 = await generatePurchaseOrderPDF(updateResult, companyProfile, true);
+              console.log('✅ PDF generated, length:', pdfBase64 ? pdfBase64.length : 0);
+            } catch (pdfError) {
+              console.error('❌ PDF generation failed:', pdfError);
+            }
+            
+            const emailOptions = {
+              email: vendor.email,
+              subject: `Purchase Order Approved - ${updateResult.poNumber}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+                  <h2 style="color: #2563eb;">Purchase Order Approved</h2>
+                  <p>Dear ${vendor.contactPerson || vendor.vendorName},</p>
+                  <p>Your Purchase Order <strong>${updateResult.poNumber}</strong> has been approved.</p>
+                  
+                  <div style="background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1e40af;">Order Details</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">PO Number:</td>
+                        <td style="padding: 8px 0;">${updateResult.poNumber}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">PO Date:</td>
+                        <td style="padding: 8px 0;">${new Date(updateResult.poDate).toLocaleDateString('en-GB')}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; font-weight: bold;">Total Amount:</td>
+                        <td style="padding: 8px 0; font-weight: bold;">₹${updateResult.totalAmount?.toFixed(2)}</td>
+                      </tr>
+                    </table>
+                  </div>
+                  
+                  <p style="margin-top: 30px;">Please find the complete Purchase Order attached as PDF.</p>
+                  
+                  <div style="background-color: #fff; border: 2px solid #28a745; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+                    <h3 style="margin-top: 0; color: #28a745;">📄 Submit Your Bill</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Click the button below to submit your bill for this Purchase Order</p>
+                    
+                    <a href="${process.env.FRONTEND_URL || 'https://nextbook.nextsphere.co.in'}/vendor-bill-submit?po=${updateResult._id}&vendor=${vendor._id}&token=${Buffer.from(vendor._id + ':' + updateResult._id).toString('base64')}" 
+                       style="display: inline-block; background-color: #28a745; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                      📝 Create & Submit Bill
+                    </a>
+                    
+                    <p style="color: #999; font-size: 12px; margin-top: 15px; margin-bottom: 0;">
+                      This secure link will open a form pre-filled with PO details.<br/>
+                      Simply enter your bill number, date, and upload invoice PDF.
+                    </p>
+                  </div>
+                  
+                  <p style="margin-top: 30px; color: #666; font-size: 12px;">
+                    For any queries, please contact us at <a href="mailto:Finance@agritek.co.in">Finance@agritek.co.in</a>
+                  </p>
+                  
+                  <p style="margin-top: 30px;">Best regards,<br/><strong>ECOAGRITEK AI SOLUTIONS PRIVATE LIMITED</strong></p>
+                </div>
+              `
+            };
+            
+            if (pdfBase64) {
+              console.log('📎 Adding PDF attachment...');
+              emailOptions.attachments = [{
+                filename: `PO-${updateResult.poNumber}.pdf`,
+                content: pdfBase64,
+                encoding: 'base64'
+              }];
+              console.log('✅ PDF attachment added');
+            } else {
+              console.log('⚠️ No PDF generated, sending email without attachment');
+            }
+            
+            await sendEmail(emailOptions);
+            console.log(`✅ Email with PDF sent to: ${vendor.email}`);
+          }
+        } catch (emailError) {
+          console.error('❌ Error sending email:', emailError);
+        }
+      }
       
       // If not found in PurchaseOrder, try PO model
       if (!updateResult) {

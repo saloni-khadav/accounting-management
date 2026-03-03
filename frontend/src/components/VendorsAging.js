@@ -13,18 +13,31 @@ const VendorsAging = () => {
 
   const fetchBillsAging = async () => {
     try {
-      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills');
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const response = await fetch('https://nextbook-backend.nextsphere.co.in/api/bills', { headers });
       if (response.ok) {
         const bills = await response.json();
         
         // Fetch payments to calculate actual paid amounts
-        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments');
+        const paymentsResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/payments', { headers });
         let payments = [];
         if (paymentsResponse.ok) {
           payments = await paymentsResponse.json();
         }
         
-        // Calculate paid amounts for each bill
+        // Fetch credit notes
+        const creditNotesResponse = await fetch('https://nextbook-backend.nextsphere.co.in/api/credit-debit-notes', { headers });
+        let creditNotes = [];
+        if (creditNotesResponse.ok) {
+          creditNotes = await creditNotesResponse.json();
+        }
+        
+        // Calculate paid amounts and credit notes for each bill
         const billsWithPaidAmounts = bills.map(bill => {
           const billPayments = payments.filter(payment => 
             payment.billId === bill._id && 
@@ -32,10 +45,17 @@ const VendorsAging = () => {
           );
           const totalPaid = billPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
           
+          const billCreditNotes = creditNotes.filter(cn => 
+            cn.originalInvoiceNumber === bill.billNumber && 
+            cn.type === 'Credit Note' &&
+            cn.approvalStatus === 'approved'
+          );
+          const totalCreditNote = billCreditNotes.reduce((sum, cn) => sum + (cn.grandTotal || 0), 0);
+          
           return {
             ...bill,
             paidAmount: totalPaid,
-            creditNoteAmount: bill.creditNoteAmount || 0
+            creditNoteAmount: totalCreditNote
           };
         });
         
@@ -51,33 +71,36 @@ const VendorsAging = () => {
 
   const calculateAging = (bills) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     return bills
       .filter(bill => {
-        // Only include approved bills
         if (bill.approvalStatus !== 'approved') return false;
         
-        // Calculate remaining amount
-        const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+        const actualTDS = (bill.tdsAmount && parseFloat(bill.tdsAmount) > 0) ? parseFloat(bill.tdsAmount) : 0;
+        const netPayable = (bill.grandTotal || 0) - actualTDS;
         const paidAmount = bill.paidAmount || 0;
         const creditNoteAmount = bill.creditNoteAmount || 0;
         const remainingAmount = netPayable - paidAmount - creditNoteAmount;
         
-        // Exclude fully paid bills (remaining amount <= 0)
         return remainingAmount > 0;
       })
       .map(bill => {
         const billDate = new Date(bill.billDate);
         const daysDiff = Math.floor((today - billDate) / (1000 * 60 * 60 * 24));
-        const netPayable = (bill.grandTotal || 0) - (bill.tdsAmount || 0);
+        
+        const actualTDS = (bill.tdsAmount && parseFloat(bill.tdsAmount) > 0) ? parseFloat(bill.tdsAmount) : 0;
+        const netPayable = (bill.grandTotal || 0) - actualTDS;
         const paidAmount = bill.paidAmount || 0;
         const creditNoteAmount = bill.creditNoteAmount || 0;
-        const remainingAmount = netPayable - paidAmount - creditNoteAmount; // Show remaining amount instead of total
+        const remainingAmount = netPayable - paidAmount - creditNoteAmount;
         
         return {
           billNumber: bill.billNumber,
           billDate: bill.billDate,
+          dueDate: bill.dueDate,
           vendorName: bill.vendorName,
-          totalAmount: remainingAmount, // Use remaining amount
+          totalAmount: remainingAmount,
           daysDiff,
           lessThan30: daysDiff < 30 ? remainingAmount : 0,
           days30to60: daysDiff >= 30 && daysDiff < 60 ? remainingAmount : 0,
@@ -85,7 +108,7 @@ const VendorsAging = () => {
           days90to180: daysDiff >= 90 && daysDiff < 180 ? remainingAmount : 0,
           moreThan180: daysDiff >= 180 ? remainingAmount : 0
         };
-      }).filter(bill => bill.daysDiff >= 0);
+      });
   };
 
   const formatDate = (dateString) => {
@@ -104,13 +127,14 @@ const VendorsAging = () => {
   const handleExport = () => {
     const exportData = billsData.map(bill => ({
       'Bill Number': bill.billNumber,
-      'Date': formatDate(bill.billDate),
+      'Bill Date': formatDate(bill.billDate),
+      'Due Date': formatDate(bill.dueDate),
       'Vendor': bill.vendorName,
-      '< 30 Days': bill.lessThan30 > 0 ? bill.lessThan30.toFixed(2) : '',
-      '30 to 60 Days': bill.days30to60 > 0 ? bill.days30to60.toFixed(2) : '',
-      '60 to 90 Days': bill.days60to90 > 0 ? bill.days60to90.toFixed(2) : '',
-      '90 to 180 Days': bill.days90to180 > 0 ? bill.days90to180.toFixed(2) : '',
-      '> 180 Days': bill.moreThan180 > 0 ? bill.moreThan180.toFixed(2) : ''
+      'Not Due': bill.lessThan30 > 0 ? bill.lessThan30.toFixed(2) : '',
+      '0-30 Days Overdue': bill.days30to60 > 0 ? bill.days30to60.toFixed(2) : '',
+      '30-60 Days Overdue': bill.days60to90 > 0 ? bill.days60to90.toFixed(2) : '',
+      '60-90 Days Overdue': bill.days90to180 > 0 ? bill.days90to180.toFixed(2) : '',
+      '> 90 Days Overdue': bill.moreThan180 > 0 ? bill.moreThan180.toFixed(2) : ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -172,19 +196,20 @@ const VendorsAging = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Bill Number</th>
-                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Bill Date</th>
+                <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Due Date</th>
                 <th className="text-left py-4 px-6 font-semibold text-gray-700 text-sm">Vendor</th>
-                <th className="text-center py-4 px-6 font-semibold text-white bg-green-500 text-sm">&lt; 30 Days</th>
-                <th className="text-center py-4 px-6 font-semibold text-white bg-yellow-500 text-sm">30-60 Days</th>
-                <th className="text-center py-4 px-6 font-semibold text-white bg-orange-500 text-sm">60-90 Days</th>
-                <th className="text-center py-4 px-6 font-semibold text-white bg-red-500 text-sm">90-180 Days</th>
-                <th className="text-center py-4 px-6 font-semibold text-white bg-red-700 text-sm">&gt; 180 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-green-500 text-sm">Not Due</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-yellow-500 text-sm">0-30 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-orange-500 text-sm">30-60 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-red-500 text-sm">60-90 Days</th>
+                <th className="text-center py-4 px-6 font-semibold text-white bg-red-700 text-sm">&gt; 90 Days</th>
               </tr>
             </thead>
             <tbody>
               {billsData.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
                     <Calendar size={48} className="mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium">No outstanding bills found</p>
                     <p className="text-sm">All vendor payments are up to date</p>
@@ -197,6 +222,7 @@ const VendorsAging = () => {
                       <span className="text-blue-600 font-medium">{bill.billNumber}</span>
                     </td>
                     <td className="py-4 px-6 text-gray-600">{new Date(bill.billDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                    <td className="py-4 px-6 text-gray-600">{new Date(bill.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
                     <td className="py-4 px-6 text-gray-900 font-medium">{bill.vendorName}</td>
                     <td className="py-4 px-6 text-center font-semibold">
                       <span className={bill.lessThan30 > 0 ? 'text-green-700' : 'text-gray-400'}>
@@ -230,7 +256,7 @@ const VendorsAging = () => {
             {billsData.length > 0 && (
               <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                 <tr>
-                  <td colSpan="3" className="py-4 px-6 font-bold text-gray-900">TOTAL</td>
+                  <td colSpan="4" className="py-4 px-6 font-bold text-gray-900">TOTAL</td>
                   <td className="py-4 px-6 text-center font-bold text-green-700">
                     ₹{totals.lessThan30.toLocaleString('en-IN')}
                   </td>

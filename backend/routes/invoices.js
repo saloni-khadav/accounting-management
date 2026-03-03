@@ -7,6 +7,8 @@ const router = express.Router();
 const { notifyInvoiceCreated } = require('../utils/notificationHelper');
 const auth = require('../middleware/auth');
 const checkPeriodPermission = require('../middleware/checkPeriodPermission');
+const sendEmail = require('../utils/sendEmail');
+const generateInvoicePDF = require('../utils/generateInvoicePDF');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -477,6 +479,76 @@ router.get('/view/:filename', (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Send invoice email with PDF
+router.post('/:id/send-email', auth, async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Get customer email
+    const customerEmail = invoice.contactDetails || invoice.supplierEmail;
+    if (!customerEmail || !customerEmail.includes('@')) {
+      return res.status(400).json({ message: 'Valid customer email not found' });
+    }
+
+    // Get PDF from frontend (base64)
+    const { pdfBase64 } = req.body;
+    let pdfBuffer;
+    
+    if (pdfBase64) {
+      // Use PDF from frontend
+      pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    } else {
+      // Fallback: Generate PDF on backend
+      pdfBuffer = await generateInvoicePDF(invoice);
+    }
+
+    // Create email HTML
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">Tax Invoice</h2>
+        <p>Dear ${invoice.customerName},</p>
+        <p>Please find the attached tax invoice for your reference.</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Invoice Number:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${invoice.invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Invoice Date:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${new Date(invoice.invoiceDate).toLocaleDateString()}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Grand Total:</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;">₹${invoice.grandTotal.toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+        
+        <p>Thank you for your business!</p>
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">This is an automated email. Please do not reply.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      email: customerEmail,
+      subject: `Tax Invoice - ${invoice.invoiceNumber}`,
+      html: emailHtml,
+      attachments: [{
+        filename: `Invoice-${invoice.invoiceNumber}.pdf`,
+        content: pdfBuffer
+      }]
+    });
+
+    res.json({ message: 'Email sent successfully', email: customerEmail });
+  } catch (error) {
+    console.error('Error sending invoice email:', error);
+    res.status(500).json({ message: 'Failed to send email: ' + error.message });
   }
 });
 
