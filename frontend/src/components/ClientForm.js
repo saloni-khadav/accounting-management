@@ -1273,41 +1273,44 @@ const ClientForm = ({ isOpen, onClose, onSave, editingClient }) => {
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-3">Uploaded Documents:</p>
                   <div className="space-y-2">
-                    {formData.documents.otherDocuments.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between bg-white border-2 border-gray-200 px-4 py-3 rounded-lg hover:border-blue-300 transition-colors">
-                        <span className="text-sm text-gray-700 font-medium flex items-center">
-                          <FileText size={16} className="mr-2 text-blue-600" />
-                          {file instanceof File ? file.name : file}
-                        </span>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => viewDocument(file)}
-                            className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
-                            title="View"
-                          >
-                            <FileText size={16} />
-                            View
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => downloadDocument(file, index)}
-                            className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
-                            title="Download"
-                          >
-                            <Download size={16} />
-                            Download
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeOtherDocument(index)}
-                            className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            Remove
-                          </button>
+                    {formData.documents.otherDocuments.map((file, index) => {
+                      const fileName = file instanceof File ? file.name : file.split('/').pop();
+                      return (
+                        <div key={index} className="flex items-center justify-between bg-white border-2 border-gray-200 px-4 py-3 rounded-lg hover:border-blue-300 transition-colors">
+                          <span className="text-sm text-gray-700 font-medium flex items-center">
+                            <FileText size={16} className="mr-2 text-blue-600" />
+                            {fileName}
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => viewDocument(file)}
+                              className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                              title="View"
+                            >
+                              <FileText size={16} />
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadDocument(file, index)}
+                              className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                              title="Download"
+                            >
+                              <Download size={16} />
+                              Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeOtherDocument(index)}
+                              className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
