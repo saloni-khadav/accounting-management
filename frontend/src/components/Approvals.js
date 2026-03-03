@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, User, Calendar, DollarSign, Bell, Search, Eye, Download } from 'lucide-react';
+import { generatePurchaseOrderPDF } from '../utils/poPdfGenerator';
+import { generateTaxInvoicePDF } from '../utils/taxInvoicePdfGenerator';
 
 const Approvals = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -177,6 +179,28 @@ const Approvals = () => {
         }
       }
       
+      if (type === 'Purchase Order') {
+        // Handle Purchase Order approval - backend will automatically send email
+        const response = await fetch(`${baseUrl}/api/manager/action`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Purchase Order' })
+        });
+        
+        if (response.ok) {
+          alert('Purchase Order approved successfully! Email with PDF will be sent to vendor automatically.');
+          fetchPendingApprovals();
+          return;
+        } else {
+          const errorData = await response.json();
+          alert('Error approving Purchase Order: ' + (errorData.message || 'Unknown error'));
+          return;
+        }
+      }
+      
       if (type === 'Proforma Invoice') {
         // Handle Proforma Invoice approval
         const response = await fetch(`${baseUrl}/api/manager/action`, {
@@ -212,33 +236,49 @@ const Approvals = () => {
         
         if (response.ok) {
           alert('Tax Invoice approved successfully!');
+          
+          // Ask if manager wants to send email
+          const sendEmail = window.confirm('Do you want to send PDF email to customer?');
+          if (sendEmail) {
+            try {
+              // Fetch full invoice details
+              const invoiceResponse = await fetch(`${baseUrl}/api/invoices/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              
+              if (invoiceResponse.ok) {
+                const invoiceData = await invoiceResponse.json();
+                
+                // Generate PDF in base64
+                const pdfBase64 = await generateTaxInvoicePDF(invoiceData, true);
+                
+                // Send email with PDF
+                const emailResponse = await fetch(`${baseUrl}/api/invoices/${id}/send-email`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ pdfBase64 })
+                });
+                
+                if (emailResponse.ok) {
+                  alert('Email sent successfully!');
+                } else {
+                  const emailError = await emailResponse.json();
+                  alert('Email sending failed: ' + (emailError.message || 'Unknown error'));
+                }
+              }
+            } catch (emailErr) {
+              alert('Error sending email: ' + emailErr.message);
+            }
+          }
+          
           fetchPendingApprovals();
           return;
         } else {
           const errorData = await response.json();
           alert('Error approving Tax Invoice: ' + (errorData.message || 'Unknown error'));
-          return;
-        }
-      }
-      
-      if (type === 'Purchase Order') {
-        // Handle Purchase Order approval
-        const response = await fetch(`${baseUrl}/api/manager/action`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ itemId: id, action: 'approve', type: 'Purchase Order' })
-        });
-        
-        if (response.ok) {
-          alert('Purchase Order approved successfully!');
-          fetchPendingApprovals();
-          return;
-        } else {
-          const errorData = await response.json();
-          alert('Error approving Purchase Order: ' + (errorData.message || 'Unknown error'));
           return;
         }
       }

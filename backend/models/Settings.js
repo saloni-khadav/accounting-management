@@ -25,6 +25,12 @@ const settingsSchema = new mongoose.Schema({
   autoGenerateCreditNote: { type: Boolean, default: true },
   creditNoteTemplate: { type: String, default: 'Standard' },
   
+  // Purchase Order Settings
+  poPrefix: { type: String, default: 'PO' },
+  poStartNumber: { type: String, default: '1' },
+  autoGeneratePO: { type: Boolean, default: true },
+  poTemplate: { type: String, default: 'Standard' },
+  
   // Notification Settings
   emailNotifications: { type: Boolean, default: true },
   smsNotifications: { type: Boolean, default: false },

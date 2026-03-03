@@ -325,7 +325,11 @@ const billSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  submittedByVendor: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

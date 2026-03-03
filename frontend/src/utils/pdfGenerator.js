@@ -259,190 +259,300 @@ export const generateTaxInvoicePDF = (invoiceData) => {
   doc.save(`TaxInvoice_${invoiceData.invoiceNumber || 'FAT20326517264441'}.pdf`);
 };
 
-export const generatePurchaseOrderPDF = (poData) => {
+export const generatePurchaseOrderPDF = async (poData) => {
   const doc = new jsPDF();
+  let currentPage = 1;
   
-  // Title - Purchase Order (centered)
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Purchase Order', 105, 20, { align: 'center' });
-  
-  // Company Details - Left Side
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('From: Your Company Name', 20, 35);
-  
-  // PO Number Box - Right Side
-  doc.rect(120, 30, 70, 15, 'S');
-  doc.setFont('helvetica', 'bold');
-  doc.text(`PO Number: ${poData.poNumber || 'PO-001'}`, 125, 40);
-  
-  // Company Address
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('Your Company Address', 20, 42);
-  doc.text('City, State - PIN Code', 20, 47);
-  
-  // Horizontal line
-  doc.line(20, 55, 190, 55);
-  
-  // PO Details Section - Left Side
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('PO Date:', 20, 65);
-  doc.setFont('helvetica', 'normal');
-  doc.text(poData.poDate ? new Date(poData.poDate).toLocaleDateString() : new Date().toLocaleDateString(), 20, 72);
-  
-  doc.setFont('helvetica', 'bold');
-  doc.text('Delivery Date:', 20, 82);
-  doc.setFont('helvetica', 'normal');
-  doc.text(poData.deliveryDate ? new Date(poData.deliveryDate).toLocaleDateString() : 'TBD', 20, 89);
-  
-  doc.setFont('helvetica', 'bold');
-  doc.text('Status:', 20, 99);
-  doc.setFont('helvetica', 'normal');
-  doc.text(poData.status || 'Pending', 20, 106);
-  
-  // Supplier Details - Right Side
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('Supplier Details:', 120, 65);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text(poData.supplier || 'Supplier Name', 120, 72);
-  
-  if (poData.gstNumber) {
-    doc.text(`GST Number: ${poData.gstNumber}`, 120, 79);
+  // Fetch company profile
+  let companyProfile = {};
+  try {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const token = localStorage.getItem('token');
+    if (token) {
+      const response = await fetch(`${baseUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const result = await response.json();
+        companyProfile = result.user?.profile || {};
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching company profile:', error);
   }
+
+  const addHeaderFooter = (pageNum) => {
+    // Barcode placeholder
+    doc.setFontSize(10);
+    doc.text('||||| |||||', 20, 15);
+    
+    // Title
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('general purchase order', 20, 22);
+    
+    // Company name on right (you can add logo here if available)
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 128, 0);
+    doc.text(companyProfile.tradeName || 'Your Company Name', 200, 20, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const footerText = companyProfile.tradeName || 'ECOAGRITEK AI SOLUTIONS PRIVATE LIMITED';
+    doc.text(footerText, 20, 285);
+    doc.text(`Page ${pageNum} of 6`, 200, 285, { align: 'right' });
+    
+    const addressLine = companyProfile.address || 'PLOT NO 63, GALI NO 1 SATGURU ENCLAVE MOLLAHERA BLOCK C, OPP Maruti Gate No 1, Gurugram, Gurugram, Haryana, 122015';
+    doc.text(addressLine, 20, 290);
+  };
+
+  // PAGE 1 - Main PO Details
+  addHeaderFooter(currentPage);
   
+  // Two column layout
+  let yPos = 35;
+  
+  // Left column - Vendor details
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('To', 20, yPos);
+  doc.text(':', 50, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.supplier || 'Vendor Name', 55, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Address', 20, yPos);
+  doc.text(':', 50, yPos);
+  doc.setFont('helvetica', 'normal');
   if (poData.deliveryAddress) {
-    const addressLines = doc.splitTextToSize(poData.deliveryAddress, 60);
-    let addressY = 86;
-    addressLines.forEach(line => {
-      doc.text(line, 120, addressY);
-      addressY += 4;
+    const addressLines = doc.splitTextToSize(poData.deliveryAddress, 80);
+    addressLines.forEach((line, idx) => {
+      doc.text(line, 55, yPos + (idx * 5));
     });
+    yPos += addressLines.length * 5;
   } else {
-    doc.text('Supplier Address', 120, 86);
-    doc.text('Contact Information', 120, 93);
+    doc.text('Address not provided', 55, yPos);
+    yPos += 7;
   }
   
-  // Total Items
+  yPos += 7;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(`Total Items: ${poData.items?.length || 0}`, 20, 120);
+  doc.text('GSTIN/UIN', 20, yPos);
+  doc.text(':', 50, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.gstNumber || 'N/A', 55, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pan Number', 20, yPos);
+  doc.text(':', 50, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.panNumber || 'N/A', 55, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Place of Supplier', 20, yPos);
+  doc.text(':', 50, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.placeOfSupplier || 'N/A', 55, yPos);
+  
+  // Right column - Order details
+  yPos = 35;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Order No', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.poNumber || 'PO-001', 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Order Date', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.poDate ? new Date(poData.poDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'), 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Name', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(companyProfile.tradeName || 'Your Company Name', 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Our Address', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  if (companyProfile.address) {
+    const companyAddressLines = doc.splitTextToSize(companyProfile.address, 50);
+    companyAddressLines.forEach((line, idx) => {
+      doc.text(line, 155, yPos + (idx * 5));
+    });
+    yPos += companyAddressLines.length * 5;
+  } else {
+    doc.text('Address not provided', 155, yPos);
+    yPos += 7;
+  }
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('GSTIN', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(companyProfile.gstNumber || 'N/A', 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAN', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(companyProfile.panNumber || 'N/A', 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Place of Supply', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text('[06 - Haryana]', 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Printed On', 120, yPos);
+  doc.text(':', 150, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date().toLocaleDateString('en-GB'), 155, yPos);
+  
+  yPos += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Business unit :', 120, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(poData.businessUnit || 'N/A', 155, yPos);
   
   // Items table
+  yPos += 10;
   const tableData = [];
   
   if (poData.items && poData.items.length > 0) {
     poData.items.forEach(item => {
-      const itemTotal = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100) + 
-                      (((item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100)) * (item.cgstRate + item.sgstRate + item.igstRate) / 100);
-      
+      const itemTotal = (item.quantity * item.rate) - ((item.quantity * item.rate) * item.discount / 100);
       tableData.push([
         item.name || 'Item Name',
         item.hsn || 'HSN/SAC',
         item.quantity || 0,
         Number(item.rate || 0).toFixed(2),
-        `${item.discount || 0}%`,
-        `CGST: ${item.cgstRate || 0}%\nSGST: ${item.sgstRate || 0}%\nIGST: ${item.igstRate || 0}%`,
         Number(itemTotal).toFixed(2)
       ]);
     });
   }
   
-  // Calculate totals
-  const subTotal = Number(poData.subTotal || 0);
-  const totalDiscount = Number(poData.totalDiscount || 0);
-  const totalTax = Number(poData.totalTax || 0);
-  const grandTotal = Number(poData.totalAmount || 0);
-  
-  // Add total row
-  if (tableData.length > 0) {
-    tableData.push([
-      '',
-      'Total',
-      poData.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
-      subTotal.toFixed(2),
-      `-${totalDiscount.toFixed(2)}`,
-      `Tax: ${totalTax.toFixed(2)}`,
-      grandTotal.toFixed(2)
-    ]);
-  }
-  
   doc.autoTable({
-    startY: 130,
-    head: [[
-      'Item Name',
-      'HSN/SAC',
-      'Qty',
-      'Rate ₹',
-      'Discount',
-      'Tax Details',
-      'Total ₹'
-    ]],
-    body: tableData,
+    startY: yPos,
+    head: [['Item Number', 'Description', 'HSN / SAC', 'Quantity', 'Rate', 'Amount']],
+    body: tableData.map(row => [row[0], row[0], row[1], row[2], row[3], row[4]]),
     theme: 'grid',
     headStyles: {
-      fillColor: [240, 240, 240],
+      fillColor: [255, 255, 255],
       textColor: [0, 0, 0],
       fontSize: 8,
       fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle'
+      lineWidth: 0.5,
+      lineColor: [0, 0, 0]
     },
     bodyStyles: {
       fontSize: 8,
-      cellPadding: 2,
-      valign: 'top'
+      cellPadding: 3
     },
     columnStyles: {
-      0: { cellWidth: 35, halign: 'left' },
-      1: { cellWidth: 20, halign: 'center' },
-      2: { cellWidth: 15, halign: 'center' },
-      3: { cellWidth: 20, halign: 'right' },
-      4: { cellWidth: 20, halign: 'center' },
-      5: { cellWidth: 30, halign: 'left' },
-      6: { cellWidth: 25, halign: 'right' }
+      0: { cellWidth: 30 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 25, halign: 'right' },
+      4: { cellWidth: 25, halign: 'right' },
+      5: { cellWidth: 30, halign: 'right' }
     },
-    didParseCell: function(data) {
-      if (data.row.index === tableData.length - 1) {
-        data.cell.styles.fontStyle = 'bold';
-      }
-    },
-    margin: { bottom: 60 }
+    margin: { bottom: 50 }
   });
   
-  // Summary section
-  let finalY = doc.lastAutoTable.finalY + 15;
+  // Tax and total
+  let finalY = doc.lastAutoTable.finalY + 10;
+  const subTotal = Number(poData.subTotal || 0);
+  const totalTax = Number(poData.totalTax || 0);
+  const grandTotal = Number(poData.totalAmount || 0);
   
-  if (finalY > 220) {
-    finalY = 220;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('IGST @ 12%', 120, finalY);
+  doc.text(totalTax.toFixed(2), 190, finalY, { align: 'right' });
+  
+  finalY += 10;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Grand Total', 120, finalY);
+  doc.text(grandTotal.toFixed(2), 190, finalY, { align: 'right' });
+  
+  finalY += 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  const amountInWords = `Rupees One Lakh Forty Five Thousand One Hundred Fifty Two Only`;
+  doc.text(amountInWords, 20, finalY);
+  doc.text('CRN : U016110D2023PTC051238', 20, finalY + 5);
+  
+  // Notes
+  finalY += 15;
+  doc.setFontSize(7);
+  doc.text('* Please attach a DUPLICATE copy of our order along with Photograph/delivery challan to your bill.', 20, finalY);
+  doc.text('* Your bills should be sent to us in TRIPLICATE which needs to be approved by our servicing person.', 20, finalY + 4);
+  doc.text('* All bills against this PO are to be submitted within 7 working days from PO receipt; failing which the Order shall stand cancelled.', 20, finalY + 8);
+  
+  finalY += 15;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('This purchase order is subject to following Terms & conditions :', 20, finalY);
+  
+  // PAGE 2-5 - Terms & Conditions
+  const termsAndConditions = [
+    '1. Definitions. Capitalized terms have the following meanings: (a) "Goods" means the goods, services and other items to be supplied to Purchaser by Supplier under this Purchase Order; (b) "Purchase Order" means the written or electronic order for Goods as is attached herewith; (c) "Purchaser" means the Purchaser issuing this Purchase Order; (d) "Specified price" means the price for the Purchaser Order as the supplier.',
+    '2. Order, Price and Payment. This Order is being placed by the Purchaser on behalf of its Client and the payments are subject to satisfactory deliverables and proper submission of bills. The Specified price is inclusive of all applicable taxes, freight, packaging, insurance, handling and all other charges. Taxes, duties, cess as applicable to your services will have to be mentioned separately on your invoices with the',
+    // Add more terms as needed
+  ];
+  
+  for (let i = 2; i <= 5; i++) {
+    doc.addPage();
+    currentPage++;
+    addHeaderFooter(currentPage);
+    
+    yPos = 35;
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    
+    // Add terms text (you can add actual terms here)
+    const termsText = `Terms and conditions page ${i - 1}`;
+    doc.text(termsText, 20, yPos);
   }
   
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('Order Summary:', 120, finalY);
+  // PAGE 6 - Signatures
+  doc.addPage();
+  currentPage++;
+  addHeaderFooter(currentPage);
   
-  doc.setFont('helvetica', 'normal');
+  yPos = 100;
   doc.setFontSize(9);
-  doc.text(`Sub Total: ₹${subTotal.toFixed(2)}`, 120, finalY + 8);
-  doc.text(`Total Discount: ₹${totalDiscount.toFixed(2)}`, 120, finalY + 16);
-  doc.text(`Total Tax: ₹${totalTax.toFixed(2)}`, 120, finalY + 24);
+  doc.setFont('helvetica', 'normal');
   
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text(`Grand Total: ₹${grandTotal.toFixed(2)}`, 120, finalY + 35);
+  // Three signature columns
+  doc.text(`For ${poData.supplier || 'Vendor Name'}`, 20, yPos);
+  doc.text('(Prepared By)', 85, yPos);
+  doc.text('(Authorized Signatory)', 150, yPos);
   
-  // Signature area
-  const signatureY = finalY + 50;
-  doc.line(20, signatureY, 60, signatureY);
-  doc.line(140, signatureY, 180, signatureY);
-  doc.setFontSize(8);
-  doc.text('Prepared By', 30, signatureY + 8);
-  doc.text('Authorized Signatory', 150, signatureY + 8);
+  yPos += 10;
+  doc.text('Supackstar', 20, yPos);
+  doc.text(companyProfile.tradeName || 'Your Company Name', 150, yPos);
+  
+  yPos += 10;
+  doc.text('Authorized Signatory', 20, yPos);
   
   // Download PDF
   doc.save(`PurchaseOrder_${poData.poNumber || 'PO-001'}.pdf`);

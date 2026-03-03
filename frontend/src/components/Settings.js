@@ -25,6 +25,12 @@ const Settings = () => {
     autoGenerateCreditNote: true,
     creditNoteTemplate: 'Standard',
     
+    // Purchase Order Settings
+    poPrefix: 'PO',
+    poStartNumber: 1,
+    autoGeneratePO: true,
+    poTemplate: 'Standard',
+    
     // Notification Settings
     emailNotifications: true,
     smsNotifications: false,
@@ -85,7 +91,40 @@ const Settings = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setSettings(prev => ({ ...prev, ...data }));
+        console.log('Fetched settings from DB:', data);
+        // Merge with defaults, database values take priority
+        setSettings({
+          companyName: data.companyName || '',
+          financialYear: data.financialYear || '2024-25',
+          currency: data.currency || 'INR',
+          dateFormat: data.dateFormat || 'DD/MM/YYYY',
+          numberFormat: data.numberFormat || 'Indian',
+          invoicePrefix: data.invoicePrefix || 'INV',
+          invoiceStartNumber: data.invoiceStartNumber || 1,
+          autoGenerateInvoice: data.autoGenerateInvoice !== undefined ? data.autoGenerateInvoice : true,
+          invoiceTemplate: data.invoiceTemplate || 'Standard',
+          creditNotePrefix: data.creditNotePrefix || 'CN',
+          creditNoteStartNumber: data.creditNoteStartNumber || 1,
+          autoGenerateCreditNote: data.autoGenerateCreditNote !== undefined ? data.autoGenerateCreditNote : true,
+          creditNoteTemplate: data.creditNoteTemplate || 'Standard',
+          poPrefix: data.poPrefix || 'PO',
+          poStartNumber: data.poStartNumber || 1,
+          autoGeneratePO: data.autoGeneratePO !== undefined ? data.autoGeneratePO : true,
+          poTemplate: data.poTemplate || 'Standard',
+          emailNotifications: data.emailNotifications !== undefined ? data.emailNotifications : true,
+          smsNotifications: data.smsNotifications !== undefined ? data.smsNotifications : false,
+          overdueReminders: data.overdueReminders !== undefined ? data.overdueReminders : true,
+          paymentAlerts: data.paymentAlerts !== undefined ? data.paymentAlerts : true,
+          twoFactorAuth: data.twoFactorAuth !== undefined ? data.twoFactorAuth : false,
+          sessionTimeout: data.sessionTimeout || 30,
+          passwordExpiry: data.passwordExpiry || 90,
+          autoBackup: data.autoBackup !== undefined ? data.autoBackup : true,
+          backupFrequency: data.backupFrequency || 'Daily',
+          backupLocation: data.backupLocation || 'Cloud',
+          allowMultipleUsers: data.allowMultipleUsers !== undefined ? data.allowMultipleUsers : true,
+          maxUsers: data.maxUsers || 5,
+          roleBasedAccess: data.roleBasedAccess !== undefined ? data.roleBasedAccess : true
+        });
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -105,6 +144,8 @@ const Settings = () => {
     try {
       const token = localStorage.getItem('token');
       
+      console.log('Saving settings:', settings);
+      
       // Update Settings
       const settingsResponse = await fetch(`${baseUrl}/api/settings`, {
         method: 'PUT',
@@ -114,6 +155,10 @@ const Settings = () => {
         },
         body: JSON.stringify(settings)
       });
+      
+      console.log('Settings response status:', settingsResponse.status);
+      const settingsData = await settingsResponse.json();
+      console.log('Settings response data:', settingsData);
       
       // Update User's Company Name
       const userResponse = await fetch(`${baseUrl}/api/auth/update-company`, {
@@ -125,6 +170,8 @@ const Settings = () => {
         body: JSON.stringify({ companyName: settings.companyName })
       });
       
+      console.log('User response status:', userResponse.status);
+      
       if (settingsResponse.ok && userResponse.ok) {
         alert('Settings saved successfully!');
         // Trigger header refresh
@@ -132,11 +179,13 @@ const Settings = () => {
         // Refresh settings from server
         await fetchSettings();
       } else {
-        alert('Failed to save settings');
+        const errorMsg = settingsData.message || 'Failed to save settings';
+        alert(errorMsg);
+        console.error('Save failed:', errorMsg);
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Error saving settings');
+      alert('Error saving settings: ' + error.message);
     }
   };
 
@@ -352,6 +401,69 @@ const Settings = () => {
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        {/* Purchase Order Settings */}
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 to-blue-400 text-white p-4">
+            <h2 className="text-lg font-semibold flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Purchase Order Settings
+            </h2>
+          </div>
+          <div className="p-6">
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">PO Prefix</label>
+                <input
+                  type="text"
+                  value={settings.poPrefix}
+                  onChange={(e) => handleInputChange('poPrefix', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Number</label>
+                <input
+                  type="text"
+                  value={settings.poStartNumber}
+                  onChange={(e) => handleInputChange('poStartNumber', e.target.value)}
+                  placeholder="001"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PO Template</label>
+              <select
+                value={settings.poTemplate}
+                onChange={(e) => handleInputChange('poTemplate', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="Standard">Standard</option>
+                <option value="Professional">Professional</option>
+                <option value="Minimal">Minimal</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Auto Generate PO Numbers</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.autoGeneratePO}
+                  onChange={(e) => handleInputChange('autoGeneratePO', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
               </label>
             </div>
           </div>

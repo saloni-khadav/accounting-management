@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const PurchaseOrder = require('../models/PurchaseOrder');
+const Settings = require('../models/Settings');
+const User = require('../models/User');
+const Vendor = require('../models/Vendor');
 const Bill = require('../models/Bill');
 const auth = require('../middleware/auth');
 const checkPeriodPermission = require('../middleware/checkPeriodPermission');
+const sendEmail = require('../utils/sendEmail');
 
 // Get Purchase Orders by vendor name
 router.get('/vendor/:vendorName', async (req, res) => {
@@ -78,26 +82,46 @@ router.get('/available', async (req, res) => {
 });
 
 // Get next PO number
-router.get('/next-po-number', async (req, res) => {
+router.get('/next-po-number', auth, async (req, res) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    const yearCode = `${currentYear.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
+    const user = await User.findById(req.user.id);
+    let settings = await Settings.findOne({ companyName: user.companyName });
     
-    // Find the latest PO number for current year format
-    const latestPO = await PurchaseOrder.findOne({
-      poNumber: { $regex: `^PO-${yearCode}-` }
-    }).sort({ poNumber: -1 });
-    
-    let nextNumber = 1;
-    if (latestPO) {
-      const lastNumber = parseInt(latestPO.poNumber.split('-')[2]);
-      nextNumber = lastNumber + 1;
+    if (!settings) {
+      settings = new Settings({ 
+        companyName: user.companyName,
+        poPrefix: 'PO-',
+        poStartNumber: '001'
+      });
+      await settings.save();
     }
     
-    const poNumber = `PO-${yearCode}-${nextNumber.toString().padStart(3, '0')}`;
+    const poPrefix = settings.poPrefix || 'PO-';
+    const startNum = settings.poStartNumber || '001';
+    
+    // Find all POs with this exact prefix
+    const allPOs = await PurchaseOrder.find({}).sort({ createdAt: -1 });
+    let maxNumber = parseInt(startNum) - 1;
+    
+    for (const po of allPOs) {
+      if (po.poNumber && po.poNumber.startsWith(poPrefix)) {
+        const afterPrefix = po.poNumber.substring(poPrefix.length);
+        if (/^\d+$/.test(afterPrefix)) {
+          const num = parseInt(afterPrefix);
+          if (!isNaN(num) && num > maxNumber) {
+            maxNumber = num;
+          }
+        }
+      }
+    }
+    
+    const nextNum = maxNumber + 1;
+    const paddedNum = String(nextNum).padStart(startNum.length, '0');
+    const poNumber = poPrefix + paddedNum;
+    
     res.json({ poNumber });
   } catch (error) {
+    console.error('Error generating PO number:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -120,6 +144,70 @@ router.post('/', auth, checkPeriodPermission('Purchase Orders'), async (req, res
     res.status(201).json(savedPO);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Send PO email to vendor
+router.post('/:id/send-email', auth, async (req, res) => {
+  try {
+    console.log('=== EMAIL ENDPOINT CALLED ===');
+    const { pdfData } = req.body;
+    console.log('PDF Data received:', pdfData ? 'Yes' : 'No');
+    console.log('PDF Data length:', pdfData ? pdfData.length : 0);
+    
+    const purchaseOrder = await PurchaseOrder.findById(req.params.id);
+    
+    if (!purchaseOrder) {
+      return res.status(404).json({ message: 'Purchase order not found' });
+    }
+
+    const vendor = await Vendor.findOne({ vendorName: purchaseOrder.supplier });
+    
+    if (!vendor || !vendor.email) {
+      return res.status(404).json({ message: 'Vendor email not found' });
+    }
+
+    const emailOptions = {
+      email: vendor.email,
+      subject: `Purchase Order - ${purchaseOrder.poNumber}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Purchase Order</h2>
+          <p>Dear ${vendor.contactPerson || vendor.vendorName},</p>
+          <p>Please find attached the Purchase Order <strong>${purchaseOrder.poNumber}</strong>.</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>PO Number:</strong> ${purchaseOrder.poNumber}</p>
+            <p style="margin: 5px 0;"><strong>PO Date:</strong> ${new Date(purchaseOrder.poDate).toLocaleDateString('en-GB')}</p>
+            <p style="margin: 5px 0;"><strong>Total Amount:</strong> ₹${purchaseOrder.totalAmount?.toFixed(2)}</p>
+          </div>
+          <p>Please review the attached document.</p>
+          <p>Best regards,<br/>ECOAGRITEK AI SOLUTIONS PRIVATE LIMITED</p>
+        </div>
+      `
+    };
+    
+    if (pdfData) {
+      console.log('Adding PDF attachment...');
+      emailOptions.attachments = [
+        {
+          filename: `PurchaseOrder_${purchaseOrder.poNumber}.pdf`,
+          content: pdfData,
+          encoding: 'base64'
+        }
+      ];
+      console.log('PDF attachment added');
+    } else {
+      console.log('No PDF data provided');
+    }
+
+    console.log('Sending email...');
+    await sendEmail(emailOptions);
+    console.log('✅ Email sent successfully');
+    
+    res.json({ message: 'Email sent successfully', email: vendor.email });
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
