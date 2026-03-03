@@ -1,8 +1,19 @@
 import React from 'react';
-import { X, User, Mail, Phone, MapPin, Building, CreditCard, Calendar, DollarSign } from 'lucide-react';
+import { X, User, Mail, Phone, MapPin, Building, CreditCard, Calendar, DollarSign, FileText, Eye, Download } from 'lucide-react';
 
 const VendorDetails = ({ vendor, isOpen, onClose }) => {
   if (!isOpen || !vendor) return null;
+
+  const handleViewDocument = (file) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    window.open(`${baseUrl}${file}`, '_blank');
+  };
+
+  const handleDownloadDocument = (file) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    const filename = file.split('/').pop();
+    window.open(`${baseUrl}/api/vendors/download/${filename}`, '_blank');
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -220,6 +231,44 @@ const VendorDetails = ({ vendor, isOpen, onClose }) => {
               </div>
             </div>
           </div>
+
+          {/* Other Documents */}
+          {vendor.documents?.otherDocuments && vendor.documents.otherDocuments.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                Other Documents
+              </h3>
+              <div className="space-y-2">
+                {vendor.documents.otherDocuments.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <span className="text-sm text-gray-700 font-medium flex items-center">
+                      <FileText size={16} className="mr-2 text-blue-600" />
+                      {file.split('/').pop()}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewDocument(file)}
+                        className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                        title="View"
+                      >
+                        <Eye size={16} />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleDownloadDocument(file)}
+                        className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                        title="Download"
+                      >
+                        <Download size={16} />
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end p-6 border-t">

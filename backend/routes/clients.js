@@ -62,7 +62,9 @@ router.get('/:id', async (req, res) => {
     // Calculate file sizes for otherDocuments
     if (client.documents && client.documents.otherDocuments) {
       const documentsWithSize = client.documents.otherDocuments.map(filename => {
-        const filePath = path.join(uploadsDir, filename);
+        // Remove /uploads/clients/ prefix if present
+        const cleanFilename = filename.replace('/uploads/clients/', '');
+        const filePath = path.join(uploadsDir, cleanFilename);
         let size = 0;
         if (fs.existsSync(filePath)) {
           const stats = fs.statSync(filePath);
@@ -152,7 +154,7 @@ router.post('/', (req, res, next) => {
       
       // Handle multiple other documents
       if (req.files.otherDocuments) {
-        clientData.documents.otherDocuments = req.files.otherDocuments.map(file => file.filename);
+        clientData.documents.otherDocuments = req.files.otherDocuments.map(file => `/uploads/clients/${file.filename}`);
       }
     }
     
@@ -232,10 +234,13 @@ router.put('/:id', upload.fields([
       
       // Handle multiple other documents - append to existing
       if (req.files.otherDocuments) {
-        const existingClient = await Client.findById(req.params.id);
-        const existingDocs = existingClient?.documents?.otherDocuments || [];
-        const newDocs = req.files.otherDocuments.map(file => file.filename);
+        const newDocs = req.files.otherDocuments.map(file => `/uploads/clients/${file.filename}`);
+        // Get existing documents from request body (sent separately)
+        const existingDocs = req.body.existingOtherDocuments ? JSON.parse(req.body.existingOtherDocuments) : [];
         clientData.documents.otherDocuments = [...existingDocs, ...newDocs];
+      } else if (req.body.existingOtherDocuments) {
+        // No new files, just preserve existing ones
+        clientData.documents.otherDocuments = JSON.parse(req.body.existingOtherDocuments);
       }
     }
     
@@ -284,10 +289,13 @@ router.get('/search/:term', async (req, res) => {
 });
 
 // Download document
-router.get('/download/:filename', (req, res) => {
+router.get('/download/:filename(*)', (req, res) => {
   try {
-    const filePath = path.join(uploadsDir, req.params.filename);
+    // Extract filename from path like /uploads/clients/filename.jpg
+    const filename = req.params.filename.split('/').pop();
+    const filePath = path.join(uploadsDir, filename);
     if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.download(filePath);
     } else {
       res.status(404).json({ message: 'File not found' });
@@ -298,9 +306,11 @@ router.get('/download/:filename', (req, res) => {
 });
 
 // View document
-router.get('/view/:filename', (req, res) => {
+router.get('/view/:filename(*)', (req, res) => {
   try {
-    const filePath = path.join(uploadsDir, req.params.filename);
+    // Extract filename from path like /uploads/clients/filename.jpg
+    const filename = req.params.filename.split('/').pop();
+    const filePath = path.join(uploadsDir, filename);
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath);
     } else {

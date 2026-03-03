@@ -50,6 +50,22 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
     try {
       if (editingVendor) {
         console.log('Loading vendor for editing:', editingVendor);
+        console.log('Vendor documents:', editingVendor.documents);
+        console.log('otherDocumentsWithSize:', editingVendor.documents?.otherDocumentsWithSize);
+        
+        // Calculate total size from saved files
+        let savedFilesSize = 0;
+        let savedFilesList = [];
+        if (editingVendor.documents?.otherDocumentsWithSize) {
+          savedFilesSize = editingVendor.documents.otherDocumentsWithSize.reduce((sum, doc) => sum + doc.size, 0);
+          savedFilesList = editingVendor.documents.otherDocumentsWithSize.map(doc => doc.filename);
+          console.log('Calculated savedFilesSize:', savedFilesSize, 'bytes =', (savedFilesSize / (1024 * 1024)).toFixed(2), 'MB');
+          console.log('Saved files list:', savedFilesList);
+        } else if (editingVendor.documents?.otherDocuments) {
+          savedFilesList = editingVendor.documents.otherDocuments;
+          console.log('No otherDocumentsWithSize, using otherDocuments:', savedFilesList);
+        }
+        
         setFormData({
           vendorCode: editingVendor.vendorCode || '',
           vendorName: editingVendor.vendorName || '',
@@ -81,12 +97,13 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           status: editingVendor.status || 'Active',
           accountManager: editingVendor.accountManager || '',
           aadharNumber: editingVendor.aadharNumber || '',
-          documents: editingVendor.documents || {
-            panCard: null,
-            aadharCard: null,
-            gstCertificate: null,
-            bankStatement: null,
-            otherDocuments: []
+          documents: {
+            panCard: editingVendor.documents?.panCard || null,
+            aadharCard: editingVendor.documents?.aadharCard || null,
+            gstCertificate: editingVendor.documents?.gstCertificate || null,
+            bankStatement: editingVendor.documents?.bankStatement || null,
+            otherDocuments: savedFilesList,
+            savedFilesSize: savedFilesSize
           }
         });
       } else {
@@ -423,6 +440,43 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
 
   const handleOtherDocumentUpload = (e) => {
     const files = Array.from(e.target.files);
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    
+    // Calculate existing new files size (File objects)
+    const newFilesInFormSize = formData.documents.otherDocuments.reduce((sum, doc) => {
+      if (doc instanceof File) {
+        return sum + doc.size;
+      }
+      return sum;
+    }, 0);
+    
+    // Add saved files size from server
+    const savedFilesSize = formData.documents.savedFilesSize || 0;
+    
+    // Calculate new files size being uploaded now
+    const newFilesSize = files.reduce((sum, file) => sum + file.size, 0);
+    
+    // Total = saved files + new files in form + files being uploaded now
+    const totalSize = savedFilesSize + newFilesInFormSize + newFilesSize;
+    
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const existingSize = savedFilesSize + newFilesInFormSize;
+      const remainingSize = MAX_TOTAL_SIZE - existingSize;
+      alert(`Total document size cannot exceed 10MB. You have ${(existingSize / (1024 * 1024)).toFixed(2)}MB already uploaded. Only ${(remainingSize / (1024 * 1024)).toFixed(2)}MB remaining.`);
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
+    // Validate file types
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      alert('Only PDF, JPG, JPEG, PNG, DOC, and DOCX files are allowed.');
+      e.target.value = ''; // Reset file input
+      return;
+    }
+    
     setFormData({
       ...formData,
       documents: {
@@ -430,9 +484,11 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
         otherDocuments: [...formData.documents.otherDocuments, ...files]
       }
     });
+    e.target.value = ''; // Reset file input for next upload
   };
 
   const downloadDocument = (file, index) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     if (file instanceof File) {
       const url = URL.createObjectURL(file);
       const a = document.createElement('a');
@@ -443,8 +499,18 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } else if (typeof file === 'string') {
-      // Handle existing uploaded files (file paths)
-      window.open(`${API_URL}/api/vendors/download/${file}`, '_blank');
+      const filename = file.split('/').pop();
+      window.open(`${baseUrl}/api/vendors/download/${filename}`, '_blank');
+    }
+  };
+
+  const viewDocument = (file) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
+    if (file instanceof File) {
+      const url = URL.createObjectURL(file);
+      window.open(url, '_blank');
+    } else if (typeof file === 'string') {
+      window.open(`${baseUrl}${file}`, '_blank');
     }
   };
 
@@ -508,12 +574,17 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
           if (formData.documents.bankStatement) {
             formDataToSend.append('bankStatement', formData.documents.bankStatement);
           }
-          // Add other documents as files
+          // Add only NEW other documents as files (File objects)
           formData.documents.otherDocuments.forEach((file) => {
             if (file instanceof File) {
               formDataToSend.append('otherDocuments', file);
             }
           });
+          // For edit mode, send existing filenames separately
+          if (editingVendor) {
+            const existingFiles = formData.documents.otherDocuments.filter(file => typeof file === 'string');
+            formDataToSend.append('existingOtherDocuments', JSON.stringify(existingFiles));
+          }
         } else if (key === 'gstNumbers') {
           formDataToSend.append('gstNumbers', JSON.stringify(formData.gstNumbers));
         } else {
@@ -1146,48 +1217,71 @@ const VendorForm = ({ isOpen, onClose, onSave, editingVendor }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Other Documents
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Other Documents
+                  </label>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {(() => {
+                      const newFilesSize = formData.documents.otherDocuments.reduce((sum, doc) => sum + (doc instanceof File ? doc.size : 0), 0);
+                      const savedSize = formData.documents.savedFilesSize || 0;
+                      const totalSize = newFilesSize + savedSize;
+                      return `${(totalSize / (1024 * 1024)).toFixed(2)}MB / 10MB`;
+                    })()}
+                  </span>
+                </div>
                 <input
                   type="file"
                   multiple
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   onChange={handleOtherDocumentUpload}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
                 />
               </div>
             </div>
 
             {formData.documents.otherDocuments.length > 0 && (
               <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">Uploaded Documents:</p>
-                <div className="space-y-1">
-                  {formData.documents.otherDocuments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm text-gray-700">
-                        {file instanceof File ? file.name : file}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => downloadDocument(file, index)}
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                          title="Download"
-                        >
-                          <Download size={16} className="mr-1" />
-                          Download
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeOtherDocument(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
+                <p className="text-sm font-medium text-gray-700 mb-3">Uploaded Documents:</p>
+                <div className="space-y-2">
+                  {formData.documents.otherDocuments.map((file, index) => {
+                    const fileName = file instanceof File ? file.name : file.split('/').pop();
+                    return (
+                      <div key={index} className="flex items-center justify-between bg-white border-2 border-gray-200 px-4 py-3 rounded-lg hover:border-blue-300 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium flex items-center">
+                          <FileText size={16} className="mr-2 text-blue-600" />
+                          {fileName}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => viewDocument(file)}
+                            className="text-green-600 hover:bg-green-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                            title="View"
+                          >
+                            <FileText size={16} />
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDocument(file, index)}
+                            className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition-colors"
+                            title="Download"
+                          >
+                            <Download size={16} />
+                            Download
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeOtherDocument(index)}
+                            className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

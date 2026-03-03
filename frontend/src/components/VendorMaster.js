@@ -62,14 +62,28 @@ const VendorMaster = () => {
     await fetchVendors();
   };
 
-  const handleEditVendor = (vendor) => {
+  const handleEditVendor = async (vendor) => {
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://nextbook-backend.nextsphere.co.in';
     try {
       console.log('Editing vendor:', vendor);
-      setEditingVendor(vendor);
+      
+      // Fetch full vendor details by ID to ensure we have all data including file sizes
+      const response = await fetch(`${baseUrl}/api/vendors/${vendor._id}`);
+      if (response.ok) {
+        const fullVendorData = await response.json();
+        console.log('Full vendor data:', fullVendorData);
+        setEditingVendor(fullVendorData);
+      } else {
+        // Fallback to the vendor data we have
+        setEditingVendor(vendor);
+      }
+      
       setIsFormOpen(true);
     } catch (error) {
       console.error('Error in handleEditVendor:', error);
-      alert('Error opening edit form. Please try again.');
+      // Fallback to the vendor data we have
+      setEditingVendor(vendor);
+      setIsFormOpen(true);
     }
   };
 
